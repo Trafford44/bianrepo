@@ -330,9 +330,9 @@
 
         function saveState() {
             localStorage.setItem('kb_data', JSON.stringify(subjects));
-            //if (cloudSyncEnabled) {
-             //   saveWorkspaceToGist();
-            //}            
+            if (cloudSyncEnabled) {
+                saveWorkspaceToGist();
+            }            
         }
 
         // --- Resizing Logic ---
