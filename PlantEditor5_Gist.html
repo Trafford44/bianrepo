@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subject Workspace - Folders & Files</title>
+    <!-- Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plantuml-encoder@1.4.0/dist/plantuml-encoder.min.js"></script>
+    <style>
+        /* Base Variables & Reset */
+        :root {
+            --header-height: 56px;
+            --bg-body: #f3f4f6;
+            --bg-sidebar: #ffffff;
+            --bg-header: #ffffff;
+            --bg-card: #f9fafb;
+            --border-color: #e5e7eb;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: #eff6ff;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --resizer-width: 4px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+        }
+
+        /* Resizable Layout Structure */
+        .sidebar {
+            width: 300px;
+            min-width: 200px;
+            max-width: 500px;
+            height: 100vh;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .resizer {
+            width: var(--resizer-width);
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .resizer:hover, .resizing {
+            background: var(--accent);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #fff;
+            min-width: 0;
+        }
+
+        /* Sidebar Header & List */
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9fafb;
+        }
+
+        .sidebar-header h1 { font-size: 1rem; font-weight: 700; }
+
+        .file-actions { 
+            display: flex; 
+            gap: 4px; 
+            opacity: 0; 
+            transition: opacity 0.2s;
+        }
+        
+        .file-item:hover .file-actions { opacity: 1; }
+
+        /* FIX FOR POINT 3: Icon Button Styling */
+        .icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            background: #e5e7eb;
+            color: var(--text-main);
+        }
+
+        .icon-btn.del:hover {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .btn-add-file {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fff;
+            color: var(--accent);
+            cursor: pointer;
+        }
+
+        .sidebar-list { flex: 1; overflow-y: auto; }
+
+        .subject-header {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            border-bottom: 1px solid #f9fafb;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .subject-header:hover { background: #f9fafb; }
+
+        .chevron {
+            display: inline-block;
+            margin-right: 0.5rem;
+            font-size: 0.6rem;
+            transition: transform 0.2s;
+        }
+
+        .chevron.open { transform: rotate(90deg); }
+
+        .subject-title { flex: 1; }
+
+        .file-item {
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .file-item:hover { background: #f3f4f6; }
+
+        .file-item.active {
+            background: var(--accent-light);
+            border-left-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .file-icon { opacity: 0.6; margin-right: 0.5rem; font-weight: 700; font-family: monospace; }
+
+        /* Toolbar */
+        .file-toolbar {
+            height: var(--header-height);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            flex-shrink: 0;
+        }
+
+        .toolbar-info { display: flex; align-items: center; gap: 0.75rem; }
+        .toolbar-actions { display: flex; gap: 0.5rem; }
+
+        .btn-tool {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        .btn-tool:hover { background: #f9fafb; }
+        .btn-danger { color: var(--danger); border-color: #fee2e2; }
+        .btn-danger:hover { background: var(--danger-bg); }
+
+        /* Workspace Grid */
+        .workspace-grid {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        #editor-container {
+            width: 50%;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #editor-textarea {
+            flex: 1;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            resize: none;
+            border: none;
+            outline: none;
+            padding: 2rem;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #fff;
+        }
+
+        #preview-pane {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            border-left: 1px solid var(--bg-body);
+            background: #fff;
+            min-width: 100px;
+        }
+
+        .prose img {
+            display: block;
+            margin: 1.5rem auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            max-width: 100%;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+        }
+
+        .hidden { display: none !important; }
+        .type-label-md { color: var(--accent); font-weight: bold; }
+        .type-label-puml { color: #f97316; font-weight: bold; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h1>BIAN Knowledge Base</h1>
+            <button onclick="addSubject()" class="btn-add-file">+ Folder</button>
+        </div>
+        <div id="sidebar-list" class="sidebar-list"></div>
+    </aside>
+
+    <div id="sidebar-resizer" class="resizer"></div>
+
+    <main class="main-content">
+        <header id="file-header" class="file-toolbar">
+            <div class="toolbar-info">
+                <span id="active-file-type-icon"></span>
+                <h2 id="active-file-title" style="font-size: 1rem; color: #374151;">Select or create a file</h2>
+            </div>
+            <div id="editor-actions" class="toolbar-actions hidden">
+                <button onclick="saveWorkspaceToGist()" class="btn-tool">Save to Cloud</button>
+                <button onclick="loadWorkspaceFromGist()" class="btn-tool">Load from Cloud</button>
+                <button onclick="showRestoreDialog()" class="btn-tool">Restore</button>
+                <button onclick="exportFile()" class="btn-tool">Export</button>
+                <button onclick="deleteCurrentFile()" class="btn-tool btn-danger">Delete</button>
+            </div>
+        </header>
+
+        <div id="empty-state" class="empty-state">
+            <svg style="width: 64px; height: 64px; margin-bottom: 1rem; opacity: 0.2;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+            <p>Select a file to start editing</p>
+        </div>
+
+        <div id="workspace-grid" class="workspace-grid hidden">
+            <div id="editor-container">
+                <textarea id="editor-textarea" spellcheck="false" placeholder="Write here..."></textarea>
+            </div>
+            <div id="editor-resizer" class="resizer"></div>
+            <div id="preview-pane"></div>
+        </div>
+    </main>
+
+    <script>
+        // --- State ---
+        let subjects = JSON.parse(localStorage.getItem('kb_data')) || [
+            {
+                id: 's1',
+                title: 'Subject 1',
+                isOpen: true,
+                files: [
+                    { id: 'f1', title: 'Readme', type: 'md', content: '# Welcome\nThis is a Markdown file with PlantUML support.\n\n@startuml\nUser -> System: Request\nSystem -> Database: Query\nDatabase --> System: Results\nSystem --> User: Display\n@enduml' },
+                    { id: 'f2', title: 'System Architecture', type: 'puml', content: '@startuml\nactor User\nnode "Web Server" {\n  component "Express App"\n}\ndatabase PostgreSQL\n\nUser -> "Express App": HTTP Request\n"Express App" -> PostgreSQL: SQL\n@enduml' }
+                ]
+            }
+        ];
+        
+        let activeFileId = null;
+        let activeSubjectId = null;
+
+        function saveState() {
+            localStorage.setItem('kb_data', JSON.stringify(subjects));
+            //if (cloudSyncEnabled) {
+             //   saveWorkspaceToGist();
+            //}            
+        }
+
+        // --- Resizing Logic ---
+        function initResizers() {
+            const sbResizer = document.getElementById('sidebar-resizer');
+            const sidebar = document.getElementById('sidebar');
+            const edResizer = document.getElementById('editor-resizer');
+            const editorCont = document.getElementById('editor-container');
+            const workspace = document.getElementById('workspace-grid');
+
+            sbResizer.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                sbResizer.classList.add('resizing');
+                document.addEventListener('mousemove', handleSidebarResize);
+                document.addEventListener('mouseup', () => {
+                    sbResizer.classList.remove('resizing');
+                    document.removeEventListener('mousemove', handleSidebarResize);
+                });
+            });
+
+            function handleSidebarResize(e) {
+                const newWidth = e.clientX;
+                if (newWidth >= 200 && newWidth <= 600) {
+                    sidebar.style.width = newWidth + 'px';
+                }
+            }
+
+            edResizer.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                edResizer.classList.add('resizing');
+                document.addEventListener('mousemove', handleEditorResize);
+                document.addEventListener('mouseup', () => {
+                    edResizer.classList.remove('resizing');
+                    document.removeEventListener('mousemove', handleEditorResize);
+                });
+            });
+
+            function handleEditorResize(e) {
+                const workspaceRect = workspace.getBoundingClientRect();
+                const newWidth = e.clientX - workspaceRect.left;
+                if (newWidth >= 100 && newWidth <= workspaceRect.width - 100) {
+                    editorCont.style.width = newWidth + 'px';
+                    editorCont.style.flex = 'none';
+                }
+            }
+        }
+
+        // --- PlantUML Utilities ---
+        function getPumlUrl(puml) {
+            try {
+                const encoded = plantumlEncoder.encode(puml.trim());
+                return `https://www.plantuml.com/plantuml/svg/${encoded}`;
+            } catch (e) {
+                console.error("Encoding error:", e);
+                return "";
+            }
+        }
+
+        // --- UI Rendering ---
+        function renderSidebar() {
+            const container = document.getElementById('sidebar-list');
+            container.innerHTML = '';
+
+            subjects.forEach(subject => {
+                const sContainer = document.createElement('div');
+                sContainer.className = 'subject-container';
+                
+                const sHeader = document.createElement('div');
+                sHeader.className = 'subject-header';
+                sHeader.innerHTML = `
+                    <span class="chevron ${subject.isOpen ? 'open' : ''}">▶</span>
+                    <span class="subject-title">${subject.title}</span>
+                    <button onclick="addFile('${subject.id}', event)" class="btn-add-file">+ File</button>
+                `;
+                sHeader.onclick = () => {
+                    subject.isOpen = !subject.isOpen;
+                    saveState();
+                    renderSidebar();
+                };
+                
+                sContainer.appendChild(sHeader);
+
+                if (subject.isOpen) {
+                    subject.files.forEach(file => {
+                        const fDiv = document.createElement('div');
+                        fDiv.className = `file-item ${file.id === activeFileId ? 'active' : ''}`;
+                        fDiv.innerHTML = `
+                            <div style="display: flex; align-items: center; overflow: hidden; flex: 1;">
+                                <span class="file-icon">${file.type === 'md' ? 'M↓' : '⬡'}</span>
+                                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.title}</span>
+                            </div>
+                            <div class="file-actions">
+                                <div class="icon-btn" onclick="duplicateFile('${subject.id}', '${file.id}', event)" title="Duplicate">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                                </div>
+                                <div class="icon-btn del" onclick="deleteFile('${subject.id}', '${file.id}', event)" title="Delete">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                                </div>
+                            </div>
+                        `;
+                        fDiv.onclick = (e) => {
+                            e.stopPropagation();
+                            loadFile(subject.id, file.id);
+                        };
+                        sContainer.appendChild(fDiv);
+                    });
+                }
+                container.appendChild(sContainer);
+            });
+        }
+
+        function loadFile(sId, fId) {
+            activeSubjectId = sId;
+            activeFileId = fId;
+            
+            const subject = subjects.find(s => s.id === sId);
+            const file = subject.files.find(f => f.id === fId);
+            
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('workspace-grid').classList.remove('hidden');
+            document.getElementById('editor-actions').classList.remove('hidden');
+            
+            const textarea = document.getElementById('editor-textarea');
+            textarea.value = file.content;
+            
+            document.getElementById('active-file-title').textContent = file.title;
+            document.getElementById('active-file-type-icon').innerHTML = file.type === 'md' 
+                ? '<span class="type-label-md">MD</span>' 
+                : '<span class="type-label-puml">PUML</span>';
+
+            renderSidebar();
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const textarea = document.getElementById('editor-textarea');
+            const preview = document.getElementById('preview-pane');
+            const content = textarea.value;
+            
+            const subject = subjects.find(s => s.id === activeSubjectId);
+            const file = subject?.files.find(f => f.id === activeFileId);
+            if (!file) return;
+
+            file.content = content;
+            saveState();
+
+            if (file.type === 'puml') {
+                const url = getPumlUrl(content);
+                preview.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center;">
+                    <img src="${url}" alt="PlantUML Diagram" />
+                    <a href="${url}" target="_blank" style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">Open SVG link</a>
+                </div>`;
+            } else {
+                const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
+                const processed = content.replace(pumlRegex, (match, p1) => {
+                    const url = getPumlUrl(p1);
+                    return `\n![PlantUML](${url})\n`;
+                });
+                preview.innerHTML = `<div class="prose">${marked.parse(processed)}</div>`;
+            }
+        }
+
+        // --- Actions ---
+        function addSubject() {
+            const title = prompt("New Subject Folder Name:");
+            if (title) {
+                subjects.push({ id: 's' + Date.now(), title, isOpen: true, files: [] });
+                saveState();
+                renderSidebar();
+            }
+        }
+
+        function flattenWorkspace() {
+            const files = [];
+
+            subjects.forEach(subject => {
+                subject.files.forEach(file => {
+                    const path = `${subject.title}/${file.title}`;
+                    files.push({
+                        path,
+                        content: file.content
+                    });
+                });
+            });
+
+            return files;
+        }
+
+        function rebuildWorkspaceFromGist(gistFiles) {
+            const subjectsMap = {};
+
+            for (const filename in gistFiles) {
+                const [subjectTitle, fileTitle] = filename.split("/");
+                const content = gistFiles[filename].content;
+
+                if (!subjectsMap[subjectTitle]) {
+                    subjectsMap[subjectTitle] = {
+                        id: crypto.randomUUID(),
+                        title: subjectTitle,
+                        isOpen: true,
+                        files: []
+                    };
+                }
+
+                subjectsMap[subjectTitle].files.push({
+                    id: crypto.randomUUID(),
+                    title: fileTitle,
+                    type: fileTitle.endsWith(".puml") ? "puml" : "md",
+                    content
+                });
+            }
+
+            return Object.values(subjectsMap);
+        }
+
+        async function saveWorkspaceToGist() {
+            const gistId = localStorage.getItem("gist_id");
+            const files = flattenWorkspace();
+
+            const gistFiles = {};
+            files.forEach(f => {
+                gistFiles[f.path] = { content: f.content };
+            });
+
+            const body = {
+                description: "BIAN Workspace Backup",
+                files: gistFiles
+            };
+
+            const method = gistId ? "PATCH" : "POST";
+            const url = gistId
+                ? `https://api.github.com/gists/${gistId}`
+                : `https://api.github.com/gists`;
+
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    "Authorization": `token ${githubToken}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            });
+
+            const data = await res.json();
+
+            if (!gistId) {
+                localStorage.setItem("gist_id", data.id);
+            }
+
+            alert("Workspace saved to GitHub Gist");
+        }
+
+        async function loadWorkspaceFromGist() {
+            const gistId = localStorage.getItem("gist_id");
+            if (!gistId) {
+                alert("No cloud backup found");
+                return;
+            }
+
+            const res = await fetch(`https://api.github.com/gists/${gistId}`, {
+                headers: { "Authorization": `token ${githubToken}` }
+            });
+
+            const data = await res.json();
+
+            subjects = rebuildWorkspaceFromGist(data.files);
+            saveState();
+            renderSidebar();
+
+            alert("Workspace loaded from GitHub Gist");
+        }
+
+        async function restoreFromGistVersion(versionId) {
+            const gistId = localStorage.getItem("gist_id");
+
+            const res = await fetch(
+                `https://api.github.com/gists/${gistId}/${versionId}`,
+                { headers: { "Authorization": `token ${githubToken}` } }
+            );
+
+            const data = await res.json();
+
+            subjects = rebuildWorkspaceFromGist(data.files);
+            saveState();
+            renderSidebar();
+
+            alert("Workspace restored from previous version");
+        }
+
+        async function showRestoreDialog() {
+            const revisions = await listGistRevisions();
+            
+            let msg = "Choose a version to restore:\n\n";
+            revisions.forEach((rev, i) => {
+                msg += `${i + 1}. ${rev.version} — ${rev.committed_at}\n`;
+            });
+
+            const choice = prompt(msg);
+            if (!choice) return;
+
+            const index = parseInt(choice) - 1;
+            const versionId = revisions[index].version;
+
+            restoreFromGistVersion(versionId);
+        }
+
+        function addFile(sId, event) {
+            event.stopPropagation();
+            const title = prompt("File Name:");
+            if (!title) return;
+            
+            const type = confirm("Press OK for Markdown file, Cancel for PlantUML file") ? 'md' : 'puml';
+            const subject = subjects.find(s => s.id === sId);
+            const newFile = {
+                id: 'f' + Date.now(),
+                title: title,
+                type: type,
+                content: type === 'md' ? `# ${title}\n` : '@startuml\n\n@enduml'
+            };
+            
+            subject.files.push(newFile);
+            subject.isOpen = true;
+            saveState();
+            renderSidebar();
+            loadFile(sId, newFile.id);
+        }
+
+        function deleteCurrentFile() {
+            if (!confirm("Delete this file?")) return;
+            const subject = subjects.find(s => s.id === activeSubjectId);
+            subject.files = subject.files.filter(f => f.id !== activeFileId);
+            
+            activeFileId = null;
+            document.getElementById('empty-state').classList.remove('hidden');
+            document.getElementById('workspace-grid').classList.add('hidden');
+            document.getElementById('editor-actions').classList.add('hidden');
+            
+            saveState();
+            renderSidebar();
+        }
+
+        function exportFile() {
+            const subject = subjects.find(s => s.id === activeSubjectId);
+            const file = subject.files.find(f => f.id === activeFileId);
+            const blob = new Blob([file.content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${file.title}.${file.type}`;
+            a.click();
+        }
+
+        function duplicateFile(sId, fId, e) {
+            e.stopPropagation();
+            const s = subjects.find(x => x.id === sId);
+            const f = s.files.find(x => x.id === fId);
+            const copy = { ...f, id: 'f'+Date.now(), title: f.title + ' (Copy)' };
+            s.files.push(copy);
+            saveState(); // Renamed from save()
+            renderSidebar();
+        }
+
+        function deleteFile(sId, fId, e) {
+            e.stopPropagation();
+            if (!confirm("Delete file?")) return;
+            const s = subjects.find(x => x.id === sId);
+            s.files = s.files.filter(x => x.id !== fId);
+            if (activeFileId === fId) {
+                activeFileId = null;
+                // Fixed IDs below to match HTML
+                document.getElementById('workspace-grid').classList.add('hidden');
+                document.getElementById('empty-state').classList.remove('hidden');
+                document.getElementById('editor-actions').classList.add('hidden');
+            }
+            saveState(); // Renamed from save()
+            renderSidebar();
+        }
+
+        // --- Initialize ---
+        document.getElementById('editor-textarea').addEventListener('input', updatePreview);
+        renderSidebar();
+        initResizers();
+    </script>
+
+</body>
+</html>
