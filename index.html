@@ -503,29 +503,28 @@
             }
         }
 
-        function flattenWorkspace() {
+function flattenWorkspace() {
             const files = [];
 
             subjects.forEach(subject => {
                 subject.files.forEach(file => {
 
-                    // Determine extension based on file.type
+                    // Determine extension
                     let ext = "";
                     if (file.type === "md" || file.type === "markdown") {
                         ext = ".md";
                     } else if (file.type === "puml" || file.type === "plantuml") {
                         ext = ".puml";
                     } else {
-                        ext = ".txt"; // fallback
+                        ext = ".txt";
                     }
 
-                    // Sanitize folder name (GitHub Gists do NOT support spaces in folder-like names)
+                    // Sanitize names
                     const safeSubject = subject.title.replace(/\s+/g, "_");
-
-                    // Sanitize file title too (spaces are allowed but safer to normalize)
                     const safeFile = file.title.replace(/\s+/g, "_");
 
-                    const path = `${safeSubject}/${safeFile}${ext}`;
+                    // Gists DO NOT support folders → replace "/" with "___"
+                    const path = `${safeSubject}___${safeFile}${ext}`;
 
                     files.push({
                         path,
@@ -538,25 +537,26 @@
         }
 
 
+
+
         function rebuildWorkspaceFromGist(gistFiles) {
             const subjectsMap = {};
 
             for (const filename in gistFiles) {
-                const [rawSubject, rawFile] = filename.split("/");
                 const content = gistFiles[filename].content;
 
-                // Reverse sanitization: underscores → spaces
+                // Split on our custom separator
+                const [rawSubject, rawFileWithExt] = filename.split("___");
+
+                // Reverse sanitization
                 const subjectTitle = rawSubject.replace(/_/g, " ");
 
-                // Remove extension and restore spaces
-                const fileTitle = rawFile
-                    .replace(/\.[^.]+$/, "")   // strip extension
+                const fileTitle = rawFileWithExt
+                    .replace(/\.[^.]+$/, "")   // remove extension
                     .replace(/_/g, " ");
 
-                // Detect type from extension
-                const type = rawFile.endsWith(".puml") ? "puml" : "md";
+                const type = rawFileWithExt.endsWith(".puml") ? "puml" : "md";
 
-                // Create subject if missing
                 if (!subjectsMap[subjectTitle]) {
                     subjectsMap[subjectTitle] = {
                         id: crypto.randomUUID(),
@@ -566,7 +566,6 @@
                     };
                 }
 
-                // Add file
                 subjectsMap[subjectTitle].files.push({
                     id: crypto.randomUUID(),
                     title: fileTitle,
