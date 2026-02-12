@@ -505,19 +505,32 @@
 
         function flattenWorkspace() {
             const files = [];
-
+        
             subjects.forEach(subject => {
                 subject.files.forEach(file => {
-                    const path = `${subject.title}/${file.title}`;
+        
+                    // Determine extension based on file.type
+                    let ext = "";
+                    if (file.type === "md" || file.type === "markdown") {
+                        ext = ".md";
+                    } else if (file.type === "puml" || file.type === "plantuml") {
+                        ext = ".puml";
+                    } else {
+                        ext = ".txt"; // fallback for unknown types
+                    }
+        
+                    const path = `${subject.title}/${file.title}${ext}`;
+        
                     files.push({
                         path,
-                        content: file.content
+                        content: file.content || ""
                     });
                 });
             });
-
+        
             return files;
-        }
+}
+
 
         function rebuildWorkspaceFromGist(gistFiles) {
             const subjectsMap = {};
