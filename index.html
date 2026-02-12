@@ -553,9 +553,12 @@
                 return;
             }
 
-            const gistId = localStorage.getItem("gist_id");
-            const files = flattenWorkspace();
+            // Read the stored gist ID safely
+            const rawGistId = localStorage.getItem("gist_id");
+            const gistId = rawGistId && rawGistId !== "undefined" ? rawGistId : null;
 
+            // Build file list
+            const files = flattenWorkspace();
             const gistFiles = {};
             files.forEach(f => {
                 gistFiles[f.path] = { content: f.content || "" };
@@ -567,12 +570,13 @@
                 files: gistFiles
             };
 
-            let url = "https://api.github.com/gists";
+            // Decide POST vs PATCH safely
             let method = "POST";
+            let url = "https://api.github.com/gists";
 
             if (gistId) {
-                url = `https://api.github.com/gists/${gistId}`;
                 method = "PATCH";
+                url = `https://api.github.com/gists/${gistId}`;
             }
 
             const res = await fetch(url, {
@@ -593,13 +597,14 @@
                 return;
             }
 
-            // Store gist ID after first save
+            // Store gist ID after first successful POST
             if (!gistId && data.id) {
                 localStorage.setItem("gist_id", data.id);
             }
 
             alert("Workspace saved to GitHub Gist");
         }
+
 
 
         async function loadWorkspaceFromGist() {
