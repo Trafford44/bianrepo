@@ -10,21 +10,36 @@
     <style>
         /* Base Variables & Reset */
         :root {
-            --header-height: 56px;
-            --bg-body: #f3f4f6;
-            --bg-sidebar: #ffffff;
+            --bg-body: #eef1f5;
+
+            /* Panels */
+            --bg-sidebar: #f8fafc;      /* lightest */
+            --bg-editor: #ffffff;       /* clean white */
+            --bg-preview: #f3f6fa;      /* soft blue‑gray tint */
+
+            /* Header / cards */
             --bg-header: #ffffff;
-            --bg-card: #f9fafb;
-            --border-color: #e5e7eb;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
+            --bg-card: #f1f5f9;
+
+            /* Borders */
+            --border-color: #d4d7dd;
+
+            /* Text */
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+
+            /* Accent */
             --accent: #2563eb;
             --accent-hover: #1d4ed8;
-            --accent-light: #eff6ff;
+            --accent-light: #e0ecff;
+
+            /* Danger */
             --danger: #dc2626;
             --danger-bg: #fef2f2;
+
             --resizer-width: 4px;
         }
+
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -228,7 +243,7 @@
             padding: 2rem;
             font-size: 14px;
             line-height: 1.6;
-            background: #fff;
+            background: var(--bg-editor);
         }
 
         #preview-pane {
@@ -236,7 +251,7 @@
             padding: 2rem;
             overflow-y: auto;
             border-left: 1px solid var(--bg-body);
-            background: #fff;
+            background: var(--bg-preview);
             min-width: 100px;
         }
 
@@ -503,7 +518,7 @@
             }
         }
 
-function flattenWorkspace() {
+        function flattenWorkspace() {
             const files = [];
 
             subjects.forEach(subject => {
@@ -576,6 +591,17 @@ function flattenWorkspace() {
 
             return Object.values(subjectsMap);
         }
+
+
+        // Compare filenames to detect changes
+        function gistFileList(gistFiles) {
+            return Object.keys(gistFiles).sort();
+        }
+
+        function workspaceFileList(files) {
+            return files.map(f => f.path).sort();
+        }
+
 
         async function saveWorkspaceToGist() {
             const githubToken = localStorage.getItem("github_token");
@@ -669,6 +695,7 @@ function flattenWorkspace() {
 
             alert("Workspace saved to GitHub Gist");
         }
+
 
 
 
