@@ -330,9 +330,7 @@
 
         function saveState() {
             localStorage.setItem('kb_data', JSON.stringify(subjects));
-            if (cloudSyncEnabled) {
-                saveWorkspaceToGist();
-            }            
+            saveWorkspaceToGist();         
         }
 
         // --- Resizing Logic ---
@@ -549,25 +547,33 @@
         }
 
         async function saveWorkspaceToGist() {
+            const githubToken = localStorage.getItem("github_token");
+            if (!githubToken) {
+                alert("Please sign in with GitHub first");
+                return;
+            }
+
             const gistId = localStorage.getItem("gist_id");
             const files = flattenWorkspace();
-            const githubToken = localStorage.getItem("github_token");
-
 
             const gistFiles = {};
             files.forEach(f => {
-                gistFiles[f.path] = { content: f.content };
+                gistFiles[f.path] = { content: f.content || "" };
             });
 
             const body = {
                 description: "BIAN Workspace Backup",
+                public: false,
                 files: gistFiles
             };
 
-            const method = gistId ? "PATCH" : "POST";
-            const url = gistId
-                ? `https://api.github.com/gists/${gistId}`
-                : `https://api.github.com/gists`;
+            let url = "https://api.github.com/gists";
+            let method = "POST";
+
+            if (gistId) {
+                url = `https://api.github.com/gists/${gistId}`;
+                method = "PATCH";
+            }
 
             const res = await fetch(url, {
                 method,
@@ -580,12 +586,21 @@
 
             const data = await res.json();
 
-            if (!gistId) {
+            // Handle GitHub API errors
+            if (!res.ok) {
+                console.error("Gist save error:", data);
+                alert("Failed to save to GitHub Gist. Check console for details.");
+                return;
+            }
+
+            // Store gist ID after first save
+            if (!gistId && data.id) {
                 localStorage.setItem("gist_id", data.id);
             }
 
             alert("Workspace saved to GitHub Gist");
         }
+
 
         async function loadWorkspaceFromGist() {
             const gistId = localStorage.getItem("gist_id");
