@@ -585,8 +585,8 @@ function flattenWorkspace() {
             }
 
             // Read the stored gist ID safely
-            const rawGistId = localStorage.getItem("gist_id");
-            const gistId = rawGistId && rawGistId !== "undefined" ? rawGistId : null;
+            let rawGistId = localStorage.getItem("gist_id");
+            let gistId = rawGistId && rawGistId !== "undefined" ? rawGistId : null;
 
             // Build file list
             const files = flattenWorkspace();
@@ -601,16 +601,49 @@ function flattenWorkspace() {
                 files: gistFiles
             };
 
-            // Decide POST vs PATCH safely
+            // Helper functions to compare filenames
+            const workspaceFileList = files => files.map(f => f.path).sort();
+            const gistFileList = gistFiles => Object.keys(gistFiles).sort();
+
             let method = "POST";
             let url = "https://api.github.com/gists";
 
+            // If we have a gist ID, check if filenames match
             if (gistId) {
-                method = "PATCH";
-                url = `https://api.github.com/gists/${gistId}`;
-            }
-    console.log("GIST BODY", JSON.stringify(body, null, 2));
+                try {
+                    const existing = await fetch(`https://api.github.com/gists/${gistId}`, {
+                        headers: { "Authorization": `token ${githubToken}` }
+                    }).then(r => r.json());
 
+                    if (existing && existing.files) {
+                        const existingFiles = gistFileList(existing.files);
+                        const newFiles = workspaceFileList(files);
+
+                        const filenamesMatch =
+                            JSON.stringify(existingFiles) === JSON.stringify(newFiles);
+
+                        if (filenamesMatch) {
+                            // Safe to PATCH
+                            method = "PATCH";
+                            url = `https://api.github.com/gists/${gistId}`;
+                        } else {
+                            // File list changed → create a new Gist
+                            gistId = null;
+                            method = "POST";
+                            url = "https://api.github.com/gists";
+                        }
+                    } else {
+                        // If the Gist can't be fetched, create a new one
+                        gistId = null;
+                    }
+                } catch (err) {
+                    console.error("Error checking existing Gist:", err);
+                    gistId = null;
+                }
+            }
+
+    console.log("GIST BODY", JSON.stringify(body, null, 2));
+            // Perform POST or PATCH
             const res = await fetch(url, {
                 method,
                 headers: {
@@ -629,7 +662,7 @@ function flattenWorkspace() {
                 return;
             }
 
-            // Store gist ID after first successful POST
+            // Store gist ID after successful POST
             if (!gistId && data.id) {
                 localStorage.setItem("gist_id", data.id);
             }
