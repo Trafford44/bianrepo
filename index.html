@@ -578,6 +578,7 @@
                 method = "PATCH";
                 url = `https://api.github.com/gists/${gistId}`;
             }
+    console.log("GIST BODY", JSON.stringify(body, null, 2));
 
             const res = await fetch(url, {
                 method,
