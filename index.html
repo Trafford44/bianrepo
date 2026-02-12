@@ -285,6 +285,7 @@
                 <h2 id="active-file-title" style="font-size: 1rem; color: #374151;">Select or create a file</h2>
             </div>
             <div id="editor-actions" class="toolbar-actions hidden">
+                <button id="github-login">Sign in with GitHub</button>
                 <button onclick="saveWorkspaceToGist()" class="btn-tool">Save to Cloud</button>
                 <button onclick="loadWorkspaceFromGist()" class="btn-tool">Load from Cloud</button>
                 <button onclick="showRestoreDialog()" class="btn-tool">Restore</button>
@@ -308,6 +309,9 @@
     </main>
 
     <script>
+        const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh"; 
+        const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev"; // your Worker URL
+
         // --- State ---
         let subjects = JSON.parse(localStorage.getItem('kb_data')) || [
             {
@@ -547,6 +551,8 @@
         async function saveWorkspaceToGist() {
             const gistId = localStorage.getItem("gist_id");
             const files = flattenWorkspace();
+            const githubToken = localStorage.getItem("github_token");
+
 
             const gistFiles = {};
             files.forEach(f => {
@@ -583,6 +589,8 @@
 
         async function loadWorkspaceFromGist() {
             const gistId = localStorage.getItem("gist_id");
+            const githubToken = localStorage.getItem("github_token");
+
             if (!gistId) {
                 alert("No cloud backup found");
                 return;
@@ -603,6 +611,7 @@
 
         async function restoreFromGistVersion(versionId) {
             const gistId = localStorage.getItem("gist_id");
+            const githubToken = localStorage.getItem("github_token");
 
             const res = await fetch(
                 `https://api.github.com/gists/${gistId}/${versionId}`,
@@ -634,6 +643,24 @@
 
             restoreFromGistVersion(versionId);
         }
+
+        async function listGistRevisions() {
+            const githubToken = localStorage.getItem("github_token");
+            const gistId = localStorage.getItem("gist_id");
+
+            if (!githubToken || !gistId) {
+                alert("No GitHub login or Gist ID found");
+                return [];
+            }
+
+            const res = await fetch(`https://api.github.com/gists/${gistId}/commits`, {
+                headers: { "Authorization": `token ${githubToken}` }
+            });
+
+            const data = await res.json();
+            return data; // array of revisions
+        }
+
 
         function addFile(sId, event) {
             event.stopPropagation();
@@ -706,6 +733,47 @@
             saveState(); // Renamed from save()
             renderSidebar();
         }
+
+
+
+        // 1. Redirect user to GitHub OAuth
+        document.getElementById("github-login").addEventListener("click", () => {
+          const redirectUri = window.location.origin + window.location.pathname;
+
+          const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=gist`;
+
+          window.location.href = url;
+        });
+
+        // 2. When GitHub redirects back with ?code=...
+        async function handleOAuthRedirect() {
+          const params = new URLSearchParams(window.location.search);
+          const code = params.get("code");
+
+          if (!code) return; // user not returning from GitHub OAuth
+
+          // Exchange code for access token via your Worker
+          const res = await fetch(WORKER_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code })
+          });
+
+          const data = await res.json();
+
+          if (data.access_token) {
+            localStorage.setItem("github_token", data.access_token);
+
+            // Clean up URL (remove ?code=...)
+            window.history.replaceState({}, "", window.location.pathname);
+
+            console.log("GitHub login successful");
+          } else {
+            console.error("OAuth error:", data);
+          }
+        }
+
+        handleOAuthRedirect();
 
         // --- Initialize ---
         document.getElementById('editor-textarea').addEventListener('input', updatePreview);
