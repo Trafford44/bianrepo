@@ -1,5 +1,6 @@
 import { saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog } from "./sync.js";
 import { getToken } from "./auth.js";
+import { applyMarkdownFormat } from "./md-editor.js";
 
 let subjects = JSON.parse(localStorage.getItem("kb_data")) || [
     {
@@ -182,6 +183,12 @@ export function loadFile(sId, fId) {
         file.type === "md"
             ? '<span class="type-label-md">MD</span>'
             : '<span class="type-label-puml">PUML</span>';
+
+    if (file.type === "md") {
+        document.getElementById("md-toolbar").classList.remove("hidden");
+    } else {
+        document.getElementById("md-toolbar").classList.add("hidden");
+    }
 
     renderSidebar();
     updatePreview();
@@ -398,6 +405,15 @@ export function bindEditorEvents() {
             if (activePane === "editor") zoomEditor(-1);
             else zoomPreview(-1);
         });
+
+
+    document.getElementById("md-toolbar").addEventListener("click", e => {
+        if (!e.target.dataset.md) return;
+        const type = e.target.dataset.md;
+        const textarea = document.getElementById("editor-textarea");
+        applyMarkdownFormat(type, textarea);
+    });
+
 
 }
 
