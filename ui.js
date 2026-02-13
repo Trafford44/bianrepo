@@ -78,7 +78,8 @@ export function initResizers() {
             edResizer.classList.add("resizing");
             const handleEditorResize = e2 => {
                 const workspaceRect = workspace.getBoundingClientRect();
-                const newWidth = e2.clientX - workspaceRect.left;
+                const newWidth = workspaceRect.right - e2.clientX;
+
                 if (newWidth >= 100 && newWidth <= workspaceRect.width - 100) {
                     editorCont.style.width = newWidth + "px";
                     editorCont.style.flex = "none";
