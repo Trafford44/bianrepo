@@ -315,7 +315,7 @@
             transition: background-color 0.3s ease, color 0.3s ease;
             white-space: nowrap;
             margin-right: 0.75rem;
-            margin-left: auto;         
+            margin-left: auto;            
         }
 
         /* Neutral / idle */
@@ -340,6 +340,12 @@
         .sync-error {
             background-color: #fee2e2;
             color: #b91c1c;
+        }
+
+        .md-toolbar {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
         }
 
         .hidden { display: none !important; }
@@ -390,6 +396,16 @@
             <div id="preview-pane"></div>
             <div id="editor-resizer" class="resizer"></div>
             <div id="editor-container">
+                <div id="md-toolbar" class="md-toolbar hidden">
+                    <button data-md="bold" class="btn-tool">B</button>
+                    <button data-md="italic" class="btn-tool"><i>I</i></button>
+                    <button data-md="h1" class="btn-tool">H1</button>
+                    <button data-md="link" class="btn-tool">Link</button>
+                    <button data-md="code" class="btn-tool">Code</button>
+                    <button data-md="quote" class="btn-tool">Quote</button>
+                    <button data-md="ul" class="btn-tool">• List</button>
+                    <button data-md="ol" class="btn-tool">1. List</button>
+                </div>
                 <textarea id="editor-textarea" spellcheck="false" placeholder="Write here..."></textarea>
             </div>
 
