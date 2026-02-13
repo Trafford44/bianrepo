@@ -1,0 +1,404 @@
+<!-- RUNNING IN DEV MODE (LOCALHOST)
+ In order to connect to GitHub to save while in Dev 
+ Place this after the local url: ?redirect=https://trafford44.github.io/bianrepo/
+ So from VSCode, Live Server it would be http://127.0.0.1:5500/index.html?redirect=https://trafford44.github.io/bianrepo/
+ Once signed in the URL goes to https://trafford44.github.io/bianrepo/, but it's looking at Dev environment localStorage for data, 
+ so you can test saving/loading without affecting the live version.
+ BUT I see that the code changes don't reflect in the live version until I do a new GitHub release, 
+ so for now I can just test the GitHub integration in Dev mode and then I'll need to deploy to prod to see the interactions with any code changes.
+ Ask AI about a workaround to not being able to setup a 2nd aAuth in GitHub for teh dev env, to get around this limitation
+ -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subject Workspace - Folders & Files</title>
+    <!-- Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plantuml-encoder@1.4.0/dist/plantuml-encoder.min.js"></script>
+    <style>
+        /* Base Variables & Reset */
+        :root {
+            --bg-body: #eef1f5;
+
+            /* Panels */
+            --bg-sidebar: #f8fafc;      /* lightest */
+            --bg-editor: #0f172a;       /* clean white */
+            --bg-preview: #f3f6fa;      /* soft blue‑gray tint */
+
+            /* Header / cards */
+            --bg-header: #ffffff;
+            --bg-card: #f1f5f9;
+
+            /* Borders */
+            --border-color: #d4d7dd;
+
+            /* Text */
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+
+            /* Accent */
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: #e0ecff;
+
+            /* Danger */
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+
+            --resizer-width: 4px;
+
+            /* Text window font sizes & color*/
+            --editor-font-size: 14px; 
+            --preview-font-size: 16px;
+            --editor-font-color: #93c5fd; 
+            --preview-font-color: #202020;
+        }
+
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+        }
+
+        /* Resizable Layout Structure */
+        .sidebar {
+            width: 300px;
+            min-width: 200px;
+            max-width: 500px;
+            height: 100vh;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .resizer {
+            width: var(--resizer-width);
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .resizer:hover, .resizing {
+            background: var(--accent);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: #fff;
+            min-width: 0;
+        }
+
+        /* Sidebar Header & List */
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9fafb;
+        }
+
+        .sidebar-header h1 { font-size: 1rem; font-weight: 700; }
+
+        .file-actions { 
+            display: flex; 
+            gap: 4px; 
+            opacity: 0; 
+            transition: opacity 0.2s;
+        }
+        
+        .file-item:hover .file-actions { opacity: 1; }
+
+        /* FIX FOR POINT 3: Icon Button Styling */
+        .icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            background: #e5e7eb;
+            color: var(--text-main);
+        }
+
+        .icon-btn.del:hover {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .btn-add-file {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: #fff;
+            color: var(--accent);
+            cursor: pointer;
+        }
+
+        .sidebar-list { flex: 1; overflow-y: auto; }
+
+        .subject-header {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            border-bottom: 1px solid #f9fafb;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .subject-header:hover { background: #f9fafb; }
+
+        .chevron {
+            display: inline-block;
+            margin-right: 0.5rem;
+            font-size: 0.6rem;
+            transition: transform 0.2s;
+        }
+
+        .chevron.open { transform: rotate(90deg); }
+
+        .subject-title { flex: 1; }
+
+        .file-item {
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .file-item:hover { background: #f3f4f6; }
+
+        .file-item.active {
+            background: var(--accent-light);
+            border-left-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .file-icon { opacity: 0.6; margin-right: 0.5rem; font-weight: 700; font-family: monospace; }
+
+        /* Toolbar */
+        .file-toolbar {
+            height: var(--header-height);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            flex-shrink: 0;
+        }
+
+        .toolbar-info { display: flex; align-items: center; gap: 0.75rem; }
+        .toolbar-actions { display: flex; gap: 0.5rem; align-items: center;}
+
+        .btn-tool {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        .btn-tool:hover { background: #f9fafb; }
+        .btn-danger { color: var(--danger); border-color: #fee2e2; }
+        .btn-danger:hover { background: var(--danger-bg); }
+
+        /* Workspace Grid */
+        .workspace-grid {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        #editor-container {
+            width: 50%;
+            min-width: 100px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #editor-textarea {
+            flex: 1;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            resize: none;
+            border: none;
+            outline: none;
+            padding: 2rem;
+            font-size: var(--editor-font-size);
+            color: var(--editor-font-color);
+            line-height: 1.6;
+            background: var(--bg-editor);
+        }
+
+        #preview-pane {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            font-size: var(--preview-font-size);
+            color: var(--preview-font-color);
+            border-left: 1px solid var(--bg-body);
+            background: var(--bg-preview);
+            min-width: 100px;
+        }
+
+        .prose img {
+            display: block;
+            margin: 1.5rem auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            max-width: 100%;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+        }
+
+        /* Logged OUT state */
+        .github-login-needed {
+            background: #fef2f2;       /* soft red */
+            border-color: #fecaca;
+            color: #b91c1c;            /* deep red text */
+        }
+
+        /* Logged IN state */
+        .github-logged-in {
+            background: var(--accent-light);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .sync-status {
+            display: inline-block;
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            white-space: nowrap;
+            margin-right: 0.75rem;
+        }
+
+        /* Neutral / idle */
+        .sync-idle {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            margin-left: auto;
+        }
+
+        /* Saving in progress */
+        .sync-saving {
+            background-color: #fef9c3;
+            color: #a16207;
+        }
+
+        /* Successfully synced */
+        .sync-synced {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+
+        /* Error state */
+        .sync-error {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .hidden { display: none !important; }
+        .type-label-md { color: var(--accent); font-weight: bold; }
+        .type-label-puml { color: #f97316; font-weight: bold; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h1>BIAN Knowledge Base</h1>
+            <button id="add-subject-btn" class="btn-add-file">+ Folder</button>
+        </div>
+        <div id="sidebar-list" class="sidebar-list"></div>
+    </aside>
+
+    <div id="sidebar-resizer" class="resizer"></div>
+
+    <main class="main-content">
+        <header id="file-header" class="file-toolbar">
+            <div class="toolbar-info">
+                <span id="active-file-type-icon"></span>
+                <h2 id="active-file-title" style="font-size: 1rem; color: #374151;">Select or create a file</h2>
+            </div>
+            <div id="sync-status" class="sync-status sync-idle btn-tool">Idle</div>
+            <div id="editor-actions" class="toolbar-actions hidden">
+                <button id="github-login" class="btn-tool">Sign in with GitHub</button>
+                <button id="save-btn" class="btn-tool">Save to Cloud</button>
+                <button id="load-btn" class="btn-tool">Load from Cloud</button>
+                <button id="restore-btn" class="btn-tool">Restore</button>
+                <button id="export-btn" class="btn-tool">Export</button>
+                <button id="delete-btn" class="btn-tool btn-danger">Delete</button>
+                <button id="zoom-editor-in" class="btn-tool">🔍+</button>
+                <button id="zoom-editor-out" class="btn-tool">🔍-</button>
+            </div>
+        </header>
+
+        <div id="empty-state" class="empty-state">
+            <svg style="width: 64px; height: 64px; margin-bottom: 1rem; opacity: 0.2;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+            <p>Select a file to start editing</p>
+        </div>
+
+        <div id="workspace-grid" class="workspace-grid hidden">
+            <div id="preview-pane"></div>
+            <div id="editor-resizer" class="resizer"></div>
+            <div id="editor-container">
+                <textarea id="editor-textarea" spellcheck="false" placeholder="Write here..."></textarea>
+            </div>
+
+
+        </div>
+    </main>
+
+<script type="module" src="./app.js"></script>
+
+
+</body>
+</html>
