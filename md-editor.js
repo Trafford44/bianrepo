@@ -14,6 +14,12 @@ export function applyMarkdownFormat(type, textarea) {
         case "italic":
             before = "*"; after = "*";
             break;
+        case "underline":
+            replacement = `<u>${selected}</u>`;
+            break;
+        case "strike":
+            replacement = `~~${selected}~~`;
+            break;
         case "h1":
             replacement = `# ${selected}`;
             break;
