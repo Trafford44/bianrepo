@@ -31,6 +31,13 @@ let activeFileId = null;
 let activeSubjectId = null;
 let activePane = "editor"; // "editor" or "preview"
 
+// Set MD renderer (marked v9) to have separation betwen paragraghs but keep lists tight
+const renderer = new marked.Renderer();
+renderer.list = function (body, ordered, start) {
+    const type = ordered ? "ol" : "ul";
+    return `<${type}>\n${body}</${type}>\n\n`;
+};
+marked.use({ renderer });
 
 export function getSubjects() {
     return subjects;
@@ -368,6 +375,7 @@ export function updateLoginIndicator() {
 
 export function bindEditorEvents() {
     const textarea = document.getElementById("editor-textarea");
+
     if (textarea) {
         textarea.addEventListener("input", updatePreview);
     }
@@ -437,7 +445,8 @@ export function bindEditorEvents() {
         if (type === "bgcolor") {
             toggleBgColorPopup(e.target);
             return;
-        }        
+        }     
+        
         applyMarkdownFormat(type, textarea);
     });
     
@@ -491,13 +500,30 @@ function applyClearFormatting(textarea) {
 
     // Remove Markdown formatting
     cleaned = cleaned
+        // 1. FENCED CODE BLOCKS FIRST
+        .replace(/```[\s\S]*?```/g, match => {
+            return match.replace(/```/g, "");
+        })
+
+        // 2. INLINE FORMATTING
         .replace(/\*\*(.*?)\*\*/g, "$1")   // bold
         .replace(/\*(.*?)\*/g, "$1")       // italic
         .replace(/__(.*?)__/g, "$1")       // bold alt
         .replace(/_(.*?)_/g, "$1")         // italic alt
         .replace(/~~(.*?)~~/g, "$1")       // strike
-        .replace(/`(.*?)`/g, "$1");        // inline code
 
+        // 3. INLINE CODE — SINGLE LINE ONLY
+        .replace(/`([^`\n]+)`/g, "$1")
+
+        // 4. LISTS
+        .replace(/^\s*[-*]\s+/gm, "")      // unordered list
+        .replace(/^\s*\d+\.\s+/gm, "")     // ordered list
+
+        // 5. INDENTED CODE BLOCKS
+        .replace(/^( {4}|\t)/gm, "");
+
+
+        
     // Replace selection
     textarea.value =
         textarea.value.substring(0, start) +
