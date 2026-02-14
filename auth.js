@@ -1,3 +1,4 @@
+import { updateLoginIndicator } from "./ui.js";
 const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 
