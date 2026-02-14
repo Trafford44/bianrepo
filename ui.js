@@ -407,15 +407,131 @@ export function bindEditorEvents() {
             else zoomPreview(-1);
         });
 
-
     document.getElementById("md-toolbar").addEventListener("click", e => {
-        if (!e.target.dataset.md) return;
         const type = e.target.dataset.md;
         const textarea = document.getElementById("editor-textarea");
+        if (!type) return;
+        if (type === "clear") {
+            applyClearFormatting(textarea);
+            return;
+        }
+        if (type === "color") {
+            toggleColorPopup(e.target);
+            return;
+        }
+        if (type === "bgcolor") {
+            toggleBgColorPopup(e.target);
+            return;
+        }        
         applyMarkdownFormat(type, textarea);
     });
+    
+    const colorPopup = document.getElementById("md-color-popup");
+    if (colorPopup) {
+        colorPopup.addEventListener("click", e => {
+            const color = e.target.dataset.color;
+            if (!color) return;
 
+            applyColorFormat(color, textarea);
+            colorPopup.classList.add("hidden");
+        });
+    }
 
+    const bgPopup = document.getElementById("md-bgcolor-popup");
+    if (bgPopup) {
+        bgPopup.addEventListener("click", e => {
+            const bg = e.target.dataset.bg;
+            if (!bg) return;
+
+            applyBgColorFormat(bg, textarea);
+            bgPopup.classList.add("hidden");
+        });
+    }
+
+}
+
+function toggleColorPopup(button) {
+    const popup = document.getElementById("md-color-popup");
+    popup.classList.toggle("hidden");
+
+    // Position popup under the button
+    const rect = button.getBoundingClientRect();
+    popup.style.left = rect.left + "px";
+    popup.style.top = rect.bottom + "px";
+}
+
+function applyClearFormatting(textarea) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = textarea.value.substring(start, end);
+
+    // Remove HTML tags
+    let cleaned = selected
+        .replace(/<\/?span[^>]*>/gi, "")
+        .replace(/<\/?u>/gi, "")
+        .replace(/<\/?mark>/gi, "");
+
+    // Remove Markdown formatting
+    cleaned = cleaned
+        .replace(/\*\*(.*?)\*\*/g, "$1")   // bold
+        .replace(/\*(.*?)\*/g, "$1")       // italic
+        .replace(/__(.*?)__/g, "$1")       // bold alt
+        .replace(/_(.*?)_/g, "$1")         // italic alt
+        .replace(/~~(.*?)~~/g, "$1")       // strike
+        .replace(/`(.*?)`/g, "$1");        // inline code
+
+    // Replace selection
+    textarea.value =
+        textarea.value.substring(0, start) +
+        cleaned +
+        textarea.value.substring(end);
+
+    textarea.selectionStart = start;
+    textarea.selectionEnd = start + cleaned.length;
+    textarea.dispatchEvent(new Event("input"));
+}
+
+function applyColorFormat(color, textarea) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = textarea.value.substring(start, end);
+
+    const replacement = `<span style="color:${color}">${selected}</span>`;
+
+    textarea.value =
+        textarea.value.substring(0, start) +
+        replacement +
+        textarea.value.substring(end);
+
+    textarea.selectionStart = start;
+    textarea.selectionEnd = start + replacement.length;
+    textarea.dispatchEvent(new Event("input"));
+}
+
+function toggleBgColorPopup(button) {
+    const popup = document.getElementById("md-bgcolor-popup");
+    popup.classList.toggle("hidden");
+
+    const rect = button.getBoundingClientRect();
+    popup.style.left = rect.left + "px";
+    popup.style.top = rect.bottom + "px";
+}
+
+function applyBgColorFormat(bg, textarea) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = textarea.value.substring(start, end);
+
+    const replacement = `<span style="background-color:${bg}">${selected}</span>`;
+
+    textarea.value =
+        textarea.value.substring(0, start) +
+        replacement +
+        textarea.value.substring(end);
+
+    textarea.selectionStart = start;
+    textarea.selectionEnd = start + replacement.length;
+    textarea.dispatchEvent(new Event("input"));
 }
 
 export function flattenWorkspace() {
