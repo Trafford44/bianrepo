@@ -29,18 +29,43 @@ export function applyMarkdownFormat(type, textarea) {
         case "link":
             replacement = `[${selected || "text"}](url)`;
             break;
-        case "code":
-            before = "`"; after = "`";
+        case "code": {
+            const lines = selected.split("\n");
+
+            if (lines.length === 1) {
+                // inline code
+                before = "`";
+                after = "`";
+            } else {
+                // fenced code block
+                replacement = "```\n" + selected + "\n```";
+                before = "";
+                after = "";
+            }
             break;
-        case "quote":
-            replacement = `> ${selected}`;
+        }
+        case "quote": {
+            const lines = selected.split("\n");
+            replacement = lines
+                .map(line => line.trim() ? `> ${line.trim()}` : ">")
+                .join("\n");
             break;
-        case "ul":
-            replacement = `- ${selected}`;
+        }
+        case "ul": {
+            const lines = selected.split("\n");
+            replacement = lines
+                .map(line => line.trim() ? `- ${line.trim()}` : "")
+                .join("\n");
             break;
-        case "ol":
-            replacement = `1. ${selected}`;
+        }
+        case "ol": {
+            let i = 1;
+            const lines = selected.split("\n");
+            replacement = lines
+                .map(line => line.trim() ? `${i++}. ${line.trim()}` : "")
+                .join("\n");
             break;
+        }
         case "date":
             replacement = new Date().toISOString().split("T")[0];
             break;
