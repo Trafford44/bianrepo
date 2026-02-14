@@ -301,6 +301,25 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             max-width: 100%;
         }
+        /* loosen the spacing between paragraphs but keep lists tight.  Making everythign tight s an issue with 'marked' parser for MD v9*/
+        /* to be precice:
+            Paragraph → paragraph spacing
+            List → paragraph spacing
+            Paragraph → list spacing
+            Heading → paragraph spacing
+            Image → paragraph spacing
+            Code block → paragraph spacing
+            Everything → everything spacing */
+        .prose > * + * {
+        margin-top: 1em !important;
+        }
+
+        .prose blockquote {
+            margin-left: 1.5em;
+            padding-left: 1em;
+            border-left: 3px solid #ddd;
+            color: #555;
+        }
 
         .empty-state {
             flex: 1;
@@ -423,11 +442,11 @@
                     <button data-md="h1" class="btn-tool">H1</button>
                     <button data-md="link" class="btn-tool">Link</button>
                     <button data-md="code" class="btn-tool">Code</button>
-                    <button data-md="quote" class="btn-tool">Quote</button>
+                    <button data-md="quote" title="Indent" class="btn-tool">Quote</button>
                     <button data-md="ul" class="btn-tool">• List</button>
                     <button data-md="ol" class="btn-tool">1. List</button>
                     <button data-md="date" class="btn-tool">Date</button>
-                    <button data-md="hr" class="btn-tool">***</button>
+                    <button data-md="hr" title="Section line" class="btn-tool">***</button>
                     <button data-md="br" class="btn-tool">BR</button>
                     <button data-md="color" class="btn-tool">Color</button>
                     <button data-md="bgcolor" class="btn-tool">BG</button>
