@@ -231,6 +231,25 @@
             color: var(--text-main);
         }
 
+        .md-color-popup {
+            position: absolute;
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 0.25rem;
+            border-radius: 6px;
+            display: flex;
+            gap: 0.25rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .color-swatch {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+
         .btn-tool:hover { background: #f9fafb; }
         .btn-danger { color: var(--danger); border-color: #fee2e2; }
         .btn-danger:hover { background: var(--danger-bg); }
@@ -399,13 +418,31 @@
                 <div id="md-toolbar" class="md-toolbar hidden">
                     <button data-md="bold" class="btn-tool">B</button>
                     <button data-md="italic" class="btn-tool"><i>I</i></button>
+                    <button data-md="underline" class="btn-tool">U</button>
+                    <button data-md="strike" class="btn-tool">S̶</button>
                     <button data-md="h1" class="btn-tool">H1</button>
                     <button data-md="link" class="btn-tool">Link</button>
                     <button data-md="code" class="btn-tool">Code</button>
                     <button data-md="quote" class="btn-tool">Quote</button>
                     <button data-md="ul" class="btn-tool">• List</button>
                     <button data-md="ol" class="btn-tool">1. List</button>
+                    <button data-md="color" class="btn-tool">Color</button>
+                    <button data-md="bgcolor" class="btn-tool">BG</button>
+                    <button data-md="clear" class="btn-tool">Clear</button>
                 </div>
+                <div id="md-color-popup" class="md-color-popup hidden">
+                    <button data-color="#e53935" class="color-swatch" style="background:#e53935"></button>
+                    <button data-color="#1e88e5" class="color-swatch" style="background:#1e88e5"></button>
+                    <button data-color="#43a047" class="color-swatch" style="background:#43a047"></button>
+                    <button data-color="#fdd835" class="color-swatch" style="background:#fdd835"></button>
+                </div>
+                <div id="md-bgcolor-popup" class="md-color-popup hidden">
+                    <button data-bg="#fff59d" class="color-swatch" style="background:#fff59d"></button>
+                    <button data-bg="#ffcc80" class="color-swatch" style="background:#ffcc80"></button>
+                    <button data-bg="#90caf9" class="color-swatch" style="background:#90caf9"></button>
+                    <button data-bg="#c5e1a5" class="color-swatch" style="background:#c5e1a5"></button>
+                </div>
+
                 <textarea id="editor-textarea" spellcheck="false" placeholder="Write here..."></textarea>
             </div>
 
