@@ -1,4 +1,7 @@
 export function applyMarkdownFormat(type, textarea) {
+    // store previous value for one-level formatting undo
+    textarea.dataset.lastFormatValue = textarea.value;
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = textarea.value.substring(start, end);
@@ -38,19 +41,28 @@ export function applyMarkdownFormat(type, textarea) {
         case "ol":
             replacement = `1. ${selected}`;
             break;
+        case "date":
+            replacement = new Date().toISOString().split("T")[0];
+            break;
+        case "br":
+            replacement = `<br>\n`;
+            break;
+        case "hr":
+            replacement = `\n***\n`;
+            break;
     }
 
-    const newText =
-        textarea.value.substring(0, start) +
-        before + replacement + after +
-        textarea.value.substring(end);
+textarea.setRangeText(before + replacement + after, start, end, "end");
 
-    textarea.value = newText;
+// restore cursor without breaking undo
+const cursorStart = start + before.length;
+const cursorEnd = cursorStart + replacement.length;
 
-    // restore cursor
-    textarea.selectionStart = start + before.length;
-    textarea.selectionEnd = start + before.length + replacement.length;
+textarea.selectionStart = cursorStart;
+textarea.selectionEnd = cursorEnd;
 
-    textarea.dispatchEvent(new Event("input"));
+textarea.focus();
+textarea.dispatchEvent(new Event("input"));
+
 }
 
