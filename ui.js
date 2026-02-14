@@ -2,6 +2,7 @@ import { saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog } from ".
 import { getToken } from "./auth.js";
 import { applyMarkdownFormat } from "./md-editor.js";
 
+let saveTimer = null;
 let subjects = JSON.parse(localStorage.getItem("kb_data")) || [
     {
         id: "s1",
@@ -204,8 +205,11 @@ export function updatePreview() {
     const file = subject?.files.find(f => f.id === activeFileId);
     if (!file) return;
 
+    // debounce saving to avoid breaking undo
     file.content = content;
-    saveState();
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveState(), 300);
+
 
     if (file.type === "puml") {
         const url = getPumlUrl(content);
@@ -369,6 +373,17 @@ export function bindEditorEvents() {
     }
 
     document.addEventListener("keydown", e => {
+        // one-level undo for formatting
+        if (e.ctrlKey && e.key === "z") {
+            const textarea = document.getElementById("editor-textarea");
+            if (textarea && textarea.dataset.lastFormatValue) {
+                e.preventDefault(); // use our custom undo instead of native for this case
+                textarea.value = textarea.dataset.lastFormatValue;
+                delete textarea.dataset.lastFormatValue;
+                textarea.dispatchEvent(new Event("input"));
+                return;
+            }
+        }        
         if (e.ctrlKey && e.key === "=") {
             zoomEditor(1);
             zoomPreview(1);
@@ -461,6 +476,9 @@ function toggleColorPopup(button) {
 }
 
 function applyClearFormatting(textarea) {
+    // store previous value for one-level undo
+    textarea.dataset.lastFormatValue = textarea.value;
+
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = textarea.value.substring(start, end);
