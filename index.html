@@ -710,7 +710,16 @@
                 cursor: row-resize;
                 background: #ddd;
                 flex-shrink: 0;
-            }            
+            }  
+
+            #editor-resizer.resizing {
+                background: var(--accent-color, #3b82f6) !important;
+            }
+
+            #editor-container {
+                flex: none !important;
+            }
+
         }
 
         /* 4. When user hides the editor → resizer disappears */
@@ -789,7 +798,7 @@
 
         <div id="empty-state" class="empty-state">
             <svg style="width: 64px; height: 64px; margin-bottom: 1rem; opacity: 0.2;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
-            <p>Select a file to start editing</p>
+            <p>Select a file from teh menu to start editing</p>
         </div>
 
         <div id="workspace-grid" class="workspace-grid hidden">
