@@ -148,6 +148,7 @@
             transition: background 0.2s;
             z-index: 10;
             flex-shrink: 0;
+            touch-action: none; /* prevents scrolling while dragging */
         }
 
         .resizer:hover,
@@ -292,6 +293,7 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            flex: 1; /* allows title + status to take natural space */
         }
 
         .toolbar-actions {
@@ -404,15 +406,14 @@
         7. Sync Status Indicators
         ------------------------------------------------------- */
         .sync-status {
-            display: inline-block;
-            padding: 0.4rem 0.75rem;
-            border-radius: 6px;
-            font-size: 12px;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
             font-weight: 500;
-            transition: background-color 0.3s ease, color 0.3s ease;
             white-space: nowrap;
-            margin-right: 0.75rem;
-            margin-left: auto;
+            background: #f3f4f6;
+            color: #6b7280;
+            margin: 0; /* remove auto margins */
         }
 
         .sync-idle {
@@ -677,6 +678,12 @@
                 display: block !important;
                 cursor: col-resize;
             }
+
+            .file-toolbar {
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
         }
 
         /* 3. Tablet portrait + mobile portrait (< 900px + portrait) → COLUMN */
@@ -749,8 +756,8 @@
             <div class="toolbar-info">
                 <span id="active-file-type-icon"></span>
                 <h2 id="active-file-title" style="font-size: 1rem; color: #374151;">Select or create a file</h2>
-            </div>
-            <div id="sync-status" class="sync-status sync-idle btn-tool">Idle</div>
+                <div id="sync-status" class="sync-status sync-idle">Idle</div>
+            </div>            
             <div id="editor-actions" class="toolbar-actions hidden">
                 <button id="toggle-editor" class="btn-tool">Hide Editor</button>
                 <button id="github-login" class="btn-tool">Sign in with GitHub</button>
