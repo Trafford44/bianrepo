@@ -547,7 +547,10 @@
         - Layout handled by global rules below
         ------------------------------------------------------- */
 
-        @media (min-width: 600px) and (max-width: 900px) and (orientation: portrait) {
+        @media (min-width: 600px) 
+            and (max-width: 1400px) 
+            and (pointer: coarse) 
+            and (orientation: landscape) {
 
             .sidebar {
                 display: block;
@@ -581,7 +584,10 @@
         - Layout handled by global rules below
         ------------------------------------------------------- */
 
-        @media (min-width: 600px) and (max-width: 900px) and (orientation: landscape) {
+        @media (min-width: 600px) 
+            and (max-width: 1400px) 
+            and (pointer: coarse) 
+            and (orientation: landscape) {
 
             .sidebar {
                 display: flex;
@@ -615,7 +621,7 @@
         - Layout handled by global rules below
         ------------------------------------------------------- */
 
-        @media (min-width: 900px) {
+        @media (min-width: 900px) and (pointer: fine) {
 
             .sidebar {
                 display: flex;
