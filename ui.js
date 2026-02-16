@@ -60,11 +60,13 @@ export function initResizers() {
     const editorCont = document.getElementById("editor-container");
     const workspace = document.getElementById("workspace-grid");
 
-    // --- Helper: normalize mouse/touch events ---
-    const getClientX = e =>
-        e.touches ? e.touches[0].clientX : e.clientX;
+    // --- Helpers: normalize mouse/touch ---
+    const getClientX = e => (e.touches ? e.touches[0].clientX : e.clientX);
+    const getClientY = e => (e.touches ? e.touches[0].clientY : e.clientY);
 
-    // --- Sidebar Resizer ---
+    // ============================================================
+    // SIDEBAR RESIZER (always horizontal drag)
+    // ============================================================
     if (sbResizer) {
         const startSidebarResize = e => {
             e.preventDefault();
@@ -95,20 +97,49 @@ export function initResizers() {
         sbResizer.addEventListener("touchstart", startSidebarResize, { passive: false });
     }
 
-    // --- Editor Resizer ---
+    // ============================================================
+    // EDITOR RESIZER (horizontal in landscape, vertical in portrait)
+    // ============================================================
     if (edResizer) {
         const startEditorResize = e => {
             e.preventDefault();
             edResizer.classList.add("resizing");
 
-            const handleMove = e2 => {
-                const clientX = getClientX(e2);
-                const workspaceRect = workspace.getBoundingClientRect();
-                const newWidth = workspaceRect.right - clientX;
+            const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+            const workspaceRect = workspace.getBoundingClientRect();
 
-                if (newWidth >= 100 && newWidth <= workspaceRect.width - 100) {
-                    editorCont.style.width = newWidth + "px";
-                    editorCont.style.flex = "none";
+            // Capture starting values to prevent jumps
+            const startX = getClientX(e);
+            const startY = getClientY(e);
+            const startWidth = editorCont.getBoundingClientRect().width;
+            const startHeight = editorCont.getBoundingClientRect().height;
+
+            const handleMove = e2 => {
+                if (isPortrait) {
+                    // ---------------------------
+                    // PORTRAIT MODE → vertical drag (smooth, no jump)
+                    // ---------------------------
+                    const clientY = getClientY(e2);
+                    const deltaY = clientY - startY;
+                    const newHeight = startHeight - deltaY;
+
+                    if (newHeight >= 100 && newHeight <= workspaceRect.height - 100) {
+                        editorCont.style.height = newHeight + "px";
+                        editorCont.style.flex = "none";
+                    }
+
+                } else {
+                    // ---------------------------
+                    // LANDSCAPE MODE → horizontal drag (unchanged)
+                    // ---------------------------
+                    const clientX = getClientX(e2);
+                    const deltaX = clientX - startX;
+                    const newWidth = startWidth - deltaX;
+
+                    if (newWidth >= 100 && newWidth <= workspaceRect.width - 100) {
+                        editorCont.style.width = newWidth + "px";
+                        editorCont.style.flex = "none";
+                    }
                 }
             };
 
@@ -130,6 +161,8 @@ export function initResizers() {
         edResizer.addEventListener("touchstart", startEditorResize, { passive: false });
     }
 }
+
+
 
 
 export function renderSidebar() {
