@@ -154,7 +154,13 @@ export function renderSidebar() {
                 fDiv.addEventListener("click", e => {
                     e.stopPropagation();
                     loadFile(subject.id, file.id);
+
+                    // Close sidebar automatically on mobile portrait
+                    if (window.innerWidth < 768) {
+                        document.body.classList.remove("sidebar-open");
+                    }
                 });
+
                 const [dupBtn, delBtn] = fDiv.querySelectorAll(".icon-btn");
                 dupBtn.addEventListener("click", e => {
                     e.stopPropagation();
