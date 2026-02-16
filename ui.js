@@ -449,7 +449,7 @@ export function bindEditorEvents() {
         
         applyMarkdownFormat(type, textarea);
     });
-    
+
     const colorPopup = document.getElementById("md-color-popup");
     if (colorPopup) {
         colorPopup.addEventListener("click", e => {
@@ -472,16 +472,6 @@ export function bindEditorEvents() {
         });
     }
 
-}
-
-function toggleColorPopup(button) {
-    const popup = document.getElementById("md-color-popup");
-    popup.classList.toggle("hidden");
-
-    // Position popup under the button
-    const rect = button.getBoundingClientRect();
-    popup.style.left = rect.left + "px";
-    popup.style.top = rect.bottom + "px";
 }
 
 function applyClearFormatting(textarea) {
@@ -552,10 +542,21 @@ function applyColorFormat(color, textarea) {
     textarea.dispatchEvent(new Event("input"));
 }
 
+function toggleColorPopup(button) {
+    const popup = document.getElementById("md-color-popup");
+    popup.classList.toggle("hidden");
+
+    // Position popup under the button
+    const rect = button.getBoundingClientRect();
+    popup.style.left = rect.left + "px";
+    popup.style.top = rect.bottom + "px";
+}
+
 function toggleBgColorPopup(button) {
     const popup = document.getElementById("md-bgcolor-popup");
     popup.classList.toggle("hidden");
 
+    // Position popup under the button
     const rect = button.getBoundingClientRect();
     popup.style.left = rect.left + "px";
     popup.style.top = rect.bottom + "px";
@@ -637,4 +638,25 @@ export function rebuildWorkspaceFromGist(gistFiles) {
 
     return Object.values(subjectsMap);
 }
+
+// Sidebar toggle for mobile
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("sidebar-toggle").addEventListener("click", () => {
+        document.body.classList.toggle("sidebar-open");
+    });
+});
+
+document.getElementById("toggle-editor").addEventListener("click", () => {
+    const grid = document.querySelector(".workspace-grid");
+    const btn = document.getElementById("toggle-editor");
+
+    grid.classList.toggle("editor-hidden");
+
+    // Update button label
+    if (grid.classList.contains("editor-hidden")) {
+        btn.textContent = "Show Editor";
+    } else {
+        btn.textContent = "Hide Editor";
+    }
+});
 
