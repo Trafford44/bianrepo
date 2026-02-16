@@ -268,7 +268,7 @@
             background: #f3f4f6;
             border-radius: 6px;
         }
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
             .hamburger-btn {
                 display: block;
             }
@@ -459,7 +459,7 @@
         ------------------------------------------------------- */
 
         /* -------------------------------------------------------
-        Mobile Layout (≤ 600px)
+        Mobile Layout (≤ 768px)      @media (max-width: 600px) {
         - Stacked layout
         - Sidebar hidden
         - No resizers
@@ -468,14 +468,14 @@
         ------------------------------------------------------- */
 
         /* -------------------------------------------------------
-        MOBILE (max-width: 600px)
+        MOBILE (max-width: 768px)
         - Sidebar drawer
         - Touch-friendly toolbar
         - Hamburger visible
         - Layout handled by global rules below
         ------------------------------------------------------- */
 
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
 
             /* Sidebar becomes a slide-in drawer on mobile */
             .sidebar {
@@ -501,6 +501,14 @@
             .md-toolbar {
                 flex-wrap: wrap;
                 gap: 0.5rem;
+                width: 100%; /* ensure full width */
+            }
+
+            /* ⭐ NEW: Top toolbar scrolls horizontally */
+            .file-toolbar {
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
             }
 
             /* Touch-friendly buttons */
@@ -513,7 +521,21 @@
             .hamburger-btn {
                 display: block;
             }
+
+            /* Force editor to full width in portrait */
+            #editor-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 1 1 auto !important;
+            }
+
+            /* Hide the vertical resizer on mobile portrait */
+            #editor-resizer {
+                display: none !important;
+            }
+
         }
+
 
 
 
