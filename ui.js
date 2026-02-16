@@ -60,49 +60,77 @@ export function initResizers() {
     const editorCont = document.getElementById("editor-container");
     const workspace = document.getElementById("workspace-grid");
 
+    // --- Helper: normalize mouse/touch events ---
+    const getClientX = e =>
+        e.touches ? e.touches[0].clientX : e.clientX;
+
+    // --- Sidebar Resizer ---
     if (sbResizer) {
-        sbResizer.addEventListener("mousedown", e => {
+        const startSidebarResize = e => {
             e.preventDefault();
             sbResizer.classList.add("resizing");
-            const handleSidebarResize = e2 => {
-                const newWidth = e2.clientX;
+
+            const handleMove = e2 => {
+                const newWidth = getClientX(e2);
                 if (newWidth >= 200 && newWidth <= 600) {
                     sidebar.style.width = newWidth + "px";
                 }
             };
+
             const stop = () => {
                 sbResizer.classList.remove("resizing");
-                document.removeEventListener("mousemove", handleSidebarResize);
+                document.removeEventListener("mousemove", handleMove);
                 document.removeEventListener("mouseup", stop);
+                document.removeEventListener("touchmove", handleMove);
+                document.removeEventListener("touchend", stop);
             };
-            document.addEventListener("mousemove", handleSidebarResize);
+
+            document.addEventListener("mousemove", handleMove);
             document.addEventListener("mouseup", stop);
-        });
+            document.addEventListener("touchmove", handleMove, { passive: false });
+            document.addEventListener("touchend", stop);
+        };
+
+        sbResizer.addEventListener("mousedown", startSidebarResize);
+        sbResizer.addEventListener("touchstart", startSidebarResize, { passive: false });
     }
 
+    // --- Editor Resizer ---
     if (edResizer) {
-        edResizer.addEventListener("mousedown", e => {
+        const startEditorResize = e => {
             e.preventDefault();
             edResizer.classList.add("resizing");
-            const handleEditorResize = e2 => {
+
+            const handleMove = e2 => {
+                const clientX = getClientX(e2);
                 const workspaceRect = workspace.getBoundingClientRect();
-                const newWidth = workspaceRect.right - e2.clientX;
+                const newWidth = workspaceRect.right - clientX;
 
                 if (newWidth >= 100 && newWidth <= workspaceRect.width - 100) {
                     editorCont.style.width = newWidth + "px";
                     editorCont.style.flex = "none";
                 }
             };
+
             const stop = () => {
                 edResizer.classList.remove("resizing");
-                document.removeEventListener("mousemove", handleEditorResize);
+                document.removeEventListener("mousemove", handleMove);
                 document.removeEventListener("mouseup", stop);
+                document.removeEventListener("touchmove", handleMove);
+                document.removeEventListener("touchend", stop);
             };
-            document.addEventListener("mousemove", handleEditorResize);
+
+            document.addEventListener("mousemove", handleMove);
             document.addEventListener("mouseup", stop);
-        });
+            document.addEventListener("touchmove", handleMove, { passive: false });
+            document.addEventListener("touchend", stop);
+        };
+
+        edResizer.addEventListener("mousedown", startEditorResize);
+        edResizer.addEventListener("touchstart", startEditorResize, { passive: false });
     }
 }
+
 
 export function renderSidebar() {
     const container = document.getElementById("sidebar-list");
