@@ -691,10 +691,26 @@
             .workspace-grid {
                 flex-direction: column;
             }
+
+            /* Hide sidebar resizer in portrait – sidebar is a drawer here */
+            #sidebar-resizer {
+                display: none !important;
+            }
+
             .resizer {
                 display: block !important;
                 cursor: row-resize; /* optional */
             }
+
+            /* Editor resizer: horizontal between preview and editor */
+            #editor-resizer {
+                display: block !important;
+                width: 100%;
+                height: 6px;
+                cursor: row-resize;
+                background: #ddd;
+                flex-shrink: 0;
+            }            
         }
 
         /* 4. When user hides the editor → resizer disappears */
