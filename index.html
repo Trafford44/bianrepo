@@ -643,16 +643,17 @@
                flex-shrink: 0;
                width: var(--resizer-width);
                background: transparent;
-           }
-       
+           }       
            #sidebar {
                flex-shrink: 0;
-           }
-       
+           }       
            #workspace-grid {
                overflow: visible;
            }
-
+            /* Set colour blue */
+            #editor-resizer.resizing {
+                background: var(--accent-color, #3b82f6) !important;
+            }
          
         }
 
