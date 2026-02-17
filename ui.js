@@ -217,7 +217,7 @@ export function renderSidebar() {
                     loadFile(subject.id, file.id);
 
                     // Close sidebar automatically on mobile portrait
-                    if (window.innerWidth < 1400) {
+                    if (window.innerWidth < 1400 && window.matchMedia("(orientation: portrait)").matches) {
                         document.body.classList.remove("sidebar-open");
                     }
                 });
