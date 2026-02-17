@@ -635,6 +635,25 @@
             .icon-btn {
                 padding: 0.55rem 0.85rem;
             }
+         
+           /* Ensure sidebar resizer works in landscape */       
+           #sidebar-resizer {
+               pointer-events: auto;
+               touch-action: none;
+               flex-shrink: 0;
+               width: var(--resizer-width);
+               background: transparent;
+           }
+       
+           #sidebar {
+               flex-shrink: 0;
+           }
+       
+           #workspace-grid {
+               overflow: visible;
+           }
+
+         
         }
 
 
