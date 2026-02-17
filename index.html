@@ -553,10 +553,16 @@
             and (orientation: portrait) {
 
             .sidebar {
-                display: block;
-                width: 260px;
-                min-width: 200px;
-                max-width: 300px;
+                position: fixed;
+                top: 0;
+                left: -300px;
+                height: 100vh;
+                z-index: 100;
+                transition: left 0.25s ease;
+            }
+
+            .sidebar-open .sidebar {
+                left: 0;
             }
 
             .main-content {
