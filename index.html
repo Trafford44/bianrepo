@@ -550,7 +550,7 @@
         @media (min-width: 600px) 
             and (max-width: 1400px) 
             and (pointer: coarse) 
-            and (orientation: landscape) {
+            and (orientation: portrait) {
 
             .sidebar {
                 display: block;
@@ -565,8 +565,10 @@
 
             .file-toolbar,
             .md-toolbar {
+                overflow-x: auto;             
                 flex-wrap: wrap;
                 gap: 0.5rem;
+                -webkit-overflow-scrolling: touch;             
             }
 
             .btn-tool,
@@ -602,10 +604,8 @@
 
             .file-toolbar,
             .md-toolbar {
-                overflow-x: auto;
                 flex-wrap: wrap;
                 gap: 0.5rem;
-                -webkit-overflow-scrolling: touch;
             }
 
             .btn-tool,
