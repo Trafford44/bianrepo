@@ -626,13 +626,17 @@ function applyColorFormat(color, textarea) {
     textarea.dispatchEvent(new Event("input"));
 }
 
+function hidePopups(except) {
+    for (const p of document.querySelectorAll('.md-popup')) {
+        if (p !== except) p.classList.add("hidden");
+    }
+}
+
 function toggleColorPopup(button) {
     const popup = document.getElementById("md-color-popup");
 
     // Hide all other popups
-    document.querySelectorAll('.md-popup').forEach(p => {
-        if (p !== popup) p.classList.add("hidden");
-    });
+    hidePopups(popup);
 
     popup.classList.toggle("hidden");
 
@@ -646,9 +650,7 @@ function toggleBgColorPopup(button) {
     const popup = document.getElementById("md-bgcolor-popup");
 
     // Hide all other popups
-    document.querySelectorAll('.md-popup').forEach(p => {
-        if (p !== popup) p.classList.add("hidden");
-    });
+    hidePopups(popup);
 
     popup.classList.toggle("hidden");
 
@@ -662,9 +664,7 @@ function toggleTablePopup(button) {
     const popup = document.getElementById("table-popup");
 
     // Hide all other popups
-    document.querySelectorAll('.md-popup').forEach(p => {
-        if (p !== popup) p.classList.add("hidden");
-    });
+    hidePopups(popup);
 
     // Toggle visibility
     popup.classList.toggle("hidden");
