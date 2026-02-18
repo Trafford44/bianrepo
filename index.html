@@ -352,7 +352,8 @@
         }
 
         .md-color-popup,
-        .md-bgcolor-popup {
+        .md-bgcolor-popup,
+        .md-table-popup {
             position: absolute;
             background: white;
             border: 1px solid var(--border-color);
@@ -362,6 +363,14 @@
             gap: 0.25rem;
             box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
+
+        .popup-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin: 0.5rem 0 0.25rem;
+        }
+
         .color-swatch {
             width: 24px;
             height: 24px;
@@ -919,43 +928,43 @@
                     <button data-md="br" class="btn-tool">BR</button>
                     <button data-md="color" class="btn-tool">Color</button>
                     <button data-md="bgcolor" class="btn-tool">BG</button>
-                    <button data-md="table-menu" class="md-btn">⊞</button>
+                    <button data-md="table-menu" class="btn-tool">⊞</button>
                     <button data-md="clear" class="btn-tool">Clear</button>
                 </div>
 
-                <div id="md-color-popup" class="md-color-popup hidden">
+                <div id="md-color-popup" class="md-popup md-color-popup hidden">
                     <button data-color="#e53935" class="color-swatch" style="background:#e53935"></button>
                     <button data-color="#1e88e5" class="color-swatch" style="background:#1e88e5"></button>
                     <button data-color="#43a047" class="color-swatch" style="background:#43a047"></button>
                     <button data-color="#fdd835" class="color-swatch" style="background:#fdd835"></button>
                 </div>
 
-                <div id="md-bgcolor-popup" class="md-color-popup hidden">
+                <div id="md-bgcolor-popup" class="md-popup md-color-popup hidden">
                     <button data-bg="#fff59d" class="color-swatch" style="background:#fff59d"></button>
                     <button data-bg="#ffcc80" class="color-swatch" style="background:#ffcc80"></button>
                     <button data-bg="#90caf9" class="color-swatch" style="background:#90caf9"></button>
                     <button data-bg="#c5e1a5" class="color-swatch" style="background:#c5e1a5"></button>
                 </div>
-                <div id="table-popup" class="md-popup hidden">
+                <div id="table-popup" class="md-popup md-table-popup hidden">
                     <div class="popup-section-title">Insert Table</div>
                     <div class="popup-row">
-                        <button data-md="table-insert-2x2">2×2</button>
-                        <button data-md="table-insert-3x3">3×3</button>
-                        <button data-md="table-insert-4x4">4×4</button>
+                        <button data-md="table-insert-2x2" class="btn-tool">2×2</button>
+                        <button data-md="table-insert-3x3" class="btn-tool">3×3</button>
+                        <button data-md="table-insert-4x4" class="btn-tool">4×4</button>
                     </div>
 
                     <div class="popup-section-title">Modify Table</div>
                     <div class="popup-row">
-                        <button data-md="table-add-row">Add Row Below</button>
-                        <button data-md="table-add-col">Add Column Right</button>
+                        <button data-md="table-add-row" title="Add row" class="btn-tool">✚ ▼</button>
+                        <button data-md="table-add-col" title="Add column" class="btn-tool">✚ ►</button>
                     </div>
                     <div class="popup-row">
-                        <button data-md="table-del-row">Delete Row</button>
-                        <button data-md="table-del-col">Delete Column</button>
+                        <button data-md="table-del-row" title="Delete row" class="btn-tool">✖ ▼</button>
+                        <button data-md="table-del-col" title="Delete column" class="btn-tool">✖ ►</button>
                     </div>
                     <div class="popup-section-title">Tools</div>
                     <div class="popup-row">
-                        <button data-md="table-format">Format Table</button>
+                        <button data-md="table-format" title="Format Table" class="btn-tool">¶</button>
                     </div>
                     
                 </div>
