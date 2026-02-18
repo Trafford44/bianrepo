@@ -513,6 +513,12 @@ export function bindEditorEvents() {
             toggleBgColorPopup(e.target);
             return;
         }     
+        if (type === "table-menu") {
+            toggleTablePopup(e.target);
+            return;
+        }
+
+        
         
         applyMarkdownFormat(type, textarea);
     });
@@ -536,6 +542,17 @@ export function bindEditorEvents() {
 
             applyBgColorFormat(bg, textarea);
             bgPopup.classList.add("hidden");
+        });
+    }
+
+    const tablePopup = document.getElementById("table-popup");
+    if (tablePopup) {
+        tablePopup.addEventListener("click", e => {
+            const type = e.target.dataset.md;
+            if (!type) return;
+
+            applyMarkdownFormat(type, textarea);
+            tablePopup.classList.add("hidden");
         });
     }
 
@@ -611,6 +628,12 @@ function applyColorFormat(color, textarea) {
 
 function toggleColorPopup(button) {
     const popup = document.getElementById("md-color-popup");
+
+    // Hide all other popups
+    document.querySelectorAll('.md-popup').forEach(p => {
+        if (p !== popup) p.classList.add("hidden");
+    });
+
     popup.classList.toggle("hidden");
 
     // Position popup under the button
@@ -621,12 +644,36 @@ function toggleColorPopup(button) {
 
 function toggleBgColorPopup(button) {
     const popup = document.getElementById("md-bgcolor-popup");
+
+    // Hide all other popups
+    document.querySelectorAll('.md-popup').forEach(p => {
+        if (p !== popup) p.classList.add("hidden");
+    });
+
     popup.classList.toggle("hidden");
 
     // Position popup under the button
     const rect = button.getBoundingClientRect();
     popup.style.left = rect.left + "px";
     popup.style.top = rect.bottom + "px";
+}
+
+function toggleTablePopup(button) {
+    const popup = document.getElementById("table-popup");
+
+    // Hide all other popups
+    document.querySelectorAll('.md-popup').forEach(p => {
+        if (p !== popup) p.classList.add("hidden");
+    });
+
+    // Toggle visibility
+    popup.classList.toggle("hidden");
+
+    if (!popup.classList.contains("hidden")) {
+        const rect = button.getBoundingClientRect();
+        popup.style.left = rect.left + "px";
+        popup.style.top = rect.bottom + "px";
+    }
 }
 
 function applyBgColorFormat(bg, textarea) {
