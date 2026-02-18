@@ -401,6 +401,67 @@
             color: #555;
         }
 
+        /* ============================
+        Joplin‑Style Markdown Tables
+        ============================ */
+
+        .prose table {
+            border-collapse: separate !important;  /* force separate borders */
+            border-spacing: 0;
+            table-layout: auto;
+            width: auto;
+
+            background: #fcfcfc;      /* your purple background */
+            border: 2px solid #9f9f9ff0;   /* try white to confirm visibility */
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+
+        /* ----- Header Row ----- */
+        .prose thead tr {
+            background: #f5f5f5;
+            border-bottom: 2px solid #444; /* heavier separator */
+        }
+
+        .prose th {
+            text-align: left;
+            padding: 6px 10px;
+            font-weight: 600;
+            border-right: 1px solid #ddd;
+            border-top: 1px solid #ddd;    /* ensures top border is visible */
+            border-bottom: 4px solid #ddd;
+        }
+
+        /* Remove right border on last header cell */
+        .prose th:last-child {
+            border-right: none;
+        }
+
+        /* ----- Body Rows ----- */
+        .prose td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #ddd;
+            border-right: 1px solid #ddd;
+        }
+
+        /* Remove right border on last cell */
+        .prose td:last-child {
+            border-right: none;
+        }
+
+        /* Alternating row shading */
+        .prose tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        /* Ensure left border is visible */
+        .prose td:first-child,
+        .prose th:first-child {
+            border-left: 1px solid #ddd;
+        }
+
+
 
         /* -------------------------------------------------------
         7. Sync Status Indicators
@@ -553,16 +614,10 @@
             and (orientation: portrait) {
 
             .sidebar {
-                position: fixed;
-                top: 0;
-                left: -300px;
-                height: 100vh;
-                z-index: 100;
-                transition: left 0.25s ease;
-            }
-
-            .sidebar-open .sidebar {
-                left: 0;
+                display: block;
+                width: 260px;
+                min-width: 200px;
+                max-width: 300px;
             }
 
             .main-content {
@@ -574,30 +629,13 @@
                 overflow-x: auto;             
                 flex-wrap: wrap;
                 gap: 0.5rem;
-                -webkit-overflow-scrolling: touch;             
+                -webkit-overflow-scrolling: touch;
             }
 
             .btn-tool,
             .icon-btn {
                 padding: 0.55rem 0.85rem;
             }
-
-             /* Hamburger visible */
-            .hamburger-btn {
-                display: block;
-            }
-
-            /* Force editor to full width in portrait */
-            #editor-container {
-                width: 100% !important;
-                max-width: 100% !important;
-                flex: 1 1 auto !important;
-            }
-
-            /* Hide the vertical resizer on mobile portrait */
-            #editor-resizer {
-                display: none !important;
-            }        
         }
 
 
@@ -635,26 +673,29 @@
             .icon-btn {
                 padding: 0.55rem 0.85rem;
             }
-         
-           /* Ensure sidebar resizer works in landscape */       
-           #sidebar-resizer {
-               pointer-events: auto;
-               touch-action: none;
-               flex-shrink: 0;
-               width: var(--resizer-width);
-               background: transparent;
-           }       
-           #sidebar {
-               flex-shrink: 0;
-           }       
-           #workspace-grid {
-               overflow: visible;
-           }
+
+            /* Ensure sidebar resizer works in landscape */
+            #sidebar-resizer {
+                pointer-events: auto;
+                touch-action: none;
+                flex-shrink: 0;
+                width: var(--resizer-width);
+                background: transparent;
+            }
+
+            #sidebar {
+                flex-shrink: 0;
+            }
+
+            #workspace-grid {
+                overflow: visible;
+            }
             /* Set colour blue */
             #editor-resizer.resizing {
                 background: var(--accent-color, #3b82f6) !important;
             }
-         
+
+            
         }
 
 
@@ -878,6 +919,7 @@
                     <button data-md="br" class="btn-tool">BR</button>
                     <button data-md="color" class="btn-tool">Color</button>
                     <button data-md="bgcolor" class="btn-tool">BG</button>
+                    <button data-md="table-menu" class="md-btn">⊞</button>
                     <button data-md="clear" class="btn-tool">Clear</button>
                 </div>
 
@@ -894,6 +936,30 @@
                     <button data-bg="#90caf9" class="color-swatch" style="background:#90caf9"></button>
                     <button data-bg="#c5e1a5" class="color-swatch" style="background:#c5e1a5"></button>
                 </div>
+                <div id="table-popup" class="md-popup hidden">
+                    <div class="popup-section-title">Insert Table</div>
+                    <div class="popup-row">
+                        <button data-md="table-insert-2x2">2×2</button>
+                        <button data-md="table-insert-3x3">3×3</button>
+                        <button data-md="table-insert-4x4">4×4</button>
+                    </div>
+
+                    <div class="popup-section-title">Modify Table</div>
+                    <div class="popup-row">
+                        <button data-md="table-add-row">Add Row Below</button>
+                        <button data-md="table-add-col">Add Column Right</button>
+                    </div>
+                    <div class="popup-row">
+                        <button data-md="table-del-row">Delete Row</button>
+                        <button data-md="table-del-col">Delete Column</button>
+                    </div>
+                    <div class="popup-section-title">Tools</div>
+                    <div class="popup-row">
+                        <button data-md="table-format">Format Table</button>
+                    </div>
+                    
+                </div>
+
                 <textarea id="editor-textarea" spellcheck="false" placeholder="Write here..."></textarea>
             </div> <!-- closes #editor-container -->
 
