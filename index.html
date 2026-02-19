@@ -240,7 +240,7 @@
 
         .file-item:hover .file-actions { opacity: 1; }
 
-        .btn-add-file {
+        .btn-add-file, .btn-rename-folder, .btn-close-sidebar {
             font-size: 0.75rem;
             padding: 2px 6px;
             border: 1px solid var(--border-color);
@@ -506,6 +506,7 @@
             color: #b91c1c;
         }
 
+        .btn-close-sidebar { display: none; }
 
         /* -------------------------------------------------------
         8. Login State Styles
@@ -735,6 +736,11 @@
             }
         }
 
+        @media (max-width: 1400px) and (orientation: portrait) {
+            .btn-close-sidebar {
+                display: inline-block;
+            }
+        }
 
 
         /* -------------------------------------------------------
@@ -870,6 +876,7 @@
         <div class="sidebar-header">
             <h1>BIAN Knowledge Base</h1>
             <button id="add-subject-btn" class="btn-add-file">+ Folder</button>
+            <button id="close-sidebar-btn" class="btn-close-sidebar">✖</button>
         </div>
         <div id="sidebar-list" class="sidebar-list"></div>
     </aside>
