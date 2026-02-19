@@ -180,12 +180,25 @@ export function renderSidebar() {
         sHeader.innerHTML = `
             <span class="chevron ${subject.isOpen ? "open" : ""}">▶</span>
             <span class="subject-title">${subject.title}</span>
-            <button class="btn-add-file">+ File</button>
+
+            <div class="subject-actions">
+                <button class="btn-add-file">+ File</button>
+                <button class="btn-rename-folder" title="Rename Folder">Rename</button>
+            </div>
         `;
+
+        // Add File
         sHeader.querySelector(".btn-add-file").addEventListener("click", e => {
             e.stopPropagation();
             addFile(subject.id);
         });
+
+        // Rename Folder
+        sHeader.querySelector(".btn-rename-folder").addEventListener("click", e => {
+            e.stopPropagation();
+            renameSubject(subject.id);
+        });
+
         sHeader.addEventListener("click", () => {
             subject.isOpen = !subject.isOpen;
             saveState();
@@ -200,7 +213,7 @@ export function renderSidebar() {
                 fDiv.className = `file-item ${file.id === activeFileId ? "active" : ""}`;
                 fDiv.innerHTML = `
                     <div style="display: flex; align-items: center; overflow: hidden; flex: 1;">
-                        <span class="file-icon">${file.type === "md" ? "M↓" : "⬡"}</span>
+                        <span class="file-icon">${file.type === "md" ? "M↓" : "⧉"}</span>
                         <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.title}</span>
                     </div>
                     <div class="file-actions">
@@ -254,7 +267,7 @@ export function loadFile(sId, fId) {
     const textarea = document.getElementById("editor-textarea");
     textarea.value = file.content;
 
-    document.getElementById("active-file-title").textContent = file.title;
+    document.getElementById("active-file-title").textContent = `${subject.title} / ${file.title}`;
     document.getElementById("active-file-type-icon").innerHTML =
         file.type === "md"
             ? '<span class="type-label-md">MD</span>'
@@ -268,6 +281,19 @@ export function loadFile(sId, fId) {
 
     renderSidebar();
     updatePreview();
+}
+
+export function renameSubject(subjectId) {
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+
+    const newName = prompt("Rename folder:", subject.title);
+    if (!newName || !newName.trim()) return;
+
+    subject.title = newName.trim();
+
+    saveState();
+    renderSidebar();
 }
 
 export function updatePreview() {
@@ -535,7 +561,15 @@ export function bindEditorEvents() {
     }
 
     const bgPopup = document.getElementById("md-bgcolor-popup");
-    if (bgPopup) {
+    if (bgPopup) {// Close sidebar button (static header)
+const closeSidebarBtn = document.getElementById("close-sidebar-btn");
+if (closeSidebarBtn) {
+    closeSidebarBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        document.body.classList.remove("sidebar-open");
+    });
+}
+
         bgPopup.addEventListener("click", e => {
             const bg = e.target.dataset.bg;
             if (!bg) return;
@@ -553,6 +587,15 @@ export function bindEditorEvents() {
 
             applyMarkdownFormat(type, textarea);
             tablePopup.classList.add("hidden");
+        });
+    }
+
+    // Close sidebar button (static header)
+    const closeSidebarBtn = document.getElementById("close-sidebar-btn");
+    if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            document.body.classList.remove("sidebar-open");
         });
     }
 
