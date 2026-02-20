@@ -281,6 +281,20 @@ export function loadFile(sId, fId) {
 
     renderSidebar();
     updatePreview();
+    updateToolbar()
+}
+
+function updateToolbar() {
+    const subject = subjects.find(s => s.id === activeSubjectId);
+    const file = subject?.files.find(f => f.id === activeFileId);
+
+    const pumlButtons = document.querySelectorAll(".puml-only");
+
+    const show = file?.type === "puml";
+
+    pumlButtons.forEach(btn => {
+        btn.style.display = show ? "inline-flex" : "none";
+    });
 }
 
 export function renameSubject(subjectId) {
@@ -299,6 +313,7 @@ export function renameSubject(subjectId) {
 export function updatePreview() {
     const textarea = document.getElementById("editor-textarea");
     const preview = document.getElementById("preview-pane");
+    const link = document.getElementById('puml-external-link');
     const content = textarea.value;
 
     const subject = subjects.find(s => s.id === activeSubjectId);
@@ -312,26 +327,37 @@ export function updatePreview() {
 
 
     if (file.type === "puml") {
-        const url = getPumlUrl(content);
+        const url = getPumlRenderUrl(content);
         preview.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center;">
                 <img src="${url}" alt="PlantUML Diagram" />
                 <a href="${url}" target="_blank" style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">Open SVG link</a>
             </div>`;
+        link.href = getPumlHref(content);
     } else {
         const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
         const processed = content.replace(pumlRegex, (match, p1) => {
-            const url = getPumlUrl(p1);
+            const url = getPumlRenderUrl(p1);
             return `\n![PlantUML](${url})\n`;
         });
         preview.innerHTML = `<div class="prose">${marked.parse(processed)}</div>`;
     }
 }
 
-function getPumlUrl(puml) {
+function getPumlRenderUrl(puml) {
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
         return `https://www.plantuml.com/plantuml/svg/${encoded}`;
+    } catch (e) {
+        console.error("Encoding error:", e);
+        return "";
+    }
+}
+
+function getPumlHref(puml) {
+    try {
+        const encoded = plantumlEncoder.encode(puml.trim());
+        return `https://www.plantuml.com/plantuml/uml/${encoded}`;
     } catch (e) {
         console.error("Encoding error:", e);
         return "";
@@ -437,9 +463,9 @@ export function zoomEditor(delta) {
 
 export function zoomPreview(delta) {
     const root = document.documentElement;
-    const current = parseFloat(getComputedStyle(root).getPropertyValue("--preview-font-size"));
-    const next = Math.min(40, Math.max(10, current + delta));
-    root.style.setProperty("--preview-font-size", next + "px");
+    const current = parseFloat(getComputedStyle(root).getPropertyValue('--preview-zoom-scale'));
+    const next = Math.min(3, Math.max(0.5, current + delta * 0.1));
+    root.style.setProperty('--preview-zoom-scale', next);
 }
 
 export function setSyncStatus(state, text) {
@@ -543,8 +569,6 @@ export function bindEditorEvents() {
             toggleTablePopup(e.target);
             return;
         }
-
-        
         
         applyMarkdownFormat(type, textarea);
     });
@@ -562,13 +586,14 @@ export function bindEditorEvents() {
 
     const bgPopup = document.getElementById("md-bgcolor-popup");
     if (bgPopup) {// Close sidebar button (static header)
-const closeSidebarBtn = document.getElementById("close-sidebar-btn");
-if (closeSidebarBtn) {
-    closeSidebarBtn.addEventListener("click", e => {
-        e.stopPropagation();
-        document.body.classList.remove("sidebar-open");
-    });
-}
+
+    const closeSidebarBtn = document.getElementById("close-sidebar-btn");
+    if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            document.body.classList.remove("sidebar-open");
+        });
+    }
 
         bgPopup.addEventListener("click", e => {
             const bg = e.target.dataset.bg;
@@ -586,9 +611,18 @@ if (closeSidebarBtn) {
             if (!type) return;
 
             applyMarkdownFormat(type, textarea);
-            tablePopup.classList.add("hidden");
         });
     }
+
+    document.addEventListener("click", e => {
+        const popup = document.getElementById("table-popup");
+        const toggle = document.querySelector('[data-md="table-menu"]');
+
+        if (!popup.contains(e.target) && e.target !== toggle) {
+            popup.classList.add("hidden");
+        }
+    });
+
 
     // Close sidebar button (static header)
     const closeSidebarBtn = document.getElementById("close-sidebar-btn");
