@@ -178,7 +178,7 @@ export function addTableRowBelow() {
 
     const lines = value.split("\n");
 
-    // Find the current line index
+    // Find the current line index based on cursor position
     let lineIndex = 0;
     let charCount = 0;
     for (let i = 0; i < lines.length; i++) {
@@ -191,37 +191,40 @@ export function addTableRowBelow() {
 
     // Ensure we're inside a table row (must contain pipes)
     if (!lines[lineIndex].includes("|")) {
-        return; // not in a table, do nothing
+        return; // not in a table
     }
 
-    // Determine the structure of the row
+    // Determine the number of cells in the current row
     const currentRow = lines[lineIndex];
-    const cellCount = currentRow.split("|").length - 2; 
-    // -2 because split gives empty strings at start/end
+    const cellCount = currentRow.split("|").length - 2;
 
-    // Build a new empty row with same number of cells
+    // Build a new empty row
     const newRow =
         "| " +
         Array.from({ length: cellCount }, () => "").join(" | ") +
         " |";
 
-    // Insert below
-    lines.splice(lineIndex + 1, 0, newRow);
+    // Insert the new row below the current one
+    const insertedRowIndex = lineIndex + 1;
+    lines.splice(insertedRowIndex, 0, newRow);
 
-    // Rebuild text
+    // Rebuild the text
     const newText = lines.join("\n");
     textarea.value = newText;
 
-    // Move cursor to the first cell of the new row
+    // Compute cursor position based on the UPDATED text
     let newCursorPos = 0;
-    for (let i = 0; i <= lineIndex + 1; i++) {
+    for (let i = 0; i < insertedRowIndex; i++) {
         newCursorPos += lines[i].length + 1;
     }
-    textarea.selectionStart = textarea.selectionEnd = newCursorPos + 2; // inside first cell
+
+    // Place cursor inside the first cell ("| ")
+    textarea.selectionStart = textarea.selectionEnd = newCursorPos + 2;
 
     textarea.focus();
     textarea.dispatchEvent(new Event("input"));
 }
+
 
 /* addTableColumnRight: Find the current line
 Check if it’s a table row
