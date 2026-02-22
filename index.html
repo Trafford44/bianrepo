@@ -146,7 +146,8 @@
             height: auto;
             object-fit: contain;
             object-position: left top;
-            transform: scale(var(--preview-zoom-scale)); transform-origin: top left;
+            transform: scale(var(--preview-zoom-scale));
+            transform-origin: top left;
         }
 
 
@@ -254,12 +255,13 @@
         .file-item:hover .file-actions { opacity: 1; }
 
         .btn-add-file, .btn-rename-folder, .btn-close-sidebar {
-            font-size: 0.75rem;
+            font-size:0.75em;
             padding: 2px 6px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background: #fff;
-            color: var(--accent);
+            /* color: var(--accent); */
+            color:#999999; 
             cursor: pointer;
         }
 
@@ -913,8 +915,9 @@
                 <button id="restore-btn" class="btn-tool">Restore</button>
                 <button id="export-btn" class="btn-tool">Export</button>
                 <button id="delete-btn" class="btn-tool btn-danger">Delete</button>
-                <button id="zoom-editor-in" class="btn-tool">🔍+</button>
-                <button id="zoom-editor-out" class="btn-tool">🔍-</button>
+                <button id="zoom-editor-in" title="Zoom in" class="btn-tool">🔍+</button>
+                <button id="zoom-editor-out" title="Zoom out" class="btn-tool">🔍-</button>
+                <button id="zoom-reset-btn" class="btn-tool" title="Reset zoom">🔍0</button>
                 <a id="puml-external-link" href="#" target="_blank" title="Edit in PlantUML" class="btn-tool puml-only">🌐↗</a>
             </div>
         </header>
@@ -935,23 +938,23 @@
             <!-- RIGHT / BOTTOM -->
             <div id="editor-container">
                 <div id="md-toolbar" class="md-toolbar hidden">
-                    <button data-md="bold" class="btn-tool">B</button>
-                    <button data-md="italic" class="btn-tool"><i>I</i></button>
-                    <button data-md="underline" class="btn-tool">U</button>
-                    <button data-md="strike" class="btn-tool">S̶</button>
-                    <button data-md="h1" class="btn-tool">H1</button>
-                    <button data-md="link" class="btn-tool">Link</button>
-                    <button data-md="code" class="btn-tool">Code</button>
+                    <button data-md="bold" title="Bold" class="btn-tool">B</button>
+                    <button data-md="italic" title="Italic" class="btn-tool"><i>I</i></button>
+                    <button data-md="underline" title="Underline" class="btn-tool">U</button>
+                    <button data-md="strike" title="Strikethrough" class="btn-tool">-S-</button>
+                    <button data-md="h1" title="Heading" class="btn-tool">H1</button>
+                    <button data-md="link" title="Insert link" class="btn-tool">Link</button>
+                    <button data-md="code" title="Inline code" class="btn-tool">Code</button>
                     <button data-md="quote" title="Indent" class="btn-tool">Quote</button>
-                    <button data-md="ul" title="Bullet point list" class="btn-tool">• l</button>
-                    <button data-md="ol" title="Numbered list" class="btn-tool">1. l</button>
-                    <button data-md="date" class="btn-tool">Date</button>
+                    <button data-md="ul" title="Bullet point list" class="btn-tool">• -</button>
+                    <button data-md="ol" title="Numbered list" class="btn-tool">1. -</button>
+                    <button data-md="date" title="Insert current date" class="btn-tool">Date</button>
                     <button data-md="hr" title="Section line" class="btn-tool">***</button>
-                    <button data-md="br" class="btn-tool">BR</button>
-                    <button data-md="color" class="btn-tool">Color</button>
-                    <button data-md="bgcolor" class="btn-tool">BG</button>
-                    <button data-md="table-menu" class="btn-tool">⊞</button>
-                    <button data-md="clear" class="btn-tool">Clear</button>
+                    <button data-md="br" title="Line break" class="btn-tool">BR</button>
+                    <button data-md="color" title="Text color" class="btn-tool">Color</button>
+                    <button data-md="bgcolor" title="Background color" class="btn-tool">BG</button>
+                    <button data-md="table-menu" title="Table tools" class="btn-tool">⊞</button>
+                    <button data-md="clear" title="Clear formatting" class="btn-tool">Clear</button>
                 </div>
 
                 <div id="md-color-popup" class="md-popup md-color-popup hidden">
@@ -995,6 +998,7 @@
             </div> <!-- closes #editor-container -->
 
         </div> <!-- closes workspace-grid -->
+<button id="zoom-reset-btn" class="btn-tool" title="Reset zoom">⟲</button>
 
     </main>
 
