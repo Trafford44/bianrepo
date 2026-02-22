@@ -182,8 +182,8 @@ export function renderSidebar() {
             <span class="subject-title">${subject.title}</span>
 
             <div class="subject-actions">
-                <button class="btn-add-file">+ File</button>
-                <button class="btn-rename-folder" title="Rename Folder">Rename</button>
+                <button class="btn-add-file" title="Add File"><span>✚</span></button>
+                <button class="btn-rename-folder" title="Rename Folder"><span style="font-weight: bold;">✎</span></button>
             </div>
         `;
 
@@ -217,14 +217,28 @@ export function renderSidebar() {
                         <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.title}</span>
                     </div>
                     <div class="file-actions">
+                        <div class="icon-btn rename" title="Rename">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 20h9"></path>
+                                <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+                            </svg>
+                        </div>
                         <div class="icon-btn" title="Duplicate">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                            </svg>
                         </div>
                         <div class="icon-btn del" title="Delete">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                            </svg>
                         </div>
                     </div>
                 `;
+
                 fDiv.addEventListener("click", e => {
                     e.stopPropagation();
                     loadFile(subject.id, file.id);
@@ -235,7 +249,11 @@ export function renderSidebar() {
                     }
                 });
 
-                const [dupBtn, delBtn] = fDiv.querySelectorAll(".icon-btn");
+                const [renameBtn, dupBtn, delBtn] = fDiv.querySelectorAll(".icon-btn");
+                renameBtn.addEventListener("click", e => {
+                    e.stopPropagation();
+                    renameFile(subject.id, file.id);
+                });
                 dupBtn.addEventListener("click", e => {
                     e.stopPropagation();
                     duplicateFile(subject.id, file.id);
@@ -446,6 +464,18 @@ export function deleteFile(sId, fId) {
     renderSidebar();
 }
 
+export function renameFile(sId, fId) {
+    const s = subjects.find(x => x.id === sId);
+    const f = s.files.find(x => x.id === fId);
+
+    const newName = prompt("Rename file:", f.title);
+    if (!newName) return;
+
+    f.title = newName.trim();
+    saveState();
+    renderSidebar();
+}
+
 export function bindPaneFocusEvents() {
     const editor = document.getElementById("editor-textarea");
     const preview = document.getElementById("preview-pane");
@@ -461,11 +491,32 @@ export function zoomEditor(delta) {
     root.style.setProperty("--editor-font-size", next + "px");
 }
 
-export function zoomPreview(delta) {
+function zoomPreview(delta) {
     const root = document.documentElement;
-    const current = parseFloat(getComputedStyle(root).getPropertyValue('--preview-zoom-scale'));
-    const next = Math.min(3, Math.max(0.5, current + delta * 0.1));
-    root.style.setProperty('--preview-zoom-scale', next);
+
+    // text zoom
+    const currentFont = parseFloat(getComputedStyle(root).getPropertyValue('--preview-font-size'));
+    const nextFont = Math.min(32, Math.max(8, currentFont + delta));
+    root.style.setProperty('--preview-font-size', nextFont + "px");
+
+    // image zoom
+    const currentScale = parseFloat(getComputedStyle(root).getPropertyValue('--preview-zoom-scale'));
+    const nextScale = Math.min(3, Math.max(0.5, currentScale + delta * 0.1));
+    root.style.setProperty('--preview-zoom-scale', nextScale);
+}
+
+
+function resetZoom() {
+    const root = document.documentElement;
+
+    // Editor text size
+    root.style.setProperty("--editor-font-size", "14px");
+
+    // Preview text size
+    root.style.setProperty("--preview-font-size", "16px");
+
+    // SVG true-zoom scale (your Option B)
+    root.style.setProperty("--preview-zoom-scale", "1");
 }
 
 export function setSyncStatus(state, text) {
@@ -548,6 +599,9 @@ export function bindEditorEvents() {
             if (activePane === "editor") zoomEditor(-1);
             else zoomPreview(-1);
         });
+
+    document.getElementById("zoom-reset-btn")
+        ?.addEventListener("click", resetZoom);
 
     document.getElementById("md-toolbar").addEventListener("click", e => {
         const type = e.target.dataset.md;
