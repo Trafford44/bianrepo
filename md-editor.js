@@ -70,12 +70,23 @@ export function applyMarkdownFormat(type, textarea) {
                 .join("\n");
             break;
         }
-        case "date":
-            replacement = new Date().toISOString().split("T")[0];
+
+        case "date": {
+            const insert = new Date().toISOString().split("T")[0];
+            textarea.setRangeText(insert, start, end, "end");
+            // Ensure cursor lands after the inserted date, and see code at end to complete positioning
+            textarea.dataset.forceCursor = start + insert.length;
             break;
-        case "br":
-            replacement = `<br>\n`;
+        }
+
+        case "br": {
+            const insert = "<br>\n";
+            textarea.setRangeText(insert, start, end, "end");
+            // Ensure cursor lands after the inserted BR, and see code at end to complete positioning
+            textarea.dataset.forceCursor = start + insert.length;
             break;
+        }
+
         case "hr":
             replacement = `\n***\n`;
             break;
@@ -107,18 +118,26 @@ export function applyMarkdownFormat(type, textarea) {
             return;
 
     }
+    // when this code runs, any just inserted text (like date or BR) is already in place, so we use the original start position and the length of the replacement to set the cursor correctly after insertion
+    textarea.setRangeText(before + replacement + after, start, end, "end");
 
-textarea.setRangeText(before + replacement + after, start, end, "end");
+    // restore cursor without breaking undo
+    const cursorStart = start + before.length;
+    const cursorEnd = cursorStart + replacement.length;
 
-// restore cursor without breaking undo
-const cursorStart = start + before.length;
-const cursorEnd = cursorStart + replacement.length;
+    textarea.selectionStart = cursorStart;
+    textarea.selectionEnd = cursorEnd;
 
-textarea.selectionStart = cursorStart;
-textarea.selectionEnd = cursorEnd;
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input"));
 
-textarea.focus();
-textarea.dispatchEvent(new Event("input"));
+    // place the cursor an then end of the inserted text (for cases like date where we want to continue typing after)
+    if (textarea.dataset.forceCursor) {
+        const pos = parseInt(textarea.dataset.forceCursor, 10);
+        textarea.selectionStart = textarea.selectionEnd = pos;
+        delete textarea.dataset.forceCursor;
+    }
+
 
 }
 
