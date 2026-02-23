@@ -231,6 +231,7 @@
             transition: all 0.2s;
         }
 
+
         .file-item:hover { background: #f3f4f6; }
 
         .file-item.active {
@@ -255,7 +256,7 @@
 
         .file-item:hover .file-actions { opacity: 1; }
 
-        .btn-add-file, .btn-rename-folder, .btn-close-sidebar {
+        .btn-add-file, .btn-rename-folder, .btn-delete-folder, .btn-close-sidebar {
             font-size:0.75em;
             padding: 2px 6px;
             border: 1px solid var(--border-color);
@@ -613,11 +614,13 @@
             }
 
             /* Touch-friendly buttons 
+            --causing crunched text on mobile sidebar
             .btn-tool,
             .icon-btn {
                 padding: 0.6rem 0.9rem;
             }
             */
+
             /* Hamburger visible */
             .hamburger-btn {
                 display: block;
