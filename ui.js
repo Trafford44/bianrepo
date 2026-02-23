@@ -168,9 +168,6 @@ export function renderSidebar() {
         return;
     }
 
-
-
-
     subjects.forEach(subject => {
         const sContainer = document.createElement("div");
         sContainer.className = "subject-container";
@@ -184,6 +181,7 @@ export function renderSidebar() {
             <div class="subject-actions">
                 <button class="btn-add-file" title="Add File"><span>✚</span></button>
                 <button class="btn-rename-folder" title="Rename Folder"><span style="font-weight: bold;">✎</span></button>
+                <button class="btn-delete-folder" title="Delete Folder"><span style="font-weight: bold;">✖</span></button>                
             </div>
         `;
 
@@ -196,9 +194,15 @@ export function renderSidebar() {
         // Rename Folder
         sHeader.querySelector(".btn-rename-folder").addEventListener("click", e => {
             e.stopPropagation();
-            renameSubject(subject.id);
+            renameFolder(subject.id);
         });
 
+        // Delete Folder
+        sHeader.querySelector(".btn-delete-folder").addEventListener("click", e => {
+            e.stopPropagation();
+            deleteFolder(subject.id);
+        });    
+   
         sHeader.addEventListener("click", () => {
             subject.isOpen = !subject.isOpen;
             saveState();
@@ -315,7 +319,7 @@ function updateToolbar() {
     });
 }
 
-export function renameSubject(subjectId) {
+export function renameFolder(subjectId) {
     const subject = subjects.find(s => s.id === subjectId);
     if (!subject) return;
 
@@ -327,6 +331,27 @@ export function renameSubject(subjectId) {
     saveState();
     renderSidebar();
 }
+
+export function deleteFolder(subjectId) {
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+
+    if (!confirm(`Delete folder "${subject.title}" and all its files?`)) return;
+
+    // Remove subject
+    subjects = subjects.filter(s => s.id !== subjectId);
+
+    // Clear active file + UI
+    activeFileId = null;
+    document.getElementById("workspace-grid").classList.add("hidden");
+    document.getElementById("empty-state").classList.remove("hidden");
+    document.getElementById("editor-actions").classList.add("hidden");
+
+    // Persist + re-render
+    saveState();
+    renderSidebar();
+}
+
 
 export function updatePreview() {
     const textarea = document.getElementById("editor-textarea");
@@ -480,7 +505,7 @@ export function bindPaneFocusEvents() {
     const editor = document.getElementById("editor-textarea");
     const preview = document.getElementById("preview-pane");
 
-    editor?.addEventListener("focus", () => activePane = "editor");
+    editor?.addEventListener("focus", () => actideletevePane = "editor");
     preview?.addEventListener("click", () => activePane = "preview");
 }
 
