@@ -144,8 +144,9 @@ export function initResizers() {
 
 export function renderSidebar() {
     const container = document.getElementById("sidebar-list");
+    console.log("Running renderSidebar");
     if (!container) return;
-
+    
     container.innerHTML = "";
 
     // Empty workspace state
