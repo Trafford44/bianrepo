@@ -1,14 +1,55 @@
+
+/**
+ * auth.js
+ * ----------
+ * Handles all GitHub authentication and token management for the app.
+ *
+ * This module is responsible for initiating the GitHub OAuth login flow,
+ * receiving the redirect callback, extracting and storing the access token,
+ * and exposing helpers that other modules use to verify authentication state.
+ *
+ * Responsibilities:
+ * - Start the OAuth login process using the configured GitHub OAuth App.
+ * - Handle the redirect callback and extract the temporary `code` parameter.
+ * - Exchange the `code` for an access token via the Cloudflare Worker proxy.
+ * - Store and retrieve the GitHub token in localStorage.
+ * - Expose requireLogin() to guard actions that need authentication.
+ * - Expose getToken(), clearToken(), getGistId(), setGistId() helpers.
+ * - Update the UI login indicator via updateLoginIndicator() from ui.js.
+ *
+ * This module contains **no sync logic** and **no workspace logic**.
+ * It focuses solely on authentication state and token lifecycle.
+ *
+ * Exported functions:
+ * - beginLogin()          → Starts the OAuth login flow.
+ * - handleOAuthRedirect() → Processes the redirect and stores the token.
+ * - requireLogin()        → Ensures the user is authenticated before actions.
+ * - getToken()            → Returns the stored GitHub token.
+ * - clearToken()          → Logs the user out.
+ * - getGistId() / setGistId() → Manage the active Gist reference.
+ *
+ * Dependencies:
+ * - updateLoginIndicator() from ui.js for visual feedback.
+ * - Cloudflare Worker endpoint for secure token exchange.
+ *
+ * The goal of this module is to keep authentication isolated, predictable,
+ * and easy to maintain without mixing UI, sync, or editor concerns.
+ */
 import { updateLoginIndicator } from "./ui.js";
+
 const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 
 export function getToken() {
-    return localStorage.getItem("github_token");
+    const t = localStorage.getItem("github_token");
+    if (!t || t === "undefined" || t === "null") return null;
+    return t;
 }
 
 export function getGistId() {
     const raw = localStorage.getItem("gist_id");
-    return raw && raw !== "undefined" ? raw : null;
+    if (!raw || raw === "undefined" || raw === "null") return null;
+    return raw;
 }
 
 export function setGistId(id) {
