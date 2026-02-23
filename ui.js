@@ -3,30 +3,7 @@ import { getToken } from "./auth.js";
 import { applyMarkdownFormat } from "./md-editor.js";
 
 let saveTimer = null;
-let subjects = JSON.parse(localStorage.getItem("kb_data")) || [
-    {
-        id: "s1",
-        title: "Subject 1",
-        isOpen: true,
-        files: [
-            {
-                id: "f1",
-                title: "Readme",
-                type: "md",
-                content:
-                    "# Welcome\nThis is a Markdown file with PlantUML support.\n\n@startuml\nUser -> System: Request\nSystem -> Database: Query\nDatabase --> System: Results\nSystem --> User: Display\n@enduml"
-            },
-            {
-                id: "f2",
-                title: "System Architecture",
-                type: "puml",
-                content:
-                    "@startuml\nactor User\nnode \"Web Server\" {\n  component \"Express App\"\n}\ndatabase PostgreSQL\n\nUser -> \"Express App\": HTTP Request\n\"Express App\" -> PostgreSQL: SQL\n@enduml"
-            }
-        ]
-    }
-];
-
+let subjects = [];
 let activeFileId = null;
 let activeSubjectId = null;
 let activePane = "editor"; // "editor" or "preview"
