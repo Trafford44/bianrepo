@@ -152,25 +152,21 @@ export function renderSidebar() {
     if (!subjects || subjects.length === 0) {
         container.innerHTML = `
             <div class="empty-workspace">
-                <p>No subjects yet.</p>
-                <button id="create-first-subject">Create your first subject</button>
+                <p>Your workspace is empty.</p>
+                <p class="hint">Use the <strong>+ Folder</strong> button above to create your first subject, or:</p>
+                <button id="load-from-cloud" class="btn-tool">Load from Cloud</button>
             </div>
         `;
 
-        document.getElementById("create-first-subject").onclick = () => {
-            const newSubject = {
-                id: crypto.randomUUID(),
-                title: "New Subject",
-                isOpen: true,
-                files: []
-            };
-            setSubjects([newSubject]);
-            saveState();
+        document.getElementById("load-from-cloud").onclick = async () => {
+            await loadWorkspaceFromGist();
             renderSidebar();
         };
 
         return;
     }
+
+
 
     subjects.forEach(subject => {
         const sContainer = document.createElement("div");
