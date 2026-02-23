@@ -159,6 +159,7 @@ export function renderSidebar() {
         `;
 
         document.getElementById("load-from-cloud").onclick = async () => {
+            console.log("Loading workspace from GitHub Gist...");
             await loadWorkspaceFromGist();
             renderSidebar();
         };
