@@ -37,7 +37,7 @@
             --border-color: #d4d7dd;
 
             /* Text */
-            --text-main: #1e293b;
+            --text-main: #6B6B6B;
             --text-muted: #64748b;
 
             /* Accent */
@@ -260,8 +260,7 @@
             border: 1px solid var(--border-color);
             border-radius: 4px;
             background: #fff;
-            /* color: var(--accent); */
-            color:#999999; 
+            color: var(--text-main);
             cursor: pointer;
         }
 
@@ -538,6 +537,15 @@
             color: var(--accent);
         }
 
+        .empty-workspace {
+            padding: 1rem;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        .empty-workspace button {
+            margin-top: 0.5rem;
+        }
 
         /* -------------------------------------------------------
         9. Responsive Layout (Mobile, Tablet, Desktop)
