@@ -148,6 +148,30 @@ export function renderSidebar() {
 
     container.innerHTML = "";
 
+    // Empty workspace state
+    if (!subjects || subjects.length === 0) {
+        container.innerHTML = `
+            <div class="empty-workspace">
+                <p>No subjects yet.</p>
+                <button id="create-first-subject">Create your first subject</button>
+            </div>
+        `;
+
+        document.getElementById("create-first-subject").onclick = () => {
+            const newSubject = {
+                id: crypto.randomUUID(),
+                title: "New Subject",
+                isOpen: true,
+                files: []
+            };
+            setSubjects([newSubject]);
+            saveState();
+            renderSidebar();
+        };
+
+        return;
+    }
+
     subjects.forEach(subject => {
         const sContainer = document.createElement("div");
         sContainer.className = "subject-container";
