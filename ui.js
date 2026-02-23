@@ -1,5 +1,5 @@
 import { saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog } from "./sync.js";
-import { getToken } from "./auth.js";
+import { getToken, bindLoginButton } from "./auth.js";
 import { applyMarkdownFormat } from "./md-editor.js";
 
 let saveTimer = null;
@@ -139,14 +139,10 @@ export function initResizers() {
     }
 }
 
-
-
-
 export function renderSidebar() {
     const container = document.getElementById("sidebar-list");
-    console.log("Running renderSidebar");
     if (!container) return;
-    
+
     container.innerHTML = "";
 
     // Empty workspace state
@@ -155,18 +151,23 @@ export function renderSidebar() {
             <div class="empty-workspace">
                 <p>Your workspace is empty.</p>
                 <p class="hint">Use the <strong>+ Folder</strong> button above to create your first subject, or:</p>
+                <button id="github-login" class="btn-tool">Sign in with GitHub</button>
                 <button id="load-from-cloud" class="btn-tool">Load from Cloud</button>
             </div>
         `;
 
+        // Bind login button NOW that it exists
+        bindLoginButton();
+
+        // Bind load-from-cloud button
         document.getElementById("load-from-cloud").onclick = async () => {
-            console.log("Loading workspace from GitHub Gist...");
             await loadWorkspaceFromGist();
             renderSidebar();
         };
 
         return;
     }
+
 
 
 
