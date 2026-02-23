@@ -1,3 +1,7 @@
+import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
+import { initResizers, renderSidebar, bindEditorEvents,  bindPaneFocusEvents, updateLoginIndicator } from "./ui.js";
+import { setSubjects } from "./ui.js";
+
 // TEMP: allow setting gist_id via URL
 (function () {
     const params = new URLSearchParams(window.location.search);
@@ -7,10 +11,6 @@
         console.log("Gist ID set via URL:", gist);
     }
 })();
-
-import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
-import { initResizers, renderSidebar, bindEditorEvents,  bindPaneFocusEvents, updateLoginIndicator } from "./ui.js";
-import { setSubjects } from "./ui.js";
 
 async function init() {
     await handleOAuthRedirect();
