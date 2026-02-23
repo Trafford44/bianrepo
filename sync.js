@@ -1,3 +1,35 @@
+/**
+ * sync.js
+ * ----------
+ * Handles all cloud‑sync operations for the workspace.
+ *
+ * This module is responsible for saving and loading the user’s workspace
+ * to and from a private GitHub Gist using the GitHub REST API.
+ *
+ * Responsibilities:
+ * - Flatten the current workspace into a Gist‑compatible file map.
+ * - Determine whether to create a new Gist (POST) or update an existing one (PATCH).
+ * - Validate whether the existing Gist’s file list matches the current workspace.
+ * - Perform authenticated fetch requests using the stored GitHub token.
+ * - Store and retrieve the active Gist ID for future sync operations.
+ * - Report sync progress to the UI via setSyncStatus() (saving, synced, error).
+ *
+ * This module contains **no UI logic** and **no authentication logic**.
+ * It exposes pure sync functions that other modules (UI, auth, editor) can call.
+ *
+ * Exported functions:
+ * - saveWorkspaceToGist()   → Saves the current workspace to GitHub.
+ * - loadWorkspaceFromGist() → Loads the workspace from the user’s Gist.
+ *
+ * Dependencies:
+ * - getToken(), requireLogin(), getGistId(), setGistId() from auth/storage helpers.
+ * - flattenWorkspace() from workspace utilities.
+ * - setSyncStatus() from ui.js for visual feedback.
+ *
+ * The goal of this module is to keep all cloud‑sync behavior isolated,
+ * predictable, and easy to maintain without mixing UI or editor concerns.
+ */
+
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
 import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus } from "./ui.js";
 
@@ -5,6 +37,10 @@ const GIST_API = "https://api.github.com/gists";
 
 export async function saveWorkspaceToGist() {
     if (!requireLogin()) return;
+
+    if (!gistId) {
+        console.log("No gist ID — creating new gist");
+    }
 
     // UI: saving started
     setSyncStatus("saving", "Saving…");
