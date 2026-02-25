@@ -576,19 +576,46 @@ export function showNotification(type, text) {
 
 export function updateLoginIndicator() {
     const token = getToken();
-    const btn = document.getElementById("github-login");
-    if (!btn) return;
+    const loggedIn = !!token;
 
-    if (token) {
-        btn.classList.remove("github-login-needed");
-        btn.classList.add("github-logged-in");
-        btn.textContent = "GitHub Connected";
-    } else {
-        btn.classList.remove("github-logged-in");
-        btn.classList.add("github-login-needed");
-        btn.textContent = "Sign in with GitHub";
+    // Update GitHub login button
+    const loginBtn = document.getElementById("github-login");
+    if (loginBtn) {
+        if (loggedIn) {
+            loginBtn.classList.remove("github-login-needed");
+            loginBtn.classList.add("github-logged-in");
+            loginBtn.textContent = "GitHub Connected";
+        } else {
+            loginBtn.classList.remove("github-logged-in");
+            loginBtn.classList.add("github-login-needed");
+            loginBtn.textContent = "Sign in with GitHub";
+        }
     }
+
+    // Cloud‑action buttons to toggle
+    const cloudButtons = [
+        "save-btn",
+        "load-btn",
+        "restore-btn",
+        "export-btn",
+        "delete-btn"
+    ];
+
+    cloudButtons.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        el.disabled = !loggedIn;
+
+        if (!loggedIn) {
+            el.classList.add("cloud-disabled");
+        } else {
+            el.classList.remove("cloud-disabled");
+        }
+    });
 }
+
+
 
 export function bindEditorEvents() {
     const textarea = document.getElementById("editor-textarea");
