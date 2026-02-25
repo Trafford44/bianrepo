@@ -553,6 +553,40 @@
             opacity: 0.8;
         }
 
+        .notification {
+            font-size: 0.85rem;
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-left: 0.5rem; /* sits right of sync pill */
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        .notification-info {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .notification-success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .notification-error {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .cloud-disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
 
         /* -------------------------------------------------------
         9. Responsive Layout (Mobile, Tablet, Desktop)
@@ -923,6 +957,7 @@
                 <span id="active-file-type-icon"></span>
                 <h2 id="active-file-title" style="font-size: 1rem; color: #374151;">Select or create a file</h2>
                 <div id="sync-status" class="sync-status sync-idle">Idle</div>
+                <div id="notification" class="notification"></div>
             </div>            
             <div id="editor-actions" class="toolbar-actions hidden">
                 <button id="toggle-editor" class="btn-tool">Hide Editor</button>
@@ -1015,7 +1050,7 @@
             </div> <!-- closes #editor-container -->
 
         </div> <!-- closes workspace-grid -->
-<button id="zoom-reset-btn" class="btn-tool" title="Reset zoom">⟲</button>
+        <button id="zoom-reset-btn" class="btn-tool" title="Reset zoom">⟲</button>
 
     </main>
 
