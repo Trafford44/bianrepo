@@ -1,6 +1,5 @@
 import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
-import { initResizers, renderSidebar, bindEditorEvents,  bindPaneFocusEvents, updateLoginIndicator } from "./ui.js";
-import { setSubjects } from "./ui.js";
+import { initResizers, renderSidebar, bindEditorEvents,  bindPaneFocusEvents, updateLoginIndicator, setSubjects } from "./ui.js";
 
 async function init() {
     await handleOAuthRedirect();
