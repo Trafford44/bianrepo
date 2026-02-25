@@ -31,7 +31,7 @@
  */
 
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
-import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus } from "./ui.js";
+import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification } from "./ui.js";
 
 const GIST_API = "https://api.github.com/gists";
 
@@ -92,6 +92,7 @@ export async function saveWorkspaceToGist() {
         } catch (err) {
             console.error("Error checking existing Gist:", err);
             setSyncStatus("error", "Error");
+            showNotification("error", "Failed to load workspace");
             return;
         }
     }
@@ -110,6 +111,7 @@ export async function saveWorkspaceToGist() {
     if (!res.ok) {
         console.error("Gist save error:", data);
         setSyncStatus("error", "Error");
+        showNotification("error", "Failed to load workspace");
         return;
     }
 
@@ -119,6 +121,7 @@ export async function saveWorkspaceToGist() {
 
     // UI: successfully synced
     setSyncStatus("synced", "Synced");
+    showNotification("success", "Workspace loaded from cloud");
 }
 
 
@@ -129,7 +132,7 @@ export async function loadWorkspaceFromGist() {
     const githubToken = getToken();
 
     if (!gistId) {
-        alert("No cloud backup found");
+        showNotification("info", "No cloud backup found");
         return;
     }
 
@@ -143,8 +146,7 @@ export async function loadWorkspaceFromGist() {
     setSubjects(subjects);
     saveState();
     renderSidebar();
-
-    alert("Workspace loaded from GitHub Gist");
+    showNotification("success", "Workspace loaded from cloud");
 }
 
 export async function listGistRevisions() {
@@ -154,7 +156,7 @@ export async function listGistRevisions() {
     const gistId = getGistId();
 
     if (!gistId) {
-        alert("No Gist ID found");
+        showNotification("info", "No Gist ID found");
         return [];
     }
 
@@ -183,7 +185,7 @@ export async function restoreFromGistVersion(versionId) {
     saveState();
     renderSidebar();
 
-    alert("Workspace restored from previous version");
+    showNotification("success", "Workspace restored from previous version");
 }
 
 export async function showRestoreDialog() {
