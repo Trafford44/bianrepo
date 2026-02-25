@@ -461,13 +461,25 @@ export function deleteCurrentFile() {
 
 export function exportFile() {
     const subject = subjects.find(s => s.id === activeSubjectId);
+    if (!subject) {
+        showNotification("info", "No file selected to export");
+        return;
+    }
+
     const file = subject.files.find(f => f.id === activeFileId);
+    if (!file) {
+        showNotification("info", "No file selected to export");
+        return;
+    }
+
     const blob = new Blob([file.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
+
     const a = document.createElement("a");
     a.href = url;
     a.download = `${file.title}.${file.type}`;
     a.click();
+
     showNotification("success", "File exported");
 }
 
