@@ -35,7 +35,7 @@
  * The goal of this module is to keep authentication isolated, predictable,
  * and easy to maintain without mixing UI, sync, or editor concerns.
  */
-import { updateLoginIndicator } from "./ui.js";
+import { updateLoginIndicator, showNotification } from "./ui.js";
 
 const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
@@ -61,10 +61,12 @@ export function requireLogin() {
     const token = getToken();
     if (!token) {
         updateLoginIndicator();
+        showNotification("warning", "Please sign in with GitHub first");
         return false;
     }
     return true;
 }
+
 
 export function bindLoginButton() {
     const btn = document.getElementById("github-login");
