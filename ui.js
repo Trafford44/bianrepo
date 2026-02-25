@@ -462,13 +462,13 @@ export function deleteCurrentFile() {
 export function exportFile() {
     const subject = subjects.find(s => s.id === activeSubjectId);
     if (!subject) {
-        showNotification("info", "No file selected to export");
+        showNotification("error", "No file selected to export");
         return;
     }
 
     const file = subject.files.find(f => f.id === activeFileId);
     if (!file) {
-        showNotification("info", "No file selected to export");
+        showNotification("error", "No file selected to export");
         return;
     }
 
