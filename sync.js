@@ -38,15 +38,14 @@ const GIST_API = "https://api.github.com/gists";
 export async function saveWorkspaceToGist() {
     if (!requireLogin()) return;
 
+    const githubToken = getToken();
+    let gistId = getGistId();
+
+    setSyncStatus("saving", "Saving…");
+
     if (!gistId) {
         console.log("No gist ID — creating new gist");
     }
-
-    // UI: saving started
-    setSyncStatus("saving", "Saving…");
-
-    const githubToken = getToken();
-    let gistId = getGistId();
 
     const files = flattenWorkspace();
     const gistFiles = {};
@@ -126,13 +125,14 @@ export async function saveWorkspaceToGist() {
 
 
 export async function loadWorkspaceFromGist() {
+console.log("Loading workspace from Gist...");
     if (!requireLogin()) return;
 
     const gistId = getGistId();
     const githubToken = getToken();
 
     if (!gistId) {
-        showNotification("info", "No cloud backup found");
+        showNotification("info", "No cloud backup found. Save to Cloud first.");
         return;
     }
 
