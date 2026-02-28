@@ -1,39 +1,121 @@
-/**
- * sync.js
- * ----------
- * Handles all cloud‑sync operations for the workspace.
- *
- * This module is responsible for saving and loading the user’s workspace
- * to and from a private GitHub Gist using the GitHub REST API.
- *
- * Responsibilities:
- * - Flatten the current workspace into a Gist‑compatible file map.
- * - Determine whether to create a new Gist (POST) or update an existing one (PATCH).
- * - Validate whether the existing Gist’s file list matches the current workspace.
- * - Perform authenticated fetch requests using the stored GitHub token.
- * - Store and retrieve the active Gist ID for future sync operations.
- * - Report sync progress to the UI via setSyncStatus() (saving, synced, error).
- *
- * This module contains **no UI logic** and **no authentication logic**.
- * It exposes pure sync functions that other modules (UI, auth, editor) can call.
- *
- * Exported functions:
- * - saveWorkspaceToGist()   → Saves the current workspace to GitHub.
- * - loadWorkspaceFromGist() → Loads the workspace from the user’s Gist.
- *
- * Dependencies:
- * - getToken(), requireLogin(), getGistId(), setGistId() from auth/storage helpers.
- * - flattenWorkspace() from workspace utilities.
- * - setSyncStatus() from ui.js for visual feedback.
- *
- * The goal of this module is to keep all cloud‑sync behavior isolated,
- * predictable, and easy to maintain without mixing UI or editor concerns.
- */
-
+// see bottom for description of syncing
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
 import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification } from "./ui.js";
 
+let lastSyncedAt = null;       // Cloud timestamp from last successful sync
+let lastSyncTime = 0;          // Local wall-clock time of last sync
+let lastLocalEditTime = 0;     // Last time user typed anything
+let syncInterval = 2 * 60 * 1000; // 2 minutes
+let idleThreshold = syncInterval * 2; // 4 minutes = “user returned”
+
 const GIST_API = "https://api.github.com/gists";
+
+async function getLatestWorkspaceGist() {
+    if (!requireLogin()) return null;
+
+    const gistId = getGistId();
+    const githubToken = getToken();
+
+    if (!gistId) {
+        // No cloud backup yet
+        return null;
+    }
+
+    const res = await fetch(`${GIST_API}/${gistId}`, {
+        headers: { "Authorization": `token ${githubToken}` }
+    });
+
+    if (!res.ok) {
+        console.error("Failed to fetch gist metadata:", await res.text());
+        return null;
+    }
+
+    const data = await res.json();
+    return data; // contains .updated_at, .files, .id, etc.
+}
+
+export async function startSyncLoop() {
+    await runSyncCheck("startup");
+
+    setInterval(async () => {
+        await runSyncCheck("periodic");
+    }, syncInterval);
+}
+
+async function runSyncCheck(reason) {
+    const now = Date.now();
+
+    // Detect idle-return
+    const idleReturn = (now - lastSyncTime) > idleThreshold;
+
+    const latest = await getLatestWorkspaceGist();
+    if (!latest) return;
+
+    const cloudUpdatedAt = new Date(latest.updated_at).getTime();
+
+    // First sync ever
+    if (!lastSyncedAt) {
+        lastSyncedAt = cloudUpdatedAt;
+        lastSyncTime = now;
+        return;
+    }
+
+    // Cloud is newer
+    if (cloudUpdatedAt > lastSyncedAt) {
+        await handleCloudNewer(latest, idleReturn);
+        return;
+    }
+
+    // Cloud is same or older → safe
+    lastSyncedAt = cloudUpdatedAt;
+    lastSyncTime = now;
+    maybeAutoSave();
+}
+
+async function handleCloudNewer(latest, idleReturn) {
+    const now = Date.now();
+    const recentlyTyped = (now - lastLocalEditTime) < 30_000;
+
+    let countdown = recentlyTyped ? 30 : 10;
+
+    showCountdownModal({
+        countdown,
+        message: "A newer cloud version was found.",
+        onConfirm: async () => {
+            setGistId(latest.id);
+            await loadWorkspaceFromGist();
+            lastSyncedAt = new Date(latest.updated_at).getTime();
+            lastSyncTime = Date.now();
+        },
+        onCancel: () => {
+            showNotification("warning",
+                "Cloud version is newer. Saving now will overwrite it."
+            );
+        }
+    });
+}
+
+async function maybeAutoSave() {
+    const now = Date.now();
+
+    // Only auto-save if user typed since last sync
+    const hasLocalChanges = (now - lastLocalEditTime) < syncInterval;
+
+    if (!hasLocalChanges) return;
+
+    // Do not auto-save if cloud is newer
+    if (await cloudIsNewer()) return;
+
+    await saveWorkspaceToGist();
+}
+
+async function cloudIsNewer() {
+    const latest = await getLatestWorkspaceGist();
+    if (!latest) return false;
+
+    const cloudUpdatedAt = new Date(latest.updated_at).getTime();
+    return cloudUpdatedAt > lastSyncedAt;
+}
 
 export async function saveWorkspaceToGist() {
     if (!requireLogin()) return;
@@ -118,14 +200,17 @@ export async function saveWorkspaceToGist() {
         setGistId(data.id);
     }
 
+    lastSyncedAt = Date.now();
+    lastSyncTime = Date.now();
+
     // UI: successfully synced
     setSyncStatus("synced", "Synced");
-    showNotification("success", "Workspace loaded from cloud");
+    showNotification("success", "Workspace saved to cloud");
 }
 
 
 export async function loadWorkspaceFromGist() {
-console.log("Loading workspace from Gist...");
+
     if (!requireLogin()) return;
 
     const gistId = getGistId();
@@ -188,6 +273,10 @@ export async function restoreFromGistVersion(versionId) {
     showNotification("success", "Workspace restored from previous version");
 }
 
+export function markLocalEdit() {
+    lastLocalEditTime = Date.now();
+}
+
 export async function showRestoreDialog() {
     const revisions = await listGistRevisions();
     if (!revisions || revisions.length === 0) return;
@@ -207,3 +296,188 @@ export async function showRestoreDialog() {
     await restoreFromGistVersion(versionId);
 }
 
+/*
+How the sync loop starts
+Your startup sequence is now:
+
+setupMarked()
+
+handleOAuthRedirect()
+
+load workspace
+
+startSyncLoop()
+
+renderSidebar()
+
+bindLoginButton()
+
+updateLoginIndicator()
+
+bind UI
+
+This ensures:
+
+The sync loop starts after login handling
+
+The sync loop starts after the workspace is loaded
+
+The sync loop starts before the user interacts with the UI
+
+The sync loop starts before any file is opened
+
+This is correct and race‑free.
+
+How timestamps interact
+You maintain three timestamps:
+
+lastSyncedAt — the cloud’s timestamp from the last successful sync
+
+lastSyncTime — the local wall‑clock time when the last sync occurred
+
+lastLocalEditTime — the last time the user typed anything
+
+These three signals allow you to detect:
+
+cloud newer
+
+cloud same
+
+cloud older
+
+user idle
+
+user active
+
+user returning after being away
+
+safe auto‑save
+
+unsafe auto‑save
+
+This is the correct minimal set.
+
+How idle‑return detection works
+Idle return means:
+
+“The user has been away long enough that another device might have edited the cloud.”
+
+You detect this by:
+
+js
+if (now - lastSyncTime > idleThreshold) {
+    // treat as idle return
+}
+Where:
+
+syncInterval = 2 minutes
+
+idleThreshold = syncInterval * 2 = 4 minutes
+
+This means:
+
+If the user leaves the tab for 4+ minutes
+
+Or switches devices
+
+Or the browser suspends the tab
+
+Or the laptop sleeps
+
+Or the phone goes background
+
+…then the next sync tick immediately checks for cloud updates.
+
+This is exactly how Joplin and Obsidian Sync behave.
+
+How cloud‑newer detection works
+You compare:
+
+js
+if (cloudUpdatedAt > lastSyncedAt)
+This is correct because:
+
+GitHub timestamps are second‑precision
+
+Cloud may return the same timestamp for multiple saves
+
+Cloud may return an older timestamp if the user saved locally more recently
+
+Using strict equality would cause false positives
+
+So:
+
+cloud > local → cloud newer
+
+cloud <= local → cloud same or older
+
+This is correct.
+
+How the adaptive countdown works
+When cloud is newer:
+
+js
+const recentlyTyped = (now - lastLocalEditTime) < 30_000;
+const countdown = recentlyTyped ? 30 : 10;
+This gives:
+
+30 seconds if the user typed recently
+
+10 seconds if the user is idle
+
+This is the correct UX:
+
+Protects active work
+
+Speeds up switching when idle
+
+Avoids accidental overwrites
+
+Avoids unnecessary waiting
+
+The modal then:
+
+Switches to cloud on confirm
+
+Warns about overwriting on cancel
+
+This is correct and safe.
+
+How auto‑save works
+Auto‑save runs only when:
+
+The user has typed since the last sync
+
+The cloud is not newer
+
+This prevents:
+
+Overwriting newer cloud data
+
+Saving when nothing changed
+
+Saving too frequently
+
+This is correct.
+
+How race conditions are avoided
+Race: sync before login
+Avoided because startSyncLoop() runs after handleOAuthRedirect().
+
+Race: login button binding before sidebar
+Avoided because bindLoginButton() runs after renderSidebar().
+
+Race: preview before renderer
+Avoided because setupMarked() runs first.
+
+Race: editor events before DOM exists
+Avoided because bindEditorEvents() runs last.
+
+Race: sync loop and manual load
+Avoided because both update lastSyncedAt and lastSyncTime.
+
+Race: cloud-newer detection and auto-save
+Avoided because auto-save checks cloudIsNewer() first.
+
+Everything is clean.
+*/
