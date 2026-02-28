@@ -45,12 +45,19 @@ export async function startSyncLoop() {
 
 async function runSyncCheck(reason) {
     const now = Date.now();
-    const idleReturn = (now - lastSyncTime) > idleThreshold;
+    const idleReturn = (now - lastSyncTime) > irunSyncCheckdleThreshold;
 
     const latest = await getNewestGistAcrossAccount();
     if (!latest) return;
 
     const cloudHash = await hashGistContent(latest.files);
+console.log("SYNC CHECK", {
+    reason,
+    gistId: latest.id,
+    cloudHash,
+    lastSyncedHash,
+    subjects: getSubjects().length
+});
 
     // First sync ever
     if (!lastSyncedHash) {
@@ -89,15 +96,16 @@ async function handleCloudNewer(latest, idleReturn) {
         countdown,
         message: "A newer cloud version was found.",
         onConfirm: async () => {
-            console.log("CONFIRM: switching gist", {
-                newGistId: latest.id
+            console.log("AFTER LOAD", {
+                gistId: latest.id,
+                hashAfterLoad: await hashGistContent(latest.files)
             });
-
             setGistId(latest.id);
             await loadWorkspaceFromGist();
 
             // FIX: update hash correctly
             lastSyncedHash = await hashGistContent(latest.files);
+            console.log("UPDATED lastSyncedHash =", lastSyncedHash);
 
             lastSyncTime = Date.now();
         },
@@ -259,6 +267,11 @@ export async function loadWorkspaceFromGist() {
 
     const subjects = rebuildWorkspaceFromGist(data.files);
     setSubjects(subjects);
+    console.log("LOADED WORKSPACE", {
+        gistId,
+        subjects: subjects.length
+    });
+
     saveState();
     renderSidebar();
     showNotification("success", "Workspace loaded from cloud");
@@ -280,6 +293,7 @@ async function getNewestGistAcrossAccount() {
 
     // Sort by updated_at descending
     list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+console.log("Newest gist across account:", list[0].id, list[0].updated_at);
 
     return list[0]; // newest gist
 }
