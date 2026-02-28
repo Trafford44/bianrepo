@@ -2,6 +2,30 @@
 If it changes text → md-editor.js, likely starting bindEditorEvents()
 If it changes UI → ui.js, likely starting applyMarkdownFormat()
 */
+
+// md-editor.js (top of file or near other exports)
+
+export function setupMarked() {
+    const renderer = new marked.Renderer();
+
+    // Keep lists tight but paragraphs spaced
+    renderer.list = function (body, ordered) {
+        const type = ordered ? "ol" : "ul";
+        return `<${type}>\n${body}</${type}>\n\n`;
+    };
+
+    // Add heading IDs for TOC
+    renderer.heading = function (text, level) {
+        const id = text
+            .toLowerCase()
+            .replace(/[^\w]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        return `<h${level} id="${id}">${text}</h${level}>`;
+    };
+
+    marked.use({ renderer });
+}
+
 export function applyMarkdownFormat(type, textarea) {
     // store previous value for one-level formatting undo
     textarea.dataset.lastFormatValue = textarea.value;
@@ -57,9 +81,13 @@ export function applyMarkdownFormat(type, textarea) {
         }
         case "ul": {
             const lines = selected.split("\n");
-            replacement = lines
-                .map(line => line.trim() ? `- ${line.trim()}` : "")
-                .join("\n");
+            // If already a list, this will "toggle" it off or indent it
+            replacement = lines.map(line => {
+                if (line.trim().startsWith('- ')) {
+                    return '  ' + line; // Indent if already a list item
+                }
+                return `- ${line.trim()}`;
+            }).join("\n");
             break;
         }
         case "ol": {
@@ -116,6 +144,11 @@ export function applyMarkdownFormat(type, textarea) {
         case 'table-format':
             formatTable();
             return;
+        case "puml": {
+            const snippet = "\n```puml\n@startuml\nparticipant Alice\nparticipant Bob\n\nAlice -> Bob: Hello\n@enduml\n```\n";
+            textarea.setRangeText(snippet, start, end, "end");
+            break;
+        }            
 
     }
     // when this code runs, any just inserted text (like date or BR) is already in place, so we use the original start position and the length of the replacement to set the cursor correctly after insertion
