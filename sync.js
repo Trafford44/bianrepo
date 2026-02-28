@@ -1,6 +1,6 @@
 // see bottom for description of syncing
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
-import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification } from "./ui.js";
+import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification, showCountdownModal } from "./ui.js";
 
 let lastSyncedAt = null;       // Cloud timestamp from last successful sync
 let lastSyncTime = 0;          // Local wall-clock time of last sync
