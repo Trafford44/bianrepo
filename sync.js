@@ -45,7 +45,8 @@ export async function startSyncLoop() {
 
 async function runSyncCheck(reason) {
     const now = Date.now();
-    const idleReturn = (now - lastSyncTime) > irunSyncCheckdleThreshold;
+    const idleReturn = (now - lastSyncTime) > idleThreshold;
+
 
     const latest = await getNewestGistAcrossAccount();
     if (!latest) return;
