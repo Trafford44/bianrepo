@@ -19,29 +19,46 @@ let lastSyncedHash = localStorage.getItem("lastSyncedHash") || null;
 
 const GIST_API = "https://api.github.com/gists";
 
-async function getLatestWorkspaceGist() {
-    if (!requireLogin()) return null;
+async function getCurrentWorkspaceGist() {
+    if (!requireLogin()) {
+        console.log("[SYNC] getCurrentWorkspaceGist: Not logged in.");
+        return null;
+    }
 
     const gistId = getGistId();
     const githubToken = getToken();
 
     if (!gistId) {
-        // No cloud backup yet
+        console.log("[SYNC] getCurrentWorkspaceGist: No gistId stored.");
         return null;
     }
+
+    console.log("[SYNC] Fetching current workspace gist:", gistId);
 
     const res = await fetch(`${GIST_API}/${gistId}`, {
         headers: { "Authorization": `token ${githubToken}` }
     });
 
     if (!res.ok) {
-        console.error("Failed to fetch gist metadata:", await res.text());
+        const text = await res.text();
+        console.error("[SYNC] Failed to fetch current gist:", text);
         return null;
     }
 
     const data = await res.json();
-    return data; // contains .updated_at, .files, .id, etc.
+
+    if (!data || !data.files) {
+        console.error("[SYNC] getCurrentWorkspaceGist: Response missing files.");
+        return null;
+    }
+
+    console.log("[SYNC] Cloud gist fetched successfully.");
+    console.log("[SYNC] updated_at:", data.updated_at);
+    console.log("[SYNC] Cloud files:", Object.keys(data.files));
+
+    return data;
 }
+
 
 export async function startSyncLoop() {
     await runSyncCheck("startup");
@@ -52,32 +69,56 @@ export async function startSyncLoop() {
 }
 
 async function runSyncCheck(reason) {
+    console.log("[SYNC] --- RUN SYNC CHECK ---");
+    console.log("[SYNC] Reason:", reason);
+
     const now = Date.now();
     const idleReturn = now - lastSuccessfulSyncTime > idleReturnThreshold;
 
-    const latest = await getNewestGistAcrossAccount();
-    if (!latest) return;
+    console.log("[SYNC] lastSuccessfulSyncTime:", lastSuccessfulSyncTime);
+    console.log("[SYNC] idleReturn:", idleReturn);
 
-    const cloudHash = await hashGistContent(latest.files);
-
-    if (lastSyncedHash === null) {
-        return updateSyncState(cloudHash);
+    const latest = await getCurrentWorkspaceGist();
+    if (!latest) {
+        console.log("[SYNC] No current workspace gist found. Aborting sync check.");
+        return;
     }
 
+    console.log("[SYNC] Reading gist ID:", latest.id);
+    console.log("[SYNC] Cloud updated_at:", latest.updated_at);
+    console.log("[SYNC] Cloud files:", Object.keys(latest.files));
+
+    const cloudHash = await hashGistContent(latest.files);
+    console.log("[SYNC] cloudHash:", cloudHash);
+    console.log("[SYNC] lastSyncedHash:", lastSyncedHash);
+
+    // First-time sync: adopt cloud hash
+    if (lastSyncedHash === null) {
+        console.log("[SYNC] No lastSyncedHash — adopting cloud hash.");
+        lastSyncedHash = cloudHash;
+        localStorage.setItem("lastSyncedHash", cloudHash);
+        updateSyncState();
+        return;
+    }
+
+    // Cloud is newer
     if (cloudHash !== lastSyncedHash) {
+        console.log("[SYNC] Cloud hash differs — cloud is newer. Triggering cloud-change handler.");
         return handleCloudChange(latest, idleReturn);
     }
 
-    updateSyncState(cloudHash);
+    console.log("[SYNC] Cloud matches local — updating sync timestamp and checking auto-save.");
+    updateSyncState();
     maybeAutoSave();
 }
 
-function updateSyncState(hash) {
-    if (!hash) return; // defensive guard
-    lastSyncedHash = hash;
-    localStorage.setItem("lastSyncedHash", hash);
+
+
+function updateSyncState() {
+    // Only updates timing — never the hash.
     lastSuccessfulSyncTime = Date.now();
 }
+
 
 async function handleCloudChange(latest, idleReturn) {
     const now = Date.now();
@@ -139,7 +180,7 @@ async function maybeAutoSave() {
 }
 
 async function cloudHashChanged() {
-    const latest = await getLatestWorkspaceGist();
+    const latest = await getCurrentWorkspaceGist();
     if (!latest) return false;
 
     const cloudHash = await hashGistContent(latest.files);
@@ -174,9 +215,8 @@ export async function saveWorkspaceToGist() {
 
     showSyncState("saving");
 
-    if (!gistId) {
-        console.log("No gist ID — creating new gist");
-    }
+    console.log("[SYNC] --- SAVE START ---");
+    console.log("[SYNC] Current gistId:", gistId || "(none)");
 
     const files = flattenWorkspace();
     const gistFiles = {};
@@ -184,48 +224,50 @@ export async function saveWorkspaceToGist() {
         gistFiles[f.path] = { content: f.content || "" };
     });
 
+    console.log("[SYNC] Local files to save:", Object.keys(gistFiles));
+
     const body = {
         description: "BIAN Workspace Backup",
         public: false,
         files: gistFiles
     };
 
-    const workspaceFileList = files => files.map(f => f.path).sort();
-    const gistFileList = gistFiles => Object.keys(gistFiles).sort();
-
     let method = "POST";
     let url = GIST_API;
 
+    // Always PATCH if gistId exists, to preserve history and allow file deletions.
     if (gistId) {
-        try {
-            const existing = await fetch(`${GIST_API}/${gistId}`, {
-                headers: { "Authorization": `token ${githubToken}` }
-            }).then(r => r.json());
+        method = "PATCH";
+        url = `${GIST_API}/${gistId}`;
+        console.log("[SYNC] Using PATCH to update existing gist:", gistId);
 
-            if (existing && existing.files) {
-                const existingFiles = gistFileList(existing.files);
-                const newFiles = workspaceFileList(files);
-                const filenamesMatch =
-                    JSON.stringify(existingFiles) === JSON.stringify(newFiles);
+        // Determine which files were deleted locally
+        const existing = await fetch(`${GIST_API}/${gistId}`, {
+            headers: { "Authorization": `token ${githubToken}` }
+        }).then(r => r.json());
 
-                if (filenamesMatch) {
-                    method = "PATCH";
-                    url = `${GIST_API}/${gistId}`;
-                } else {
-                    gistId = null;
-                    method = "POST";
-                    url = GIST_API;
+        if (existing && existing.files) {
+            const existingNames = Object.keys(existing.files);
+            console.log("[SYNC] Existing cloud files:", existingNames);
+
+            for (const existingName of existingNames) {
+                const stillExistsLocally = files.some(f => f.path === existingName);
+                if (!stillExistsLocally) {
+                    console.log("[SYNC] Marking file for deletion:", existingName);
+                    body.files[existingName] = null;
                 }
-            } else {
-                gistId = null;
             }
-        } catch (err) {
-            console.error("Error checking existing Gist:", err);
-            showSyncState("error");
-            showNotification("error", "Failed to load workspace");
-            return;
         }
+    } else {
+        // No gist yet — create one
+        method = "POST";
+        url = GIST_API;
+        console.log("[SYNC] No gistId found — creating new gist via POST");
     }
+
+    console.log("[SYNC] Final request method:", method);
+    console.log("[SYNC] Final request URL:", url);
+    console.log("[SYNC] Final file list being sent:", Object.keys(body.files));
 
     const res = await fetch(url, {
         method,
@@ -239,19 +281,25 @@ export async function saveWorkspaceToGist() {
     const data = await res.json();
 
     if (!res.ok) {
-        console.error("Gist save error:", data);
+        console.error("[SYNC] Gist save error:", data);
         showSyncState("error");
         showNotification("error", "Failed to load workspace");
+        console.log("[SYNC] --- SAVE FAILED ---");
         return;
     }
 
     if (!gistId && data.id) {
+        console.log("[SYNC] New gist created with ID:", data.id);
         setGistId(data.id);
     }
 
     lastSyncedHash = await hashGistContent(data.files);
     localStorage.setItem("lastSyncedHash", lastSyncedHash);
     lastSuccessfulSyncTime = Date.now();
+
+    console.log("[SYNC] Save successful.");
+    console.log("[SYNC] Updated lastSyncedHash:", lastSyncedHash);
+    console.log("[SYNC] --- SAVE END ---");
 
     // UI: successfully synced
     showSyncState("synced");
@@ -353,6 +401,8 @@ export async function restoreFromGistVersion(versionId) {
 
 export function markLocalEdit() {
     lastLocalEditTime = Date.now();
+    console.log("[SYNC] Local edit detected at", new Date(lastLocalEditTime).toISOString());
+
 }
 
 export async function showRestoreDialog() {
