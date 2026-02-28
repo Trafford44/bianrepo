@@ -76,6 +76,8 @@ export function bindSmartKeyboardEvents(textarea) {
 
 export function bindGlobalShortcuts(textarea) {
     document.addEventListener("keydown", (e) => {
+        const isCmd = e.metaKey || e.ctrlKey;
+
         if (e.ctrlKey && e.key === "z") {
             if (textarea.dataset.lastFormatValue) {
                 e.preventDefault();
