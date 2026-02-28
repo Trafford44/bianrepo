@@ -50,7 +50,7 @@ async function runSyncCheck(reason) {
     // Detect idle-return
     const idleReturn = (now - lastSyncTime) > idleThreshold;
 
-    const latest = await getLatestWorkspaceGist();
+    const latest = await getNewestGistAcrossAccount();
     if (!latest) return;
 
     const cloudUpdatedAt = new Date(latest.updated_at).getTime();
@@ -247,6 +247,26 @@ export async function loadWorkspaceFromGist() {
     saveState();
     renderSidebar();
     showNotification("success", "Workspace loaded from cloud");
+}
+
+async function getNewestGistAcrossAccount() {
+    if (!requireLogin()) return null;
+
+    const githubToken = getToken();
+
+    const res = await fetch("https://api.github.com/gists", {
+        headers: { "Authorization": `token ${githubToken}` }
+    });
+
+    if (!res.ok) return null;
+
+    const list = await res.json();
+    if (!Array.isArray(list) || list.length === 0) return null;
+
+    // Sort by updated_at descending
+    list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
+    return list[0]; // newest gist
 }
 
 export async function listGistRevisions() {
