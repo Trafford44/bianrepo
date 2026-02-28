@@ -2,11 +2,12 @@
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
 import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification, showCountdownModal } from "./ui.js";
 
-let lastSyncedAt = null;       // Cloud timestamp from last successful sync
 let lastSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
 let syncInterval = 2 * 60 * 1000; // 2 minutes
 let idleThreshold = syncInterval * 2; // 4 minutes = “user returned”
+let lastSyncedHash = null;
+
 
 const GIST_API = "https://api.github.com/gists";
 
@@ -43,44 +44,37 @@ export async function startSyncLoop() {
 }
 
 async function runSyncCheck(reason) {
-
     const now = Date.now();
-
-    // Detect idle-return
     const idleReturn = (now - lastSyncTime) > idleThreshold;
 
     const latest = await getNewestGistAcrossAccount();
     if (!latest) return;
 
-    const cloudUpdatedAt = new Date(latest.updated_at).getTime();
+    const cloudHash = await hashGistContent(latest.files);
 
     // First sync ever
-    if (!lastSyncedAt) {
-        // If local workspace is empty → trust cloud
+    if (!lastSyncedHash) {
         const localEmpty = getSubjects().length === 0;
 
         if (localEmpty) {
-            lastSyncedAt = cloudUpdatedAt;
+            lastSyncedHash = cloudHash;
             lastSyncTime = now;
             return;
         }
 
-        // Local has data → compare properly
-        if (cloudUpdatedAt > 0) {
-            await handleCloudNewer(latest, true);
-            return;
-        }
+        // Local has data → cloud is newer
+        await handleCloudNewer(latest, true);
+        return;
     }
 
-
     // Cloud is newer
-    if (cloudUpdatedAt > lastSyncedAt) {
+    if (cloudHash !== lastSyncedHash) {
         await handleCloudNewer(latest, idleReturn);
         return;
     }
 
-    // Cloud is same or older → safe
-    lastSyncedAt = cloudUpdatedAt;
+    // Cloud same → safe
+    lastSyncedHash = cloudHash;
     lastSyncTime = now;
     maybeAutoSave();
 }
@@ -95,14 +89,11 @@ async function handleCloudNewer(latest, idleReturn) {
         countdown,
         message: "A newer cloud version was found.",
         onConfirm: async () => {
-            console.log("CONFIRM: switching gist", {
-                newGistId: latest.id,
-                cloudUpdatedAt: new Date(latest.updated_at).getTime()
-            });
+            console.log("CONFIRM: switching gist", { newGistId: latest.id });
 
             setGistId(latest.id);
             await loadWorkspaceFromGist();
-            lastSyncedAt = new Date(latest.updated_at).getTime();
+            lastSyncedHash = await hashGistContent(latest.files);
             lastSyncTime = Date.now();
         },
         onCancel: () => {
@@ -112,6 +103,22 @@ async function handleCloudNewer(latest, idleReturn) {
         }
     });
 }
+
+async function hashGistContent(files) {
+    const content = Object.values(files)
+        .map(f => f.content || "")
+        .join("\n");
+
+    const buffer = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(content)
+    );
+
+    return Array.from(new Uint8Array(buffer))
+        .map(x => x.toString(16).padStart(2, "0"))
+        .join("");
+}
+
 
 async function maybeAutoSave() {
     const now = Date.now();
@@ -131,8 +138,8 @@ async function cloudIsNewer() {
     const latest = await getLatestWorkspaceGist();
     if (!latest) return false;
 
-    const cloudUpdatedAt = new Date(latest.updated_at).getTime();
-    return cloudUpdatedAt > lastSyncedAt;
+    const cloudHash = await hashGistContent(latest.files);
+    return cloudHash !== lastSyncedHash;
 }
 
 export async function saveWorkspaceToGist() {
@@ -218,7 +225,7 @@ export async function saveWorkspaceToGist() {
         setGistId(data.id);
     }
 
-    lastSyncedAt = Date.now();
+    lastSyncedHash = await hashGistContent(data.files);
     lastSyncTime = Date.now();
 
     // UI: successfully synced
