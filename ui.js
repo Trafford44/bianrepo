@@ -867,22 +867,14 @@ export function showCountdownModal({ countdown, message, onConfirm, onCancel }) 
     modal.style.zIndex = "9999";
 
     modal.innerHTML = `
-        <div style="
-            background: var(--bg);
-            padding: 20px;
-            border-radius: 8px;
-            width: 360px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            text-align: center;
-        ">
-            <p style="margin-bottom: 10px;">${message}</p>
-            <p id="countdown-timer" style="font-size: 24px; margin-bottom: 20px;">
-                ${countdown}
-            </p>
+        <div class="modal-panel">
+            <p class="modal-message">${message}</p>
+            <p id="countdown-timer" class="modal-count">${countdown}</p>
             <button id="countdown-confirm" class="primary">Switch to Cloud Version</button>
-            <button id="countdown-cancel" style="margin-left: 10px;">Cancel</button>
+            <button id="countdown-cancel">Cancel</button>
         </div>
     `;
+
 
     document.body.appendChild(modal);
 
