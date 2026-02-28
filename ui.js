@@ -847,3 +847,70 @@ document.getElementById("toggle-editor").addEventListener("click", () => {
         btn.textContent = "Hide Editor";
     }
 });
+
+export function showCountdownModal({ countdown, message, onConfirm, onCancel }) {
+    // Remove any existing modal
+    const existing = document.getElementById("countdown-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "countdown-modal";
+    modal.style.position = "fixed";
+    modal.style.top = "0";
+    modal.style.left = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.background = "rgba(0,0,0,0.4)";
+    modal.style.display = "flex";
+    modal.style.alignItems = "center";
+    modal.style.justifyContent = "center";
+    modal.style.zIndex = "9999";
+
+    modal.innerHTML = `
+        <div style="
+            background: var(--bg);
+            padding: 20px;
+            border-radius: 8px;
+            width: 360px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            text-align: center;
+        ">
+            <p style="margin-bottom: 10px;">${message}</p>
+            <p id="countdown-timer" style="font-size: 24px; margin-bottom: 20px;">
+                ${countdown}
+            </p>
+            <button id="countdown-confirm" class="primary">Switch to Cloud Version</button>
+            <button id="countdown-cancel" style="margin-left: 10px;">Cancel</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const timerEl = modal.querySelector("#countdown-timer");
+    const confirmBtn = modal.querySelector("#countdown-confirm");
+    const cancelBtn = modal.querySelector("#countdown-cancel");
+
+    let remaining = countdown;
+    const interval = setInterval(() => {
+        remaining--;
+        timerEl.textContent = remaining;
+
+        if (remaining <= 0) {
+            clearInterval(interval);
+            modal.remove();
+            onConfirm();
+        }
+    }, 1000);
+
+    confirmBtn.onclick = () => {
+        clearInterval(interval);
+        modal.remove();
+        onConfirm();
+    };
+
+    cancelBtn.onclick = () => {
+        clearInterval(interval);
+        modal.remove();
+        onCancel();
+    };
+}
