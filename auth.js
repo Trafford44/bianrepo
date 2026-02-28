@@ -113,6 +113,8 @@ export async function handleOAuthRedirect() {
         window.history.replaceState({}, "", window.location.pathname);
         console.log("GitHub login successful");
         updateLoginIndicator();
+        await runSyncCheck("login");
+
     } else {
         console.error("OAuth error:", data);
     }
