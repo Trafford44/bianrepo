@@ -1,12 +1,20 @@
-// see bottom for description of syncing
+/*
+Sync is hash-based.
+lastSyncedHash is the canonical record of the last known cloud state.
+Cloud-newer detection is cloudHash !== lastSyncedHash.
+Timestamps are used only for idle-return and auto-save timing.
+*/
+
+
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
 import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification, showCountdownModal } from "./ui.js";
 
-let lastSyncTime = 0;          // Local wall-clock time of last sync
+let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
 let syncInterval = 2 * 60 * 1000; // 2 minutes
-let idleThreshold = syncInterval * 2; // 4 minutes = “user returned”
-let lastSyncedHash = null;
+let idleReturnThreshold = syncInterval * 2; // 4 minutes = “user returned”
+let lastSyncedHash = localStorage.getItem("lastSyncedHash") || null;
+
 
 
 const GIST_API = "https://api.github.com/gists";
@@ -45,42 +53,33 @@ export async function startSyncLoop() {
 
 async function runSyncCheck(reason) {
     const now = Date.now();
-    const idleReturn = (now - lastSyncTime) > idleThreshold;
+    const idleReturn = now - lastSyncTime > idleReturnThreshold;
 
     const latest = await getNewestGistAcrossAccount();
     if (!latest) return;
 
     const cloudHash = await hashGistContent(latest.files);
 
-    console.log("SYNC CHECK", {
-        reason,
-        gistId: latest.id,
-        cloudHash,
-        lastSyncedHash,
-        subjects: getSubjects().length
-    });
-
-    // First sync ever → trust cloud hash
     if (lastSyncedHash === null) {
-        lastSyncedHash = cloudHash;
-        lastSyncTime = now;
-        return;
+        return updateSyncState(cloudHash);
     }
 
-    // Cloud is newer
     if (cloudHash !== lastSyncedHash) {
-        await handleCloudNewer(latest, idleReturn);
-        return;
+        return handleCloudChange(latest, idleReturn);
     }
 
-    // Cloud same → safe
-    lastSyncedHash = cloudHash;
-    lastSyncTime = now;
+    updateSyncState(cloudHash);
     maybeAutoSave();
 }
 
+function updateSyncState(hash) {
+    if (!hash) return; // defensive guard
+    lastSyncedHash = hash;
+    localStorage.setItem("lastSyncedHash", hash);
+    lastSyncTime = Date.now();
+}
 
-async function handleCloudNewer(latest, idleReturn) {
+async function handleCloudChange(latest, idleReturn) {
     const now = Date.now();
     const recentlyTyped = (now - lastLocalEditTime) < 30_000;
 
@@ -90,18 +89,13 @@ async function handleCloudNewer(latest, idleReturn) {
         countdown,
         message: "A newer cloud version was found.",
         onConfirm: async () => {
-            console.log("AFTER LOAD", {
-                gistId: latest.id,
-                hashAfterLoad: await hashGistContent(latest.files)
-            });
             setGistId(latest.id);
             await loadWorkspaceFromGist();
 
             // FIX: update hash correctly
             lastSyncedHash = await hashGistContent(latest.files);
-            console.log("UPDATED lastSyncedHash =", lastSyncedHash);
-
-            lastSyncTime = Date.now();
+            localStorage.setItem("lastSyncedHash", lastSyncedHash);
+            lastSuccessfulSyncTime = Date.now();
         },
         onCancel: () => {
             showNotification("warning",
@@ -112,9 +106,11 @@ async function handleCloudNewer(latest, idleReturn) {
 }
 
 async function hashGistContent(files) {
-    const content = Object.values(files)
-        .map(f => f.content || "")
-        .join("\n");
+    const entries = Object.entries(files)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, f]) => name + "\n" + (f.content || ""));
+
+    const content = entries.join("\n---\n");
 
     const buffer = await crypto.subtle.digest(
         "SHA-256",
@@ -127,6 +123,7 @@ async function hashGistContent(files) {
 }
 
 
+
 async function maybeAutoSave() {
     const now = Date.now();
 
@@ -136,12 +133,12 @@ async function maybeAutoSave() {
     if (!hasLocalChanges) return;
 
     // Do not auto-save if cloud is newer
-    if (await cloudIsNewer()) return;
+    if (await cloudHashChanged()) return;
 
     await saveWorkspaceToGist();
 }
 
-async function cloudIsNewer() {
+async function cloudHashChanged() {
     const latest = await getLatestWorkspaceGist();
     if (!latest) return false;
 
@@ -155,7 +152,7 @@ export async function saveWorkspaceToGist() {
     const githubToken = getToken();
     let gistId = getGistId();
 
-    setSyncStatus("saving", "Saving…");
+    showSyncState("saving");
 
     if (!gistId) {
         console.log("No gist ID — creating new gist");
@@ -204,7 +201,7 @@ export async function saveWorkspaceToGist() {
             }
         } catch (err) {
             console.error("Error checking existing Gist:", err);
-            setSyncStatus("error", "Error");
+            showSyncState("error");
             showNotification("error", "Failed to load workspace");
             return;
         }
@@ -223,7 +220,7 @@ export async function saveWorkspaceToGist() {
 
     if (!res.ok) {
         console.error("Gist save error:", data);
-        setSyncStatus("error", "Error");
+        showSyncState("error");
         showNotification("error", "Failed to load workspace");
         return;
     }
@@ -233,13 +230,22 @@ export async function saveWorkspaceToGist() {
     }
 
     lastSyncedHash = await hashGistContent(data.files);
-    lastSyncTime = Date.now();
+    localStorage.setItem("lastSyncedHash", lastSyncedHash);
+    lastSuccessfulSyncTime = Date.now();
 
     // UI: successfully synced
-    setSyncStatus("synced", "Synced");
+    showSyncState("synced");
     showNotification("success", "Workspace saved to cloud");
 }
 
+function showSyncState(state) {
+    const map = {
+        saving: ["saving", "Saving…"],
+        synced: ["synced", "Synced"],
+        error: ["error", "Error"]
+    };
+    setSyncStatus(...map[state]);
+}
 
 export async function loadWorkspaceFromGist() {
 
@@ -261,11 +267,6 @@ export async function loadWorkspaceFromGist() {
 
     const subjects = rebuildWorkspaceFromGist(data.files);
     setSubjects(subjects);
-    console.log("LOADED WORKSPACE", {
-        gistId,
-        subjects: subjects.length
-    });
-
     saveState();
     renderSidebar();
     showNotification("success", "Workspace loaded from cloud");
@@ -287,7 +288,6 @@ async function getNewestGistAcrossAccount() {
 
     // Sort by updated_at descending
     list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-console.log("Newest gist across account:", list[0].id, list[0].updated_at);
 
     return list[0]; // newest gist
 }
@@ -353,189 +353,3 @@ export async function showRestoreDialog() {
 
     await restoreFromGistVersion(versionId);
 }
-
-/*
-How the sync loop starts
-Your startup sequence is now:
-
-setupMarked()
-
-handleOAuthRedirect()
-
-load workspace
-
-startSyncLoop()
-
-renderSidebar()
-
-bindLoginButton()
-
-updateLoginIndicator()
-
-bind UI
-
-This ensures:
-
-The sync loop starts after login handling
-
-The sync loop starts after the workspace is loaded
-
-The sync loop starts before the user interacts with the UI
-
-The sync loop starts before any file is opened
-
-This is correct and race‑free.
-
-How timestamps interact
-You maintain three timestamps:
-
-lastSyncedAt — the cloud’s timestamp from the last successful sync
-
-lastSyncTime — the local wall‑clock time when the last sync occurred
-
-lastLocalEditTime — the last time the user typed anything
-
-These three signals allow you to detect:
-
-cloud newer
-
-cloud same
-
-cloud older
-
-user idle
-
-user active
-
-user returning after being away
-
-safe auto‑save
-
-unsafe auto‑save
-
-This is the correct minimal set.
-
-How idle‑return detection works
-Idle return means:
-
-“The user has been away long enough that another device might have edited the cloud.”
-
-You detect this by:
-
-js
-if (now - lastSyncTime > idleThreshold) {
-    // treat as idle return
-}
-Where:
-
-syncInterval = 2 minutes
-
-idleThreshold = syncInterval * 2 = 4 minutes
-
-This means:
-
-If the user leaves the tab for 4+ minutes
-
-Or switches devices
-
-Or the browser suspends the tab
-
-Or the laptop sleeps
-
-Or the phone goes background
-
-…then the next sync tick immediately checks for cloud updates.
-
-This is exactly how Joplin and Obsidian Sync behave.
-
-How cloud‑newer detection works
-You compare:
-
-js
-if (cloudUpdatedAt > lastSyncedAt)
-This is correct because:
-
-GitHub timestamps are second‑precision
-
-Cloud may return the same timestamp for multiple saves
-
-Cloud may return an older timestamp if the user saved locally more recently
-
-Using strict equality would cause false positives
-
-So:
-
-cloud > local → cloud newer
-
-cloud <= local → cloud same or older
-
-This is correct.
-
-How the adaptive countdown works
-When cloud is newer:
-
-js
-const recentlyTyped = (now - lastLocalEditTime) < 30_000;
-const countdown = recentlyTyped ? 30 : 10;
-This gives:
-
-30 seconds if the user typed recently
-
-10 seconds if the user is idle
-
-This is the correct UX:
-
-Protects active work
-
-Speeds up switching when idle
-
-Avoids accidental overwrites
-
-Avoids unnecessary waiting
-
-The modal then:
-
-Switches to cloud on confirm
-
-Warns about overwriting on cancel
-
-This is correct and safe.
-
-How auto‑save works
-Auto‑save runs only when:
-
-The user has typed since the last sync
-
-The cloud is not newer
-
-This prevents:
-
-Overwriting newer cloud data
-
-Saving when nothing changed
-
-Saving too frequently
-
-This is correct.
-
-How race conditions are avoided
-Race: sync before login
-Avoided because startSyncLoop() runs after handleOAuthRedirect().
-
-Race: login button binding before sidebar
-Avoided because bindLoginButton() runs after renderSidebar().
-
-Race: preview before renderer
-Avoided because setupMarked() runs first.
-
-Race: editor events before DOM exists
-Avoided because bindEditorEvents() runs last.
-
-Race: sync loop and manual load
-Avoided because both update lastSyncedAt and lastSyncTime.
-
-Race: cloud-newer detection and auto-save
-Avoided because auto-save checks cloudIsNewer() first.
-
-Everything is clean.
-*/
