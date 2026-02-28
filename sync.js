@@ -1,7 +1,6 @@
 // see bottom for description of syncing
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
 import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification, showCountdownModal } from "./ui.js";
-console.log("SYNC MODULE LOADED");
 
 let lastSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
@@ -48,31 +47,23 @@ async function runSyncCheck(reason) {
     const now = Date.now();
     const idleReturn = (now - lastSyncTime) > idleThreshold;
 
-
     const latest = await getNewestGistAcrossAccount();
     if (!latest) return;
 
     const cloudHash = await hashGistContent(latest.files);
-console.log("SYNC CHECK", {
-    reason,
-    gistId: latest.id,
-    cloudHash,
-    lastSyncedHash,
-    subjects: getSubjects().length
-});
 
-    // First sync ever
-    if (!lastSyncedHash) {
-        const localEmpty = getSubjects().length === 0;
+    console.log("SYNC CHECK", {
+        reason,
+        gistId: latest.id,
+        cloudHash,
+        lastSyncedHash,
+        subjects: getSubjects().length
+    });
 
-        if (localEmpty) {
-            lastSyncedHash = cloudHash;
-            lastSyncTime = now;
-            return;
-        }
-
-        // Local has data → cloud is newer
-        await handleCloudNewer(latest, true);
+    // First sync ever → trust cloud hash
+    if (lastSyncedHash === null) {
+        lastSyncedHash = cloudHash;
+        lastSyncTime = now;
         return;
     }
 
@@ -87,6 +78,7 @@ console.log("SYNC CHECK", {
     lastSyncTime = now;
     maybeAutoSave();
 }
+
 
 async function handleCloudNewer(latest, idleReturn) {
     const now = Date.now();
