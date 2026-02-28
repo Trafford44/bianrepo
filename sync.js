@@ -53,7 +53,7 @@ export async function startSyncLoop() {
 
 async function runSyncCheck(reason) {
     const now = Date.now();
-    const idleReturn = now - lastSyncTime > idleReturnThreshold;
+    const idleReturn = now - lastSuccessfulSyncTime > idleReturnThreshold;
 
     const latest = await getNewestGistAcrossAccount();
     if (!latest) return;
@@ -76,7 +76,7 @@ function updateSyncState(hash) {
     if (!hash) return; // defensive guard
     lastSyncedHash = hash;
     localStorage.setItem("lastSyncedHash", hash);
-    lastSyncTime = Date.now();
+    lastSuccessfulSyncTime = Date.now();
 }
 
 async function handleCloudChange(latest, idleReturn) {
