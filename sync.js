@@ -89,11 +89,16 @@ async function handleCloudNewer(latest, idleReturn) {
         countdown,
         message: "A newer cloud version was found.",
         onConfirm: async () => {
-            console.log("CONFIRM: switching gist", { newGistId: latest.id });
+            console.log("CONFIRM: switching gist", {
+                newGistId: latest.id
+            });
 
             setGistId(latest.id);
             await loadWorkspaceFromGist();
+
+            // FIX: update hash correctly
             lastSyncedHash = await hashGistContent(latest.files);
+
             lastSyncTime = Date.now();
         },
         onCancel: () => {
