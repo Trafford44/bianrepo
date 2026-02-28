@@ -151,7 +151,18 @@
             transform-origin: top left;
         }
 
+        /* Inside your preview pane (.prose) styles */
+        #preview-pane table {
+            border-collapse: collapse;
+        }
 
+        #preview-pane th {
+            position: sticky;
+            top: -2rem; /* Matches your padding */
+            background: var(--bg-card);
+            z-index: 2;
+            box-shadow: 0 2px 2px -1px rgba(0,0,0,0.1); /* Subtle shadow so it looks "above" the data */
+        }
 
         /* -------------------------------------------------------
         3. Resizers
@@ -586,6 +597,65 @@
         .cloud-disabled {
             opacity: 0.4;
             cursor: not-allowed;
+        }
+
+        /* Modal backdrop */
+        #countdown-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        /* Modal panel */
+        #countdown-modal .modal-panel {
+            background: var(--bg);
+            color: var(--fg);
+            padding: 22px 26px;
+            border-radius: 8px;
+            width: 340px;
+            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        /* Message text */
+        #countdown-modal .modal-message {
+            margin-bottom: 12px;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        /* Countdown number */
+        #countdown-modal .modal-count {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        /* Buttons */
+        #countdown-modal button {
+            padding: 8px 14px;
+            font-size: 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--button-bg);
+            color: var(--button-fg);
+            cursor: pointer;
+        }
+
+        #countdown-modal button.primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        #countdown-modal button + button {
+            margin-left: 10px;
         }
 
         /* -------------------------------------------------------
@@ -1051,7 +1121,18 @@
 
         </div> <!-- closes workspace-grid -->
         <button id="zoom-reset-btn" class="btn-tool" title="Reset zoom">⟲</button>
-
+        <div id="search-bar" class="search-bar hidden">
+            <div class="search-group">
+                <input type="text" id="search-input" placeholder="Find...">
+                <input type="text" id="replace-input" placeholder="Replace with...">
+            </div>
+            <div class="search-actions">
+                <button id="find-next-btn" class="btn-tool">Next</button>
+                <button id="replace-btn" class="btn-tool">Replace</button>
+                <button id="replace-all-btn" class="btn-tool">All</button>
+                <button id="close-search-btn" class="btn-tool">×</button>
+            </div>
+        </div>
     </main>
 
 <script type="module" src="./app.js"></script>
