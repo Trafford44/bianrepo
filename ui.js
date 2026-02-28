@@ -1,6 +1,6 @@
 import { saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog } from "./sync.js";
 import { getToken, bindLoginButton } from "./auth.js";
-import { applyMarkdownFormat } from "./md-editor.js";
+import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
 
 let saveTimer = null;
 let subjects = [];
@@ -8,14 +8,6 @@ let activeFileId = null;
 let activeSubjectId = null;
 let activePane = "editor"; // "editor" or "preview"
 let notificationTimeout = null;
-
-// Set MD renderer (marked v9) to have separation betwen paragraghs but keep lists tight
-const renderer = new marked.Renderer();
-renderer.list = function (body, ordered, start) {
-    const type = ordered ? "ol" : "ul";
-    return `<${type}>\n${body}</${type}>\n\n`;
-};
-marked.use({ renderer });
 
 export function getSubjects() {
     return subjects;
@@ -159,6 +151,7 @@ export function renderSidebar() {
 
         // Bind login button NOW that it exists
         bindLoginButton();
+        runSyncCheck("login");
 
         // Bind load-from-cloud button
         document.getElementById("load-from-cloud").onclick = async () => {
@@ -525,7 +518,7 @@ export function bindPaneFocusEvents() {
     const editor = document.getElementById("editor-textarea");
     const preview = document.getElementById("preview-pane");
 
-    editor?.addEventListener("focus", () => actideletevePane = "editor");
+    editor?.addEventListener("focus", () => activePane = "editor");
     preview?.addEventListener("click", () => activePane = "preview");
 }
 
@@ -536,7 +529,7 @@ export function zoomEditor(delta) {
     root.style.setProperty("--editor-font-size", next + "px");
 }
 
-function zoomPreview(delta) {
+export function zoomPreview(delta) {
     const root = document.documentElement;
 
     // text zoom
@@ -627,155 +620,19 @@ export function updateLoginIndicator() {
     });
 }
 
-
-
 export function bindEditorEvents() {
     const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
 
-    if (textarea) {
-        textarea.addEventListener("input", updatePreview);
-    }
-
-    document.addEventListener("keydown", e => {
-        // one-level undo for formatting
-        if (e.ctrlKey && e.key === "z") {
-            const textarea = document.getElementById("editor-textarea");
-            if (textarea && textarea.dataset.lastFormatValue) {
-                e.preventDefault(); // use our custom undo instead of native for this case
-                textarea.value = textarea.dataset.lastFormatValue;
-                delete textarea.dataset.lastFormatValue;
-                textarea.dispatchEvent(new Event("input"));
-                return;
-            }
-        }        
-        if (e.ctrlKey && e.key === "=") {
-            zoomEditor(1);
-            zoomPreview(1);
-            e.preventDefault();
-        }
-        if (e.ctrlKey && e.key === "-") {
-            zoomEditor(-1);
-            zoomPreview(-1);
-            e.preventDefault();
-        }
-        if (e.ctrlKey && e.key === "0") {
-            document.documentElement.style.setProperty("--editor-font-size", "14px");
-            document.documentElement.style.setProperty("--preview-font-size", "16px");
-            e.preventDefault();
-        }
-    });
-
-    // wire toolbar buttons
-    document.getElementById("add-subject-btn") ?.addEventListener("click", () => addSubject());
-    document.getElementById("save-btn") ?.addEventListener("click", () => saveWorkspaceToGist());
-    document.getElementById("load-btn") ?.addEventListener("click", () => loadWorkspaceFromGist());
-    document.getElementById("restore-btn") ?.addEventListener("click", () => showRestoreDialog());
-    document.getElementById("export-btn") ?.addEventListener("click", () => exportFile());
-    document.getElementById("delete-btn") ?.addEventListener("click", () => deleteCurrentFile());
-
-    // Zoom controls 
-    document.getElementById("zoom-editor-in")
-        ?.addEventListener("click", () => {
-            if (activePane === "editor") zoomEditor(1);
-            else zoomPreview(1);
-        });
-
-    document.getElementById("zoom-editor-out")
-        ?.addEventListener("click", () => {
-            if (activePane === "editor") zoomEditor(-1);
-            else zoomPreview(-1);
-        });
-
-    document.getElementById("zoom-reset-btn")
-        ?.addEventListener("click", resetZoom);
-
-    document.getElementById("md-toolbar").addEventListener("click", e => {
-        const type = e.target.dataset.md;
-        const textarea = document.getElementById("editor-textarea");
-        if (!type) return;
-        if (type === "clear") {
-            applyClearFormatting(textarea);
-            return;
-        }
-        if (type === "color") {
-            toggleColorPopup(e.target);
-            return;
-        }
-        if (type === "bgcolor") {
-            toggleBgColorPopup(e.target);
-            return;
-        }     
-        if (type === "table-menu") {
-            toggleTablePopup(e.target);
-            return;
-        }
-        
-        applyMarkdownFormat(type, textarea);
-    });
-
-    const colorPopup = document.getElementById("md-color-popup");
-    if (colorPopup) {
-        colorPopup.addEventListener("click", e => {
-            const color = e.target.dataset.color;
-            if (!color) return;
-
-            applyColorFormat(color, textarea);
-            colorPopup.classList.add("hidden");
-        });
-    }
-
-    const bgPopup = document.getElementById("md-bgcolor-popup");
-    if (bgPopup) {// Close sidebar button (static header)
-
-    const closeSidebarBtn = document.getElementById("close-sidebar-btn");
-    if (closeSidebarBtn) {
-        closeSidebarBtn.addEventListener("click", e => {
-            e.stopPropagation();
-            document.body.classList.remove("sidebar-open");
-        });
-    }
-
-        bgPopup.addEventListener("click", e => {
-            const bg = e.target.dataset.bg;
-            if (!bg) return;
-
-            applyBgColorFormat(bg, textarea);
-            bgPopup.classList.add("hidden");
-        });
-    }
-
-    const tablePopup = document.getElementById("table-popup");
-    if (tablePopup) {
-        tablePopup.addEventListener("click", e => {
-            const type = e.target.dataset.md;
-            if (!type) return;
-
-            applyMarkdownFormat(type, textarea);
-        });
-    }
-
-    document.addEventListener("click", e => {
-        const popup = document.getElementById("table-popup");
-        const toggle = document.querySelector('[data-md="table-menu"]');
-
-        if (!popup.contains(e.target) && e.target !== toggle) {
-            popup.classList.add("hidden");
-        }
-    });
-
-
-    // Close sidebar button (static header)
-    const closeSidebarBtn = document.getElementById("close-sidebar-btn");
-    if (closeSidebarBtn) {
-        closeSidebarBtn.addEventListener("click", e => {
-            e.stopPropagation();
-            document.body.classList.remove("sidebar-open");
-        });
-    }
-
+    bindSmartKeyboardEvents(textarea);
+    bindGlobalShortcuts(textarea);
+    bindScrollSync(textarea);
+    bindToolbarEvents(textarea);
+    bindPopupEvents(textarea);
+    bindSidebarEvents();
 }
 
-function applyClearFormatting(textarea) {
+export function applyClearFormatting(textarea) {
     // store previous value for one-level undo
     textarea.dataset.lastFormatValue = textarea.value;
 
@@ -826,7 +683,7 @@ function applyClearFormatting(textarea) {
     textarea.dispatchEvent(new Event("input"));
 }
 
-function applyColorFormat(color, textarea) {
+export function applyColorFormat(color, textarea) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = textarea.value.substring(start, end);
@@ -849,7 +706,7 @@ function hidePopups(except) {
     }
 }
 
-function toggleColorPopup(button) {
+export function toggleColorPopup(button) {
     const popup = document.getElementById("md-color-popup");
 
     // Hide all other popups
@@ -863,7 +720,7 @@ function toggleColorPopup(button) {
     popup.style.top = rect.bottom + "px";
 }
 
-function toggleBgColorPopup(button) {
+export function toggleBgColorPopup(button) {
     const popup = document.getElementById("md-bgcolor-popup");
 
     // Hide all other popups
@@ -877,7 +734,7 @@ function toggleBgColorPopup(button) {
     popup.style.top = rect.bottom + "px";
 }
 
-function toggleTablePopup(button) {
+export function toggleTablePopup(button) {
     const popup = document.getElementById("table-popup");
 
     // Hide all other popups
@@ -893,7 +750,7 @@ function toggleTablePopup(button) {
     }
 }
 
-function applyBgColorFormat(bg, textarea) {
+export function applyBgColorFormat(bg, textarea) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = textarea.value.substring(start, end);
@@ -990,4 +847,3 @@ document.getElementById("toggle-editor").addEventListener("click", () => {
         btn.textContent = "Hide Editor";
     }
 });
-
