@@ -146,6 +146,26 @@ async function cloudHashChanged() {
     return cloudHash !== lastSyncedHash;
 }
 
+window.debugCloud = async () => {
+    const latest = await getNewestGistAcrossAccount();
+
+    if (!latest) {
+        console.log("No gist found. Possible causes:");
+        console.log("- Not logged in");
+        console.log("- Token expired");
+        console.log("- No gists exist for this account");
+        console.log("- GitHub API returned an error");
+        return;
+    }
+
+    console.log("Gist ID:", latest.id);
+    console.log("updated_at:", latest.updated_at);
+
+    const hash = await hashGistContent(latest.files);
+    console.log("cloudHash:", hash);
+};
+
+
 export async function saveWorkspaceToGist() {
     if (!requireLogin()) return;
 
