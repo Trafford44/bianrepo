@@ -43,6 +43,8 @@ export async function startSyncLoop() {
 }
 
 async function runSyncCheck(reason) {
+    console.log("SYNC:", reason, "gistId:", getGistId(), "token:", getToken());
+
     const now = Date.now();
 
     // Detect idle-return
@@ -52,13 +54,26 @@ async function runSyncCheck(reason) {
     if (!latest) return;
 
     const cloudUpdatedAt = new Date(latest.updated_at).getTime();
+    console.log("startup sync:", { lastSyncedAt, gistUpdatedAt: cloudUpdatedAt, localSubjects: getSubjects().length });
 
     // First sync ever
     if (!lastSyncedAt) {
-        lastSyncedAt = cloudUpdatedAt;
-        lastSyncTime = now;
-        return;
+        // If local workspace is empty → trust cloud
+        const localEmpty = getSubjects().length === 0;
+
+        if (localEmpty) {
+            lastSyncedAt = cloudUpdatedAt;
+            lastSyncTime = now;
+            return;
+        }
+
+        // Local has data → compare properly
+        if (cloudUpdatedAt > 0) {
+            await handleCloudNewer(latest, true);
+            return;
+        }
     }
+
 
     // Cloud is newer
     if (cloudUpdatedAt > lastSyncedAt) {
