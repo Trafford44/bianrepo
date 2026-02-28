@@ -43,7 +43,6 @@ export async function startSyncLoop() {
 }
 
 async function runSyncCheck(reason) {
-    console.log("SYNC:", reason, "gistId:", getGistId(), "token:", getToken());
 
     const now = Date.now();
 
@@ -54,7 +53,6 @@ async function runSyncCheck(reason) {
     if (!latest) return;
 
     const cloudUpdatedAt = new Date(latest.updated_at).getTime();
-    console.log("startup sync:", { lastSyncedAt, gistUpdatedAt: cloudUpdatedAt, localSubjects: getSubjects().length });
 
     // First sync ever
     if (!lastSyncedAt) {
@@ -97,6 +95,11 @@ async function handleCloudNewer(latest, idleReturn) {
         countdown,
         message: "A newer cloud version was found.",
         onConfirm: async () => {
+            console.log("CONFIRM: switching gist", {
+                newGistId: latest.id,
+                cloudUpdatedAt: new Date(latest.updated_at).getTime()
+            });
+
             setGistId(latest.id);
             await loadWorkspaceFromGist();
             lastSyncedAt = new Date(latest.updated_at).getTime();
