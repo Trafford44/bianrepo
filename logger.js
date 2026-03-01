@@ -19,14 +19,26 @@ function log(levelName, levelValue, source, message, details) {
 
   const timestamp = formatDateNZ();
 
+  const colours = {
+    INFO:  "color: #4da3ff",   // blue
+    DEBUG: "color: #337e36",   // green
+    WARN:  "color: #e6a700",   // amber
+    ERROR: "color: #ff4d4d"    // red
+  };
+
+  const style = colours[levelName] || "color: inherit";
+
+  const header = `[${timestamp}] [${levelName}] [${source}] ${message}`;
+
   if (details) {
-    console.groupCollapsed(`[${timestamp}] [${levelName}] [${source}] ${message}`);
+    console.groupCollapsed("%c" + header, style);
     console.log(details);
     console.groupEnd();
   } else {
-    console.log(`[${timestamp}] [${levelName}] [${source}] ${message}`);
+    console.log("%c" + header, style);
   }
 }
+
 
 
 export const logger = {
