@@ -4,11 +4,12 @@ import { markLocalEdit } from "./sync.js";
 
 export function bindSmartKeyboardEvents(textarea) {
 
-    textarea.addEventListener("input", () => {
-        markLocalEdit();
+    textarea.addEventListener("input", (e) => {
+        if (e.isTrusted) {  // only true for real user input
+            markLocalEdit();
+        }
         updatePreview();
     });
-
 
     textarea.addEventListener("keydown", (e) => {
         const { selectionStart, value } = textarea;
