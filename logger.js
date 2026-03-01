@@ -46,7 +46,7 @@ export const logger = {
 
 export { LOG_LEVELS };
 
-function formatDateNZ() {
+export function formatDateNZ() {
   const now = new Date();
 
   const parts = new Intl.DateTimeFormat("en-NZ", {
