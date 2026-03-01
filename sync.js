@@ -53,7 +53,7 @@ async function getCurrentWorkspaceGist() {
         return null;
     }   
 
-    logger.info("sync: getCurrentWorkspaceGist", `Fetched gist with ID: ${data.id}, updated_at: ${formatDateNZ(data.updated_at)}, files: ${Object.keys(data.files).join(", ")}`);
+  logger.info("sync: getCurrentWorkspaceGist", `Fetched gist with ID: ${data.id}, updated_at: ${formatDateNZ(data.updated_at)}`, { files: Object.keys(data.files) });
 
     return data;
 }
