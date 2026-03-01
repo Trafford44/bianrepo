@@ -35,19 +35,19 @@ export const logger = {
   },
 
   error(source, message, ...args) {
-    log("ERROR", LOG_LEVELS.ERROR, source, message);
+    log("ERROR", LOG_LEVELS.ERROR, source, message, details);
   },
 
   warn(source, message, ...args) {
-    log("WARN", LOG_LEVELS.WARN, source, message);
+    log("WARN", LOG_LEVELS.WARN, source, message, details);
   },
 
   info(source, message, ...args) {
-    log("INFO", LOG_LEVELS.INFO, source, message);
+    log("INFO", LOG_LEVELS.INFO, source, message, details);
   },
 
   debug(source, message, ...args) {
-    log("DEBUG", LOG_LEVELS.DEBUG, source, message);
+    log("DEBUG", LOG_LEVELS.DEBUG, source, message, details);
   }
 };
 
