@@ -34,19 +34,19 @@ export const logger = {
     CURRENT_LEVEL = level;
   },
 
-  error(source, message, ...args) {
+  error(source, message, details) {
     log("ERROR", LOG_LEVELS.ERROR, source, message, details);
   },
 
-  warn(source, message, ...args) {
+  warn(source, message, details) {
     log("WARN", LOG_LEVELS.WARN, source, message, details);
   },
 
-  info(source, message, ...args) {
+  info(source, message, details) {
     log("INFO", LOG_LEVELS.INFO, source, message, details);
   },
 
-  debug(source, message, ...args) {
+  debug(source, message, details) {
     log("DEBUG", LOG_LEVELS.DEBUG, source, message, details);
   }
 };
