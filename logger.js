@@ -18,25 +18,13 @@ function log(levelName, levelValue, source, message, details) {
   if (levelValue > CURRENT_LEVEL) return;
 
   const timestamp = formatDateNZ();
-  // use %s for non-bold, which the browser automatically applies
+
   if (details) {
-    console.groupCollapsed(
-      "%s %s %s %s",
-      `[${timestamp}]`,
-      `[${levelName}]`,
-      `[${source}]`,
-      message
-    );
+    console.groupCollapsed(`[${timestamp}] [${levelName}] [${source}] ${message}`);
     console.log(details);
     console.groupEnd();
   } else {
-    console.log(
-      "%s %s %s %s",
-      `[${timestamp}]`,
-      `[${levelName}]`,
-      `[${source}]`,
-      message
-    );
+    console.log(`[${timestamp}] [${levelName}] [${source}] ${message}`);
   }
 }
 
