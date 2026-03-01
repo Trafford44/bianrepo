@@ -81,7 +81,7 @@ async function runSyncCheck(reason) {
         return;
     }
 
-    logger.info("sync: runSyncCheck", `Fetched latest gist (ID: ${latest.id}, Cloud updated_at: ${formatDateNZ(latest.updated_at)}, Cloud files: ${Object.keys(latest.files).join(", ")})`);
+  logger.info("sync: runSyncCheck", `Fetched latest gist (ID: ${latest.id}, Cloud updated_at: ${formatDateNZ(latest.updated_at)}`, `Cloud files: ${Object.keys(latest.files).join(", ")}`);
 
     const cloudHash = await hashGistContent(latest.files);
     logger.info("sync: runSyncCheck", `Computed cloudHash: ${cloudHash}, lastSyncedHash: ${lastSyncedHash}`);
