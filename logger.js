@@ -13,14 +13,21 @@ const LOG_LEVELS = {
 // Change this per module if you want
 let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
-function log(levelName, levelValue, source, message) {
+function log(levelName, levelValue, source, message, details) {
   if (!shouldLog) return;
-
   if (levelValue > CURRENT_LEVEL) return;
 
   const timestamp = formatDateNZ();
-  console.log(`[${timestamp}] [${levelName}] [${source}] ${message}`);
+
+  if (details) {
+    console.groupCollapsed(`[${timestamp}] [${levelName}] [${source}] ${message}`);
+    console.log(details);
+    console.groupEnd();
+  } else {
+    console.log(`[${timestamp}] [${levelName}] [${source}] ${message}`);
+  }
 }
+
 
 export const logger = {
   setLevel(level) {
