@@ -8,7 +8,7 @@ Timestamps are used only for idle-return and auto-save timing.
 
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
 import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification, showCountdownModal } from "./ui.js";
-import { logger, LOG_LEVELS } from "./logger.js";
+import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
@@ -51,9 +51,9 @@ async function getCurrentWorkspaceGist() {
     if (!data || !data.files) {
         logger.error("sync: getCurrentWorkspaceGist", "Response missing files property");
         return null;
-    }
+    }   
 
-    logger.info("sync: getCurrentWorkspaceGist", `Fetched gist with ID: ${data.id}, updated_at: ${data.updated_at}, files: ${Object.keys(data.files).join(", ")}`);
+    logger.info("sync: getCurrentWorkspaceGist", `Fetched gist with ID: ${data.id}, updated_at: ${formatDateNZ(data.updated_at)}, files: ${Object.keys(data.files).join(", ")}`);
 
     return data;
 }
@@ -81,7 +81,7 @@ async function runSyncCheck(reason) {
         return;
     }
 
-    logger.info("sync: runSyncCheck", `Fetched latest gist (ID: ${latest.id}, Cloud updated_at: ${latest.updated_at}, Cloud files: ${Object.keys(latest.files).join(", ")})`);
+    logger.info("sync: runSyncCheck", `Fetched latest gist (ID: ${latest.id}, Cloud updated_at: ${formatDateNZ(latest.updated_at)}, Cloud files: ${Object.keys(latest.files).join(", ")})`);
 
     const cloudHash = await hashGistContent(latest.files);
     logger.info("sync: runSyncCheck", `Computed cloudHash: ${cloudHash}, lastSyncedHash: ${lastSyncedHash}`);
@@ -189,7 +189,7 @@ window.debugCloud = async () => {
         return;
     }
 
-    logger.info("sync: debugCloud", `Fetched newest gist across account (ID: ${latest.id}, updated_at: ${latest.updated_at}, files: ${Object.keys(latest.files).join(", ")})`);
+    logger.info("sync: debugCloud", `Fetched newest gist across account (ID: ${latest.id}, updated_at: ${formatDateNZ(latest.updated_at)}, files: ${Object.keys(latest.files).join(", ")})`);
 
     const hash = await hashGistContent(latest.files);
     logger.info("sync: debugCloud", `Computed cloudHash for newest gist: ${hash}`);
