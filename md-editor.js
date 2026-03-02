@@ -147,9 +147,11 @@ export function applyMarkdownFormat(type, textarea) {
         case "puml": {
             const snippet = "\n```puml\n@startuml\nparticipant Alice\nparticipant Bob\n\nAlice -> Bob: Hello\n@enduml\n```\n";
             textarea.setRangeText(snippet, start, end, "end");
+            }
             break;
-        }            
-
+        case 'convertMD': 
+            convertToMarkdown();
+            return;
     }
     // when this code runs, any just inserted text (like date or BR) is already in place, so we use the original start position and the length of the replacement to set the cursor correctly after insertion
     textarea.setRangeText(before + replacement + after, start, end, "end");
@@ -619,4 +621,64 @@ export function formatTable() {
 
     textarea.focus();
     textarea.dispatchEvent(new Event("input"));
+}
+
+function convertToMarkdown() {
+
+    const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
+
+    const value = textarea.value;
+
+    const lines = value.split(/\r?\n/);
+    const output = [];
+    let inList = false;
+
+    const isBullet = line => /^\s*[\*\-•]\s+/.test(line);
+    const isTitle = line =>
+        line.trim().length > 0 &&
+        !isBullet(line) &&
+        !/[.:]$/.test(line.trim()) &&
+        /^[A-Z][A-Za-z0-9\s|&-]*$/.test(line.trim());
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+
+        if (line === "") {
+            output.push("");
+            inList = false;
+            continue;
+        }
+
+        if (isBullet(line)) {
+            if (!inList && output[output.length - 1] !== "") {
+                output.push("");
+            }
+
+            // *** Normalize bullet marker to "-" ***
+            const normalized = line.replace(/^\s*[\*\•]\s+/, "- ");
+
+            output.push(normalized);
+            inList = true;
+            continue;
+        }
+
+        inList = false;
+
+        if (isTitle(line)) {
+            output.push("");
+            output.push("## " + line.trim());
+            output.push("");
+            continue;
+        }
+
+        output.push(line);
+    }
+
+    const markdown = output
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+    textarea.value = markdown;
 }
