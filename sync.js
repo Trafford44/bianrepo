@@ -67,7 +67,7 @@ export async function startSyncLoop() {
     }, syncInterval);
 }
 
-async function runSyncCheck(reason) {
+export async function runSyncCheck(reason) {
     logger.info("sync: runSyncCheck", `Running sync check (reason: ${reason})`);
 
     const now = Date.now();
