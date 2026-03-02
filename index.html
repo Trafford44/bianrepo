@@ -67,7 +67,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
+            height: 100dvh;
             overflow: hidden;
             background: var(--bg-body);
             color: var(--text-main);
@@ -86,7 +86,7 @@
             width: 300px;
             min-width: 200px;
             max-width: 500px;
-            height: 100vh;
+            height: 100dvh;
             background: var(--bg-sidebar);
             border-right: 1px solid var(--border-color);
             display: flex;
@@ -98,7 +98,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: 100dvh;
             background: #fff;
             min-width: 0;
         }
@@ -600,45 +600,30 @@
             cursor: not-allowed;
         }
 
-        /* Modal backdrop */
-        #countdown-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.45);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-
-        /* Modal panel */
         #countdown-modal .modal-panel {
             background: var(--bg);
             color: var(--fg);
-            padding: 22px 26px;
+            padding: 24px 28px;
             border-radius: 8px;
-            width: 340px;
-            box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+            width: 300px;
+            box-shadow: 0 6px 28px rgba(0,0,0,0.35);
             text-align: center;
             border: 1px solid var(--border);
         }
 
-        /* Message text */
         #countdown-modal .modal-message {
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             font-size: 15px;
-            line-height: 1.4;
+            line-height: 1.45;
         }
 
-        /* Countdown number */
         #countdown-modal .modal-count {
-            font-size: 32px;
+            font-size: 36px;
             font-weight: 600;
-            margin-bottom: 20px;
+            margin: 0 0 22px 0;
             color: var(--accent);
         }
 
-        /* Buttons */
         #countdown-modal button {
             padding: 8px 14px;
             font-size: 14px;
@@ -658,6 +643,7 @@
         #countdown-modal button + button {
             margin-left: 10px;
         }
+
 
         /* -------------------------------------------------------
         9. Responsive Layout (Mobile, Tablet, Desktop)
@@ -1077,6 +1063,7 @@
                     <button data-md="color" title="Text color" class="btn-tool">Color</button>
                     <button data-md="bgcolor" title="Background color" class="btn-tool">BG</button>
                     <button data-md="table-menu" title="Table tools" class="btn-tool">⊞</button>
+                    <button data-md="convertMD" title="Convert to Markdown" class="btn-tool">➜MD</button>
                     <button data-md="clear" title="Clear formatting" class="btn-tool">Clear</button>
                 </div>
 
