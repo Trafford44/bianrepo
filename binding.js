@@ -151,7 +151,7 @@ export function bindToolbarEvents(textarea) {
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
     document.getElementById("export-btn")?.addEventListener("click", () => exportFile());
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteCurrentFile());
-console.log(window.activePane);
+
     // Zoom Buttons
     document.getElementById("zoom-editor-in")?.addEventListener("click", () => {
         if (window.activePane === "editor") zoomEditor(1); else zoomPreview(1);
