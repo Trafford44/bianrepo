@@ -1,5 +1,5 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
-import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, updatePreview } from "./ui.js";
+import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview } from "./ui.js";
 import { markLocalEdit } from "./sync.js";
 
 export function bindSmartKeyboardEvents(textarea) {
@@ -143,6 +143,25 @@ export function bindScrollSync(textarea) {
 }
 
 export function bindToolbarEvents(textarea) {
+
+    // TOOLBAR & POPUP WIRE-UPS
+    document.getElementById("add-subject-btn")?.addEventListener("click", () => addSubject());
+    document.getElementById("save-btn")?.addEventListener("click", () => saveWorkspaceToGist());
+    document.getElementById("load-btn")?.addEventListener("click", () => loadWorkspaceFromGist());
+    document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
+    document.getElementById("export-btn")?.addEventListener("click", () => exportFile());
+    document.getElementById("delete-btn")?.addEventListener("click", () => deleteCurrentFile());
+console.log(window.activePane);
+    // Zoom Buttons
+    document.getElementById("zoom-editor-in")?.addEventListener("click", () => {
+        if (window.activePane === "editor") zoomEditor(1); else zoomPreview(1);
+    });
+    document.getElementById("zoom-editor-out")?.addEventListener("click", () => {
+        if (window.activePane === "editor") zoomEditor(-1); else zoomPreview(-1);
+    });
+    document.getElementById("zoom-reset-btn")?.addEventListener("click", resetZoom);
+
+    // Markdown Toolbar delegation
     document.getElementById("md-toolbar").addEventListener("click", (e) => {
         const type = e.target.dataset.md;
         if (!type) return;
