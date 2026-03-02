@@ -6,7 +6,6 @@ let saveTimer = null;
 let subjects = [];
 let activeFileId = null;
 let activeSubjectId = null;
-let activePane = "editor"; // "editor" or "preview"
 let notificationTimeout = null;
 
 export function getSubjects() {
@@ -515,11 +514,13 @@ export function renameFile(sId, fId) {
 }
 
 export function bindPaneFocusEvents() {
+    window.activePane = "editor";
+
     const editor = document.getElementById("editor-textarea");
     const preview = document.getElementById("preview-pane");
 
-    editor?.addEventListener("focus", () => activePane = "editor");
-    preview?.addEventListener("click", () => activePane = "preview");
+    editor?.addEventListener("focus", () => window.activePane = "editor");
+    preview?.addEventListener("click", () => window.activePane = "preview");
 }
 
 export function zoomEditor(delta) {
@@ -544,7 +545,7 @@ export function zoomPreview(delta) {
 }
 
 
-function resetZoom() {
+export function resetZoom() {
     const root = document.documentElement;
 
     // Editor text size
