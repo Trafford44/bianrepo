@@ -36,6 +36,7 @@
  * and easy to maintain without mixing UI, sync, or editor concerns.
  */
 import { updateLoginIndicator, showNotification } from "./ui.js";
+import { runSyncCheck } from "./sync.js";
 
 const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
