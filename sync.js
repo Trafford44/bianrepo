@@ -7,7 +7,7 @@ Timestamps are used only for idle-return and auto-save timing.
 
 
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
-import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification, showCountdownModal } from "./ui.js";
+import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification, showCountdownModal, showCountdownNotification } from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
