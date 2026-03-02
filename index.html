@@ -595,6 +595,24 @@
             color: #b91c1c;
         }
 
+        .notification-countdown {
+            background: #fee2e2;
+            color: #b91c1c;
+            font-weight: 600;
+            pointer-events: auto; /* allow clicking the Cancel link */
+        }
+
+        .notification-countdown a {
+            color: #b91c1c;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-left: 6px;
+        }
+
+        .notification.notification-countdown {
+            pointer-events: auto;
+        }
+
         .cloud-disabled {
             opacity: 0.4;
             cursor: not-allowed;
@@ -1063,7 +1081,7 @@
                     <button data-md="color" title="Text color" class="btn-tool">Color</button>
                     <button data-md="bgcolor" title="Background color" class="btn-tool">BG</button>
                     <button data-md="table-menu" title="Table tools" class="btn-tool">⊞</button>
-                    <button data-md="convertMD" title="Convert to Markdown" class="btn-tool">➜MD</button>
+                    <!-- <button data-md="convertMD" title="Convert to Markdown" class="btn-tool">➜MD</button> -->
                     <button data-md="clear" title="Clear formatting" class="btn-tool">Clear</button>
                 </div>
 
