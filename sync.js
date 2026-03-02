@@ -53,7 +53,7 @@ async function getCurrentWorkspaceGist() {
         return null;
     }   
 
-  logger.info("sync: getCurrentWorkspaceGist", `Fetched gist with ID: ${data.id}, updated_at: ${formatDateNZ(data.updated_at)}`, { files: Object.keys(data.files) });
+    logger.info("sync: getCurrentWorkspaceGist", `Fetched gist with ID: ${data.id}, updated_at: ${formatDateNZ(data.updated_at)}`, { files: Object.keys(data.files) });
 
     return data;
 }
@@ -81,7 +81,7 @@ export async function runSyncCheck(reason) {
         return;
     }
 
-  logger.info("sync: runSyncCheck", `Fetched latest gist (ID: ${latest.id}, Cloud updated_at: ${formatDateNZ(latest.updated_at)}`, `Cloud files: ${Object.keys(latest.files).join(", ")}`);
+    logger.info("sync: runSyncCheck", `Fetched latest gist (ID: ${latest.id}, Cloud updated_at: ${formatDateNZ(latest.updated_at)}`, `Cloud files: ${Object.keys(latest.files).join(", ")}`);
 
     const cloudHash = await hashGistContent(latest.files);
     logger.info("sync: runSyncCheck", `Computed cloudHash: ${cloudHash}, lastSyncedHash: ${lastSyncedHash}`);
@@ -120,14 +120,12 @@ async function handleCloudChange(latest, idleReturn) {
 
     let countdown = recentlyTyped ? 30 : 10;
 
-    showCountdownModal({
+    showCountdownNotification({
         countdown,
-        message: "A newer cloud version was found.",
         onConfirm: async () => {
             setGistId(latest.id);
             await loadWorkspaceFromGist();
 
-            // FIX: update hash correctly
             lastSyncedHash = await hashGistContent(latest.files);
             localStorage.setItem("lastSyncedHash", lastSyncedHash);
             lastSuccessfulSyncTime = Date.now();
@@ -138,6 +136,7 @@ async function handleCloudChange(latest, idleReturn) {
             );
         }
     });
+
 }
 
 async function hashGistContent(files) {
