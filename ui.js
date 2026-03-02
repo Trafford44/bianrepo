@@ -7,6 +7,7 @@ let subjects = [];
 let activeFileId = null;
 let activeSubjectId = null;
 let notificationTimeout = null;
+let countdownInterval = null;
 
 export function getSubjects() {
     return subjects;
@@ -907,3 +908,61 @@ export function showCountdownModal({ countdown, message, onConfirm, onCancel }) 
         onCancel();
     };
 }
+
+export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
+    const el = document.getElementById("notification");
+    if (!el) return;
+
+    clearTimeout(notificationTimeout);
+    clearInterval(countdownInterval);
+
+    let remaining = countdown;
+
+    function bindCancel() {
+        const cancel = el.querySelector("#cancel-countdown");
+        if (cancel) {
+            cancel.onclick = () => {
+                clearInterval(countdownInterval);
+                el.classList.remove("show");
+                onCancel();
+            };
+        }
+    }
+
+    function render() {
+        el.className = "notification notification-countdown show";
+        el.innerHTML = `
+            Overwriting with newer cloud version in <strong>${remaining}</strong> seconds.
+            <a id="cancel-countdown">Cancel</a>
+        `;
+        bindCancel();   // must be called after every render
+    }
+
+    render();
+
+    countdownInterval = setInterval(() => {
+        remaining--;
+        render();
+
+        if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            el.classList.remove("show");
+            onConfirm();
+        }
+    }, 1000);
+}
+
+// for testing purposes
+if (location.hostname === "localhost") {
+    window.showCountdownNotification = showCountdownNotification;
+}
+/* Use with:
+From Console:
+showCountdownNotification({
+    countdown: 10,
+    onConfirm: () => console.log("CONFIRMED"),
+    onCancel: () => console.log("CANCELLED")
+});
+*/
+
+
