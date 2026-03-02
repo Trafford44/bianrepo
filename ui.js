@@ -1,908 +1,684 @@
-import { saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog } from "./sync.js";
-import { getToken, bindLoginButton } from "./auth.js";
-import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
-
-let saveTimer = null;
-let subjects = [];
-let activeFileId = null;
-let activeSubjectId = null;
-let activePane = "editor"; // "editor" or "preview"
-let notificationTimeout = null;
-
-export function getSubjects() {
-    return subjects;
-}
-
-export function setSubjects(newSubjects) {
-    subjects = newSubjects;
-}
-
-export function saveState() {
-    localStorage.setItem("kb_data", JSON.stringify(subjects));
-    // optional: auto-save to gist
-    // await saveWorkspaceToGist();
-}
-
-export function initResizers() {
-    const sbResizer = document.getElementById("sidebar-resizer");
-    const sidebar = document.getElementById("sidebar");
-    const edResizer = document.getElementById("editor-resizer");
-    const editorCont = document.getElementById("editor-container");
-    const workspace = document.getElementById("workspace-grid");
-
-    // --- Helpers: normalize mouse/touch ---
-    const getClientX = e => (e.touches ? e.touches[0].clientX : e.clientX);
-    const getClientY = e => (e.touches ? e.touches[0].clientY : e.clientY);
-
-    // ============================================================
-    // SIDEBAR RESIZER (always horizontal drag)
-    // ============================================================
-    if (sbResizer) {
-        const startSidebarResize = e => {
-            e.preventDefault();
-            sbResizer.classList.add("resizing");
-
-            const handleMove = e2 => {
-                const newWidth = getClientX(e2);
-                if (newWidth >= 200 && newWidth <= 600) {
-                    sidebar.style.width = newWidth + "px";
-                }
-            };
-
-            const stop = () => {
-                sbResizer.classList.remove("resizing");
-                document.removeEventListener("mousemove", handleMove);
-                document.removeEventListener("mouseup", stop);
-                document.removeEventListener("touchmove", handleMove);
-                document.removeEventListener("touchend", stop);
-            };
-
-            document.addEventListener("mousemove", handleMove);
-            document.addEventListener("mouseup", stop);
-            document.addEventListener("touchmove", handleMove, { passive: false });
-            document.addEventListener("touchend", stop);
-        };
-
-        sbResizer.addEventListener("mousedown", startSidebarResize);
-        sbResizer.addEventListener("touchstart", startSidebarResize, { passive: false });
-    }
-
-    // ============================================================
-    // EDITOR RESIZER (horizontal in landscape, vertical in portrait)
-    // ============================================================
-    if (edResizer) {
-        const startEditorResize = e => {
-            e.preventDefault();
-            edResizer.classList.add("resizing");
-
-            const isPortrait = window.matchMedia("(orientation: portrait)").matches;
-            const workspaceRect = workspace.getBoundingClientRect();
-
-            // Capture starting values to prevent jumps
-            const startX = getClientX(e);
-            const startY = getClientY(e);
-            const startWidth = editorCont.getBoundingClientRect().width;
-            const startHeight = editorCont.getBoundingClientRect().height;
-
-            const handleMove = e2 => {
-                if (isPortrait) {
-                    // ---------------------------
-                    // PORTRAIT MODE → vertical drag (smooth, no jump)
-                    // ---------------------------
-                    const clientY = getClientY(e2);
-                    const deltaY = clientY - startY;
-                    const newHeight = startHeight - deltaY;
-
-                    if (newHeight >= 100 && newHeight <= workspaceRect.height - 100) {
-                        editorCont.style.height = newHeight + "px";
-                        editorCont.style.flex = "none";
-                    }
-
-                } else {
-                    // ---------------------------
-                    // LANDSCAPE MODE → horizontal drag (unchanged)
-                    // ---------------------------
-                    const clientX = getClientX(e2);
-                    const deltaX = clientX - startX;
-                    const newWidth = startWidth - deltaX;
-
-                    if (newWidth >= 100 && newWidth <= workspaceRect.width - 100) {
-                        editorCont.style.width = newWidth + "px";
-                        editorCont.style.flex = "none";
-                    }
-                }
-            };
-
-            const stop = () => {
-                edResizer.classList.remove("resizing");
-                document.removeEventListener("mousemove", handleMove);
-                document.removeEventListener("mouseup", stop);
-                document.removeEventListener("touchmove", handleMove);
-                document.removeEventListener("touchend", stop);
-            };
-
-            document.addEventListener("mousemove", handleMove);
-            document.addEventListener("mouseup", stop);
-            document.addEventListener("touchmove", handleMove, { passive: false });
-            document.addEventListener("touchend", stop);
-        };
-
-        edResizer.addEventListener("mousedown", startEditorResize);
-        edResizer.addEventListener("touchstart", startEditorResize, { passive: false });
-    }
-}
-
-export function renderSidebar() {
-    const container = document.getElementById("sidebar-list");
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    // Empty workspace state
-    if (!subjects || subjects.length === 0) {
-        container.innerHTML = `
-            <div class="empty-workspace">
-                <p>Your workspace is empty.</p>
-                <p class="hint">Use the <strong>+ Folder</strong> button above to create your first subject, or:</p>
-                <button id="github-login" class="btn-tool">Sign in with GitHub</button>
-                <button id="load-from-cloud" class="btn-tool">Load from Cloud</button>
-            </div>
-        `;
-
-        // Bind login button NOW that it exists
-        bindLoginButton();
-        runSyncCheck("login");
-
-        // Bind load-from-cloud button
-        document.getElementById("load-from-cloud").onclick = async () => {
-            await loadWorkspaceFromGist();
-            renderSidebar();
-        };
-
-        return;
-    }
-
-    subjects.forEach(subject => {
-        const sContainer = document.createElement("div");
-        sContainer.className = "subject-container";
-
-        const sHeader = document.createElement("div");
-        sHeader.className = "subject-header";
-        sHeader.innerHTML = `
-            <span class="chevron ${subject.isOpen ? "open" : ""}">▶</span>
-            <span class="subject-title">${subject.title}</span>
-
-            <div class="subject-actions">
-                <button class="btn-add-file" title="Add File"><span>✚</span></button>
-                <button class="btn-rename-folder" title="Rename Folder"><span style="font-weight: bold;">✎</span></button>
-                <button class="btn-delete-folder" title="Delete Folder"><span style="font-weight: bold;">✖</span></button>                
-            </div>
-        `;
-
-        // Add File
-        sHeader.querySelector(".btn-add-file").addEventListener("click", e => {
-            e.stopPropagation();
-            addFile(subject.id);
-        });
-
-        // Rename Folder
-        sHeader.querySelector(".btn-rename-folder").addEventListener("click", e => {
-            e.stopPropagation();
-            renameFolder(subject.id);
-        });
-
-        // Delete Folder
-        sHeader.querySelector(".btn-delete-folder").addEventListener("click", e => {
-            e.stopPropagation();
-            deleteFolder(subject.id);
-        });    
-   
-        sHeader.addEventListener("click", () => {
-            subject.isOpen = !subject.isOpen;
-            saveState();
-            renderSidebar();
-        });
-
-        sContainer.appendChild(sHeader);
-
-        if (subject.isOpen) {
-            subject.files.forEach(file => {
-                const fDiv = document.createElement("div");
-                fDiv.className = `file-item ${file.id === activeFileId ? "active" : ""}`;
-                fDiv.innerHTML = `
-                    <div style="display: flex; align-items: center; overflow: hidden; flex: 1;">
-                        <span class="file-icon">${file.type === "md" ? "M↓" : "⧉"}</span>
-                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.title}</span>
-                    </div>
-                    <div class="file-actions">
-                        <div class="icon-btn rename" title="Rename">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 20h9"></path>
-                                <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path>
-                            </svg>
-                        </div>
-                        <div class="icon-btn" title="Duplicate">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-                            </svg>
-                        </div>
-                        <div class="icon-btn del" title="Delete">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                            </svg>
-                        </div>
-                    </div>
-                `;
-
-                fDiv.addEventListener("click", e => {
-                    e.stopPropagation();
-                    loadFile(subject.id, file.id);
-
-                    // Close sidebar automatically on mobile portrait
-                    if (window.innerWidth < 1400 && window.matchMedia("(orientation: portrait)").matches) {
-                        document.body.classList.remove("sidebar-open");
-                    }
-                });
-
-                const [renameBtn, dupBtn, delBtn] = fDiv.querySelectorAll(".icon-btn");
-                renameBtn.addEventListener("click", e => {
-                    e.stopPropagation();
-                    renameFile(subject.id, file.id);
-                });
-                dupBtn.addEventListener("click", e => {
-                    e.stopPropagation();
-                    duplicateFile(subject.id, file.id);
-                });
-                delBtn.addEventListener("click", e => {
-                    e.stopPropagation();
-                    deleteFile(subject.id, file.id);
-                });
-
-                sContainer.appendChild(fDiv);
-            });
-        }
-
-        container.appendChild(sContainer);
-    });
-}
-
-export function loadFile(sId, fId) {
-    activeSubjectId = sId;
-    activeFileId = fId;
-
-    const subject = subjects.find(s => s.id === sId);
-    const file = subject.files.find(f => f.id === fId);
-
-    document.getElementById("empty-state").classList.add("hidden");
-    document.getElementById("workspace-grid").classList.remove("hidden");
-    document.getElementById("editor-actions").classList.remove("hidden");
-
-    const textarea = document.getElementById("editor-textarea");
-    textarea.value = file.content;
-
-    document.getElementById("active-file-title").textContent = `${subject.title} / ${file.title}`;
-    document.getElementById("active-file-type-icon").innerHTML =
-        file.type === "md"
-            ? '<span class="type-label-md">MD</span>'
-            : '<span class="type-label-puml">PUML</span>';
-
-    if (file.type === "md") {
-        document.getElementById("md-toolbar").classList.remove("hidden");
-    } else {
-        document.getElementById("md-toolbar").classList.add("hidden");
-    }
-
-    renderSidebar();
-    updatePreview();
-    updateToolbar()
-}
-
-function updateToolbar() {
-    const subject = subjects.find(s => s.id === activeSubjectId);
-    const file = subject?.files.find(f => f.id === activeFileId);
-
-    const pumlButtons = document.querySelectorAll(".puml-only");
-
-    const show = file?.type === "puml";
-
-    pumlButtons.forEach(btn => {
-        btn.style.display = show ? "inline-flex" : "none";
-    });
-}
-
-export function renameFolder(subjectId) {
-    const subject = subjects.find(s => s.id === subjectId);
-    if (!subject) return;
-
-    const newName = prompt("Rename folder:", subject.title);
-    if (!newName || !newName.trim()) return;
-
-    subject.title = newName.trim();
-
-    saveState();
-    renderSidebar();
-    showNotification("info", "Folder renamed");
-}
-
-export function deleteFolder(subjectId) {
-    const subject = subjects.find(s => s.id === subjectId);
-    if (!subject) return;
-
-    if (!confirm(`Delete folder "${subject.title}" and all its files?`)) return;
-
-    // Remove subject
-    subjects = subjects.filter(s => s.id !== subjectId);
-
-    // Clear active file + UI
-    activeFileId = null;
-    document.getElementById("workspace-grid").classList.add("hidden");
-    document.getElementById("empty-state").classList.remove("hidden");
-    document.getElementById("editor-actions").classList.add("hidden");
-
-    // Persist + re-render
-    saveState();
-    renderSidebar();
-    showNotification("info", "Folder deleted");
-}
-
-
-export function updatePreview() {
-    const textarea = document.getElementById("editor-textarea");
-    const preview = document.getElementById("preview-pane");
-    const link = document.getElementById('puml-external-link');
-    const content = textarea.value;
-
-    const subject = subjects.find(s => s.id === activeSubjectId);
-    const file = subject?.files.find(f => f.id === activeFileId);
-    if (!file) return;
-
-    // debounce saving to avoid breaking undo
-    file.content = content;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => saveState(), 300);
-
-
-    if (file.type === "puml") {
-        const url = getPumlRenderUrl(content);
-        preview.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center;">
-                <img src="${url}" alt="PlantUML Diagram" />
-                <a href="${url}" target="_blank" style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">Open SVG link</a>
-            </div>`;
-        link.href = getPumlHref(content);
-    } else {
-        const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
-        const processed = content.replace(pumlRegex, (match, p1) => {
-            const url = getPumlRenderUrl(p1);
-            return `\n![PlantUML](${url})\n`;
-        });
-        preview.innerHTML = `<div class="prose">${marked.parse(processed)}</div>`;
-    }
-}
-
-function getPumlRenderUrl(puml) {
-    try {
-        const encoded = plantumlEncoder.encode(puml.trim());
-        return `https://www.plantuml.com/plantuml/svg/${encoded}`;
-    } catch (e) {
-        console.error("Encoding error:", e);
-        return "";
-    }
-}
-
-function getPumlHref(puml) {
-    try {
-        const encoded = plantumlEncoder.encode(puml.trim());
-        return `https://www.plantuml.com/plantuml/uml/${encoded}`;
-    } catch (e) {
-        console.error("Encoding error:", e);
-        return "";
-    }
-}
-
-export function addSubject() {
-    const title = prompt("New Subject Folder Name:");
-    if (title) {
-        subjects.push({
-            id: "s" + Date.now(),
-            title,
-            isOpen: true,
-            files: []
-        });
-        saveState();
-        renderSidebar();
-    }
-}
-
-export function addFile(sId) {
-    const title = prompt("File Name:");
-    if (!title) return;
-
-    const type = confirm("Press OK for Markdown file, Cancel for PlantUML file") ? "md" : "puml";
-    const subject = subjects.find(s => s.id === sId);
-    const newFile = {
-        id: "f" + Date.now(),
-        title,
-        type,
-        content: type === "md" ? `# ${title}\n` : "@startuml\n\n@enduml"
+/*Where to place code:
+If it changes text → md-editor.js, likely starting bindEditorEvents()
+If it changes UI → ui.js, likely starting applyMarkdownFormat()
+*/
+
+// md-editor.js (top of file or near other exports)
+
+export function setupMarked() {
+    const renderer = new marked.Renderer();
+
+    // Keep lists tight but paragraphs spaced
+    renderer.list = function (body, ordered) {
+        const type = ordered ? "ol" : "ul";
+        return `<${type}>\n${body}</${type}>\n\n`;
     };
 
-    subject.files.push(newFile);
-    subject.isOpen = true;
-    saveState();
-    renderSidebar();
-    loadFile(sId, newFile.id);
+    // Add heading IDs for TOC
+    renderer.heading = function (text, level) {
+        const id = text
+            .toLowerCase()
+            .replace(/[^\w]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        return `<h${level} id="${id}">${text}</h${level}>`;
+    };
+
+    marked.use({ renderer });
 }
 
-export function deleteCurrentFile() {
-    if (!confirm("Delete this file?")) return;
-    const subject = subjects.find(s => s.id === activeSubjectId);
-    subject.files = subject.files.filter(f => f.id !== activeFileId);
-
-    activeFileId = null;
-    document.getElementById("empty-state").classList.remove("hidden");
-    document.getElementById("workspace-grid").classList.add("hidden");
-    document.getElementById("editor-actions").classList.add("hidden");
-
-    saveState();
-    renderSidebar();
-    showNotification("info", "File deleted");
-}
-
-export function exportFile() {
-    const subject = subjects.find(s => s.id === activeSubjectId);
-    if (!subject) {
-        showNotification("error", "No file selected to export");
-        return;
-    }
-
-    const file = subject.files.find(f => f.id === activeFileId);
-    if (!file) {
-        showNotification("error", "No file selected to export");
-        return;
-    }
-
-    const blob = new Blob([file.content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${file.title}.${file.type}`;
-    a.click();
-
-    showNotification("success", "File exported");
-}
-
-export function duplicateFile(sId, fId) {
-    const s = subjects.find(x => x.id === sId);
-    const f = s.files.find(x => x.id === fId);
-    const copy = { ...f, id: "f" + Date.now(), title: f.title + " (Copy)" };
-    s.files.push(copy);
-    saveState();
-    renderSidebar();
-    showNotification("success", "File duplicated");
-}
-
-export function deleteFile(sId, fId) {
-    if (!confirm("Delete file?")) return;
-    const s = subjects.find(x => x.id === sId);
-    s.files = s.files.filter(x => x.id !== fId);
-    if (activeFileId === fId) {
-        activeFileId = null;
-        document.getElementById("workspace-grid").classList.add("hidden");
-        document.getElementById("empty-state").classList.remove("hidden");
-        document.getElementById("editor-actions").classList.add("hidden");
-    }
-    saveState();
-    renderSidebar();
-    showNotification("info", "File deleted");
-}
-
-export function renameFile(sId, fId) {
-    const s = subjects.find(x => x.id === sId);
-    const f = s.files.find(x => x.id === fId);
-
-    const newName = prompt("Rename file:", f.title);
-    if (!newName) return;
-
-    f.title = newName.trim();
-    saveState();
-    renderSidebar();
-    showNotification("success", "File renamed");
-}
-
-export function bindPaneFocusEvents() {
-    const editor = document.getElementById("editor-textarea");
-    const preview = document.getElementById("preview-pane");
-
-    editor?.addEventListener("focus", () => activePane = "editor");
-    preview?.addEventListener("click", () => activePane = "preview");
-}
-
-export function zoomEditor(delta) {
-    const root = document.documentElement;
-    const current = parseFloat(getComputedStyle(root).getPropertyValue("--editor-font-size"));
-    const next = Math.min(40, Math.max(10, current + delta));
-    root.style.setProperty("--editor-font-size", next + "px");
-}
-
-export function zoomPreview(delta) {
-    const root = document.documentElement;
-
-    // text zoom
-    const currentFont = parseFloat(getComputedStyle(root).getPropertyValue('--preview-font-size'));
-    const nextFont = Math.min(32, Math.max(8, currentFont + delta));
-    root.style.setProperty('--preview-font-size', nextFont + "px");
-
-    // image zoom
-    const currentScale = parseFloat(getComputedStyle(root).getPropertyValue('--preview-zoom-scale'));
-    const nextScale = Math.min(3, Math.max(0.5, currentScale + delta * 0.1));
-    root.style.setProperty('--preview-zoom-scale', nextScale);
-}
-
-
-function resetZoom() {
-    const root = document.documentElement;
-
-    // Editor text size
-    root.style.setProperty("--editor-font-size", "14px");
-
-    // Preview text size
-    root.style.setProperty("--preview-font-size", "16px");
-
-    // SVG true-zoom scale (your Option B)
-    root.style.setProperty("--preview-zoom-scale", "1");
-}
-
-export function setSyncStatus(state, text) {
-    const el = document.getElementById("sync-status");
-    if (!el) return;
-
-    el.className = `sync-status sync-${state}`;
-    el.textContent = text;
-}
-
-export function showNotification(type, text) {
-    const el = document.getElementById("notification");
-    if (!el) return;
-
-    el.className = "notification";
-    el.classList.add(`notification-${type}`, "show");
-    el.textContent = text;
-
-    clearTimeout(notificationTimeout);
-    notificationTimeout = setTimeout(() => {
-        el.classList.remove("show");
-    }, 5000);
-}
-
-export function updateLoginIndicator() {
-    const token = getToken();
-    const loggedIn = !!token;
-
-    // Update GitHub login button
-    const loginBtn = document.getElementById("github-login");
-    if (loginBtn) {
-        if (loggedIn) {
-            loginBtn.classList.remove("github-login-needed");
-            loginBtn.classList.add("github-logged-in");
-            loginBtn.textContent = "GitHub Connected";
-        } else {
-            loginBtn.classList.remove("github-logged-in");
-            loginBtn.classList.add("github-login-needed");
-            loginBtn.textContent = "Sign in with GitHub";
-        }
-    }
-
-    // Cloud‑action buttons to toggle
-    const cloudButtons = [
-        "save-btn",
-        "load-btn",
-        "restore-btn",
-        "export-btn",
-        "delete-btn"
-    ];
-
-    cloudButtons.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-
-        el.disabled = !loggedIn;
-
-        if (!loggedIn) {
-            el.classList.add("cloud-disabled");
-        } else {
-            el.classList.remove("cloud-disabled");
-        }
-    });
-}
-
-export function bindEditorEvents() {
-    const textarea = document.getElementById("editor-textarea");
-    if (!textarea) return;
-
-    bindSmartKeyboardEvents(textarea);
-    bindGlobalShortcuts(textarea);
-    bindScrollSync(textarea);
-    bindToolbarEvents(textarea);
-    bindPopupEvents(textarea);
-    bindSidebarEvents();
-}
-
-export function applyClearFormatting(textarea) {
-    // store previous value for one-level undo
+export function applyMarkdownFormat(type, textarea) {
+    // store previous value for one-level formatting undo
     textarea.dataset.lastFormatValue = textarea.value;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = textarea.value.substring(start, end);
 
-    // Remove HTML tags
-    let cleaned = selected
-        .replace(/<\/?span[^>]*>/gi, "")
-        .replace(/<\/?u>/gi, "")
-        .replace(/<\/?mark>/gi, "");
+    let before = "";
+    let after = "";
+    let replacement = selected;
 
-    // Remove Markdown formatting
-    cleaned = cleaned
-        // 1. FENCED CODE BLOCKS FIRST
-        .replace(/```[\s\S]*?```/g, match => {
-            return match.replace(/```/g, "");
-        })
+    switch (type) {
+        case "bold":
+            before = "**"; after = "**";
+            break;
+        case "italic":
+            before = "*"; after = "*";
+            break;
+        case "underline":
+            replacement = `<u>${selected}</u>`;
+            break;
+        case "strike":
+            replacement = `~~${selected}~~`;
+            break;
+        case "h1":
+            replacement = `# ${selected}`;
+            break;
+        case "link":
+            replacement = `[${selected || "text"}](url)`;
+            break;
+        case "code": {
+            const lines = selected.split("\n");
 
-        // 2. INLINE FORMATTING
-        .replace(/\*\*(.*?)\*\*/g, "$1")   // bold
-        .replace(/\*(.*?)\*/g, "$1")       // italic
-        .replace(/__(.*?)__/g, "$1")       // bold alt
-        .replace(/_(.*?)_/g, "$1")         // italic alt
-        .replace(/~~(.*?)~~/g, "$1")       // strike
-
-        // 3. INLINE CODE — SINGLE LINE ONLY
-        .replace(/`([^`\n]+)`/g, "$1")
-
-        // 4. LISTS
-        .replace(/^\s*[-*]\s+/gm, "")      // unordered list
-        .replace(/^\s*\d+\.\s+/gm, "")     // ordered list
-
-        // 5. INDENTED CODE BLOCKS
-        .replace(/^( {4}|\t)/gm, "");
-
-
-        
-    // Replace selection
-    textarea.value =
-        textarea.value.substring(0, start) +
-        cleaned +
-        textarea.value.substring(end);
-
-    textarea.selectionStart = start;
-    textarea.selectionEnd = start + cleaned.length;
-    textarea.dispatchEvent(new Event("input"));
-}
-
-export function applyColorFormat(color, textarea) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selected = textarea.value.substring(start, end);
-
-    const replacement = `<span style="color:${color}">${selected}</span>`;
-
-    textarea.value =
-        textarea.value.substring(0, start) +
-        replacement +
-        textarea.value.substring(end);
-
-    textarea.selectionStart = start;
-    textarea.selectionEnd = start + replacement.length;
-    textarea.dispatchEvent(new Event("input"));
-}
-
-function hidePopups(except) {
-    for (const p of document.querySelectorAll('.md-popup')) {
-        if (p !== except) p.classList.add("hidden");
-    }
-}
-
-export function toggleColorPopup(button) {
-    const popup = document.getElementById("md-color-popup");
-
-    // Hide all other popups
-    hidePopups(popup);
-
-    popup.classList.toggle("hidden");
-
-    // Position popup under the button
-    const rect = button.getBoundingClientRect();
-    popup.style.left = rect.left + "px";
-    popup.style.top = rect.bottom + "px";
-}
-
-export function toggleBgColorPopup(button) {
-    const popup = document.getElementById("md-bgcolor-popup");
-
-    // Hide all other popups
-    hidePopups(popup);
-
-    popup.classList.toggle("hidden");
-
-    // Position popup under the button
-    const rect = button.getBoundingClientRect();
-    popup.style.left = rect.left + "px";
-    popup.style.top = rect.bottom + "px";
-}
-
-export function toggleTablePopup(button) {
-    const popup = document.getElementById("table-popup");
-
-    // Hide all other popups
-    hidePopups(popup);
-
-    // Toggle visibility
-    popup.classList.toggle("hidden");
-
-    if (!popup.classList.contains("hidden")) {
-        const rect = button.getBoundingClientRect();
-        popup.style.left = rect.left + "px";
-        popup.style.top = rect.bottom + "px";
-    }
-}
-
-export function applyBgColorFormat(bg, textarea) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selected = textarea.value.substring(start, end);
-
-    const replacement = `<span style="background-color:${bg}">${selected}</span>`;
-
-    textarea.value =
-        textarea.value.substring(0, start) +
-        replacement +
-        textarea.value.substring(end);
-
-    textarea.selectionStart = start;
-    textarea.selectionEnd = start + replacement.length;
-    textarea.dispatchEvent(new Event("input"));
-}
-
-export function flattenWorkspace() {
-    const files = [];
-    subjects.forEach(subject => {
-        subject.files.forEach(file => {
-            let ext = "";
-            if (file.type === "md" || file.type === "markdown") {
-                ext = ".md";
-            } else if (file.type === "puml" || file.type === "plantuml") {
-                ext = ".puml";
+            if (lines.length === 1) {
+                // inline code
+                before = "`";
+                after = "`";
             } else {
-                ext = ".txt";
+                // fenced code block
+                replacement = "```\n" + selected + "\n```";
+                before = "";
+                after = "";
+            }
+            break;
+        }
+        case "quote": {
+            const lines = selected.split("\n");
+            replacement = lines
+                .map(line => line.trim() ? `> ${line.trim()}` : ">")
+                .join("\n");
+            break;
+        }
+        case "ul": {
+            const lines = selected.split("\n");
+            // If already a list, this will "toggle" it off or indent it
+            replacement = lines.map(line => {
+                if (line.trim().startsWith('- ')) {
+                    return '  ' + line; // Indent if already a list item
+                }
+                return `- ${line.trim()}`;
+            }).join("\n");
+            break;
+        }
+        case "ol": {
+            let i = 1;
+            const lines = selected.split("\n");
+            replacement = lines
+                .map(line => line.trim() ? `${i++}. ${line.trim()}` : "")
+                .join("\n");
+            break;
+        }
+
+        case "date": {
+            const insert = new Date().toISOString().split("T")[0];
+            textarea.setRangeText(insert, start, end, "end");
+            // Ensure cursor lands after the inserted date, and see code at end to complete positioning
+            textarea.dataset.forceCursor = start + insert.length;
+            break;
+        }
+
+        case "br": {
+            const insert = "<br>\n";
+            textarea.setRangeText(insert, start, end, "end");
+            // Ensure cursor lands after the inserted BR, and see code at end to complete positioning
+            textarea.dataset.forceCursor = start + insert.length;
+            break;
+        }
+
+        case "hr":
+            replacement = `\n***\n`;
+            break;
+        case 'table-insert-2x2':
+            insertAtCursor(generateTable(2, 2));
+            break;
+
+        case 'table-insert-3x3':
+            insertAtCursor(generateTable(3, 3));
+            break;
+
+        case 'table-insert-4x4':
+            insertAtCursor(generateTable(4, 4));
+            break;
+        case 'table-add-row':
+            addTableRowBelow();
+            return;
+        case 'table-add-col':
+            addTableColumnRight();
+            return;
+        case 'table-del-row':
+            deleteTableRow();
+            return;
+        case 'table-del-col':
+            deleteTableColumn();
+            return;
+        case 'table-format':
+            formatTable();
+            return;
+        case "puml": {
+            const snippet = "\n```puml\n@startuml\nparticipant Alice\nparticipant Bob\n\nAlice -> Bob: Hello\n@enduml\n```\n";
+            textarea.setRangeText(snippet, start, end, "end");
+            }
+            break;
+        case 'convertMD': 
+            convertToMarkdown();
+            return;
+    }
+    // when this code runs, any just inserted text (like date or BR) is already in place, so we use the original start position and the length of the replacement to set the cursor correctly after insertion
+    textarea.setRangeText(before + replacement + after, start, end, "end");
+
+    // restore cursor without breaking undo
+    const cursorStart = start + before.length;
+    const cursorEnd = cursorStart + replacement.length;
+
+    textarea.selectionStart = cursorStart;
+    textarea.selectionEnd = cursorEnd;
+
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input"));
+
+    // place the cursor an then end of the inserted text (for cases like date where we want to continue typing after)
+    if (textarea.dataset.forceCursor) {
+        const pos = parseInt(textarea.dataset.forceCursor, 10);
+        textarea.selectionStart = textarea.selectionEnd = pos;
+        delete textarea.dataset.forceCursor;
+    }
+
+
+}
+
+function insertAtCursor(text) {
+    const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const before = textarea.value.substring(0, start);
+    const after = textarea.value.substring(end);
+
+    // Insert the text
+    textarea.value = before + text + after;
+
+    // Move cursor to the end of the inserted text
+    const newPos = start + text.length;
+    textarea.selectionStart = textarea.selectionEnd = newPos;
+
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input")); // triggers updatePreview()
+}
+
+
+function generateTable(rows, cols) {
+    let header = '| ' + Array.from({length: cols}, (_, i) => `Col ${i+1}`).join(' | ') + ' |\n';
+    let divider = '| ' + Array.from({length: cols}, () => '------').join(' | ') + ' |\n';
+    let body = '';
+
+    for (let r = 0; r < rows; r++) {
+        body += '| ' + Array.from({length: cols}, () => '').join(' | ') + ' |\n';
+    }
+
+    return header + divider + body;
+}
+
+function normalizeRow(cells) {
+    return "| " + cells.map(c => c.trim()).join(" | ") + " |";
+}
+const isDividerRow = row => row.trim().match(/^\|(\s*-+\s*\|)+$/);
+
+
+/* addTableRowBelow: Find the current line based on cursor position
+Check if it’s a table row (contains |)
+Count the number of cells
+Generate a new empty row with the same number of cells
+Insert it below the current row
+Rebuild the textarea value
+Place the cursor inside the first cell of the new row */
+export function addTableRowBelow() {
+    const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
+
+    const value = textarea.value;
+    const cursor = textarea.selectionStart;
+
+    const lines = value.split("\n");
+
+    // Find the current line index based on cursor position
+    let lineIndex = 0;
+    let charCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+        charCount += lines[i].length + 1; // +1 for newline
+        if (charCount > cursor) {
+            lineIndex = i;
+            break;
+        }
+    }
+
+    // Ensure we're inside a table row (must contain pipes)
+    if (!lines[lineIndex].includes("|")) {
+        return; // not in a table
+    }
+
+    // Determine the number of cells in the current row
+    const currentRow = lines[lineIndex];
+    const cellCount = currentRow.split("|").length - 2;
+
+    // Build a new empty row
+    const newRow =
+        "| " +
+        Array.from({ length: cellCount }, () => "").join(" | ") +
+        " |";
+
+    // Insert the new row below the current one
+    const insertedRowIndex = lineIndex + 1;
+    lines.splice(insertedRowIndex, 0, newRow);
+
+    // Rebuild the text
+    const newText = lines.join("\n");
+    textarea.value = newText;
+
+    // Compute cursor position based on the UPDATED text
+    let newCursorPos = 0;
+    for (let i = 0; i < insertedRowIndex; i++) {
+        newCursorPos += lines[i].length + 1;
+    }
+
+    // Place cursor inside the first cell ("| ")
+    textarea.selectionStart = textarea.selectionEnd = newCursorPos + 2;
+
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input"));
+}
+
+
+/* addTableColumnRight: Find the current line
+Check if it’s a table row
+Determine the column index by counting pipes before the cursor
+Find the entire table block (continuous lines with |)
+Insert a new empty cell into every row at the correct column index
+Rebuild the textarea value
+Place the cursor inside the new cell */
+export function addTableColumnRight() {
+    const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
+
+    const value = textarea.value;
+    const cursor = textarea.selectionStart;
+
+    const lines = value.split("\n");
+
+    // Find the current line index
+    let lineIndex = 0;
+    let charCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+        charCount += lines[i].length + 1;
+        if (charCount > cursor) {
+            lineIndex = i;
+            break;
+        }
+    }
+
+    // Ensure we're inside a table row
+    if (!lines[lineIndex].includes("|")) {
+        return; // not in a table
+    }
+
+    // Determine column index based on cursor position
+    const lineStartPos = charCount - (lines[lineIndex].length + 1);
+    const cursorInLine = cursor - lineStartPos;
+
+    // Count pipes before cursor to determine column index
+    const beforeCursor = lines[lineIndex].substring(0, cursorInLine);
+    const colIndex = beforeCursor.split("|").length - 2; 
+    // -2 because split gives empty strings at start/end
+
+    // Identify the table block (continuous lines with pipes)
+    let start = lineIndex;
+    let end = lineIndex;
+
+    while (start > 0 && lines[start - 1].includes("|")) start--;
+    while (end < lines.length - 1 && lines[end + 1].includes("|")) end++;
+
+    // Update each row in the table block
+    for (let i = start; i <= end; i++) {
+        const row = lines[i].split("|");
+
+        // Determine if this is the divider row
+        const rawLine = lines[i];
+        const divider = isDividerRow(rawLine);
+
+        const insertPos = colIndex + 2;
+
+        // Insert correct cell type
+        if (divider) {
+            row.splice(insertPos, 0, "------");   // divider cell
+        } else {
+            row.splice(insertPos, 0, " ");        // normal empty cell
+        }
+
+        lines[i] = normalizeRow(row.slice(1, -1));
+    }
+
+
+    // Rebuild text
+    const newText = lines.join("\n");
+    textarea.value = newText;
+
+    // Move cursor to the new cell
+    let newCursorPos = 0;
+    for (let i = 0; i < lineIndex; i++) {
+        newCursorPos += lines[i].length + 1;
+    }
+
+    // Move into the new cell (roughly)
+    newCursorPos += lines[lineIndex].indexOf("|", cursorInLine) + 2;
+
+    textarea.selectionStart = textarea.selectionEnd = newCursorPos;
+
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input"));
+}
+
+/* deleteTableRow: Find the current line based on cursor position
+Check if it’s a table row
+Find the entire table block (continuous lines with |)
+Prevent deleting the divider row (the |---|---| row)
+Remove the current row
+Rebuild the textarea value
+Move cursor to the next logical row (same index or previous if at end) */
+export function deleteTableRow() {
+    const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
+
+    const value = textarea.value;
+    const cursor = textarea.selectionStart;
+
+    const lines = value.split("\n");
+
+    // Find the current line index
+    let lineIndex = 0;
+    let charCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+        charCount += lines[i].length + 1;
+        if (charCount > cursor) {
+            lineIndex = i;
+            break;
+        }
+    }
+
+    // Ensure we're inside a table row
+    if (!lines[lineIndex].includes("|")) {
+        return; // not a table row
+    }
+
+    // Identify the table block (continuous lines with pipes)
+    let start = lineIndex;
+    let end = lineIndex;
+
+    while (start > 0 && lines[start - 1].includes("|")) start--;
+    while (end < lines.length - 1 && lines[end + 1].includes("|")) end++;
+
+    // Prevent deleting the header divider row (the --- row)
+    const isDividerRow = row => row.trim().match(/^\|(\s*-+\s*\|)+$/);
+
+    // If deleting the divider row, do nothing
+    if (isDividerRow(lines[lineIndex])) {
+        return;
+    }
+
+    // Delete the row
+    lines.splice(lineIndex, 1);
+
+    // Rebuild text
+    const newText = lines.join("\n");
+    textarea.value = newText;
+
+    // Move cursor to the start of the next row (or previous if at end)
+    let newCursorPos = 0;
+    const targetIndex = Math.min(lineIndex, lines.length - 1);
+
+    for (let i = 0; i < targetIndex; i++) {
+        newCursorPos += lines[i].length + 1;
+    }
+
+    textarea.selectionStart = textarea.selectionEnd = newCursorPos;
+
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input"));
+}
+
+/* deleteTableColumn: Find the current line
+Check if it’s a table row
+Determine the column index by counting pipes before the cursor
+Find the entire table block
+Prevent deleting the last column
+Prevent deleting the divider row
+Remove the column from every row
+Rebuild the textarea value
+Place cursor safely at the start of the row */
+export function deleteTableColumn() {
+    const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
+
+    const value = textarea.value;
+    const cursor = textarea.selectionStart;
+
+    const lines = value.split("\n");
+
+    // Find the current line index
+    let lineIndex = 0;
+    let charCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+        charCount += lines[i].length + 1;
+        if (charCount > cursor) {
+            lineIndex = i;
+            break;
+        }
+    }
+
+    // Ensure we're inside a table row
+    if (!lines[lineIndex].includes("|")) {
+        return; // not a table row
+    }
+
+    // Determine column index based on cursor position
+    const lineStartPos = charCount - (lines[lineIndex].length + 1);
+    const cursorInLine = cursor - lineStartPos;
+
+    const beforeCursor = lines[lineIndex].substring(0, cursorInLine);
+    const colIndex = beforeCursor.split("|").length - 2; 
+    // -2 because split gives empty strings at start/end
+
+    // Identify the table block (continuous lines with pipes)
+    let start = lineIndex;
+    let end = lineIndex;
+
+    while (start > 0 && lines[start - 1].includes("|")) start--;
+    while (end < lines.length - 1 && lines[end + 1].includes("|")) end++;
+
+    // Prevent deleting the last remaining column
+    const sampleRow = lines[lineIndex].split("|").length - 2;
+    if (sampleRow <= 1) {
+        return; // can't delete the only column
+    }
+
+    // Prevent deleting the divider row (--- row)
+    const isDividerRow = row => row.trim().match(/^\|(\s*-+\s*\|)+$/);
+    if (isDividerRow(lines[lineIndex])) {
+        return;
+    }
+
+    // Update each row in the table block
+    for (let i = start; i <= end; i++) {
+        const row = lines[i].split("|");
+
+        // row looks like ["", " cell ", " cell ", ""]
+        const deletePos = colIndex + 2; 
+        // +2 because of leading empty string and 1-based indexing
+
+        row.splice(deletePos, 1);
+
+       lines[i] = normalizeRow(row.slice(1, -1));
+    }
+
+    // Rebuild text
+    const newText = lines.join("\n");
+    textarea.value = newText;
+
+    // Move cursor to the start of the same row (safe fallback)
+    let newCursorPos = 0;
+    for (let i = 0; i < lineIndex; i++) {
+        newCursorPos += lines[i].length + 1;
+    }
+
+    textarea.selectionStart = textarea.selectionEnd = newCursorPos;
+
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input"));
+}
+
+/*formatTable: detects the table block
+splits rows into cells
+trims whitespace
+computes max width per column
+rebuilds the header divider row
+pads cells to align pipes
+reassembles the table cleanly */
+export function formatTable() {
+    const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
+
+    const value = textarea.value;
+    const cursor = textarea.selectionStart;
+
+    const lines = value.split("\n");
+
+    // Find current line index
+    let lineIndex = 0;
+    let charCount = 0;
+    for (let i = 0; i < lines.length; i++) {
+        charCount += lines[i].length + 1;
+        if (charCount > cursor) {
+            lineIndex = i;
+            break;
+        }
+    }
+
+    // Not in a table
+    if (!lines[lineIndex].includes("|")) return;
+
+    // Identify table block
+    let start = lineIndex;
+    let end = lineIndex;
+
+    while (start > 0 && lines[start - 1].includes("|")) start--;
+    while (end < lines.length - 1 && lines[end + 1].includes("|")) end++;
+
+    const tableLines = lines.slice(start, end + 1);
+
+    // Parse rows into arrays of trimmed cells
+    const rows = tableLines.map(row =>
+        row
+            .split("|")
+            .slice(1, -1) // remove empty edges
+            .map(cell => cell.trim())
+    );
+
+    const colCount = Math.max(...rows.map(r => r.length));
+
+    // Compute max width per column
+    const colWidths = Array(colCount).fill(0);
+    rows.forEach(row => {
+        row.forEach((cell, i) => {
+            colWidths[i] = Math.max(colWidths[i], cell.length);
+        });
+    });
+
+    // Build formatted rows
+    const formatted = rows.map((row, rowIndex) => {
+        const paddedCells = row.map((cell, i) =>
+            cell.padEnd(colWidths[i], " ")
+        );
+
+        const line = "| " + paddedCells.join(" | ") + " |";
+
+        // Divider row (second row)
+        if (rowIndex === 1) {
+            const divider = "| " +
+                colWidths.map(w => "-".repeat(w)).join(" | ") +
+                " |";
+            return [line, divider];
+        }
+
+        return line;
+    }).flat();
+
+    // Replace table block
+    const newLines = [
+        ...lines.slice(0, start),
+        ...formatted,
+        ...lines.slice(end + 1)
+    ];
+
+    textarea.value = newLines.join("\n");
+
+    // Restore cursor to start of same row
+    let newCursorPos = 0;
+    for (let i = 0; i < lineIndex; i++) {
+        newCursorPos += newLines[i].length + 1;
+    }
+
+    textarea.selectionStart = textarea.selectionEnd = newCursorPos;
+
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input"));
+}
+
+function convertToMarkdown() {
+
+    const textarea = document.getElementById("editor-textarea");
+    if (!textarea) return;
+
+    const value = textarea.value;
+
+    const lines = value.split(/\r?\n/);
+    const output = [];
+    let inList = false;
+
+    const isBullet = line => /^\s*[\*\-•]\s+/.test(line);
+    const isTitle = line =>
+        line.trim().length > 0 &&
+        !isBullet(line) &&
+        !/[.:]$/.test(line.trim()) &&
+        /^[A-Z][A-Za-z0-9\s|&-]*$/.test(line.trim());
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i].trim();
+
+        if (line === "") {
+            output.push("");
+            inList = false;
+            continue;
+        }
+
+        if (isBullet(line)) {
+            if (!inList && output[output.length - 1] !== "") {
+                output.push("");
             }
 
-            const safeSubject = subject.title.replace(/\s+/g, "_");
-            const safeFile = file.title.replace(/\s+/g, "_");
-            const path = `${safeSubject}___${safeFile}${ext}`;
+            // *** Normalize bullet marker to "-" ***
+            const normalized = line.replace(/^\s*[\*\•]\s+/, "- ");
 
-            files.push({
-                path,
-                content: file.content || ""
-            });
-        });
-    });
-    return files;
-}
-
-export function rebuildWorkspaceFromGist(gistFiles) {
-    const subjectsMap = {};
-
-    for (const filename in gistFiles) {
-        const content = gistFiles[filename].content;
-        const [rawSubject, rawFileWithExt] = filename.split("___");
-
-        const subjectTitle = rawSubject.replace(/_/g, " ");
-        const fileTitle = rawFileWithExt
-            .replace(/\.[^.]+$/, "")
-            .replace(/_/g, " ");
-
-        const type = rawFileWithExt.endsWith(".puml") ? "puml" : "md";
-
-        if (!subjectsMap[subjectTitle]) {
-            subjectsMap[subjectTitle] = {
-                id: crypto.randomUUID(),
-                title: subjectTitle,
-                isOpen: true,
-                files: []
-            };
+            output.push(normalized);
+            inList = true;
+            continue;
         }
 
-        subjectsMap[subjectTitle].files.push({
-            id: crypto.randomUUID(),
-            title: fileTitle,
-            type,
-            content
-        });
-    }
+        inList = false;
 
-    return Object.values(subjectsMap);
-}
-
-// Sidebar toggle for mobile
-document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("sidebar-toggle").addEventListener("click", () => {
-        document.body.classList.toggle("sidebar-open");
-    });
-});
-
-document.getElementById("toggle-editor").addEventListener("click", () => {
-    const grid = document.querySelector(".workspace-grid");
-    const btn = document.getElementById("toggle-editor");
-
-    grid.classList.toggle("editor-hidden");
-
-    // Update button label
-    if (grid.classList.contains("editor-hidden")) {
-        btn.textContent = "Show Editor";
-    } else {
-        btn.textContent = "Hide Editor";
-    }
-});
-
-export function showCountdownModal({ countdown, message, onConfirm, onCancel }) {
-    // Remove any existing modal
-    const existing = document.getElementById("countdown-modal");
-    if (existing) existing.remove();
-
-    const modal = document.createElement("div");
-    modal.id = "countdown-modal";
-    modal.style.position = "fixed";
-    modal.style.top = "0";
-    modal.style.left = "0";
-    modal.style.width = "100%";
-    modal.style.height = "100%";
-    modal.style.background = "rgba(0,0,0,0.4)";
-    modal.style.display = "flex";
-    modal.style.alignItems = "center";
-    modal.style.justifyContent = "center";
-    modal.style.zIndex = "9999";
-
-    modal.innerHTML = `
-        <div class="modal-panel">
-            <p class="modal-message">${message}</p>
-            <p id="countdown-timer" class="modal-count">${countdown}</p>
-            <button id="countdown-confirm" class="primary">Switch to Cloud Version</button>
-            <button id="countdown-cancel">Cancel</button>
-        </div>
-    `;
-
-
-    document.body.appendChild(modal);
-
-    const timerEl = modal.querySelector("#countdown-timer");
-    const confirmBtn = modal.querySelector("#countdown-confirm");
-    const cancelBtn = modal.querySelector("#countdown-cancel");
-
-    let remaining = countdown;
-    const interval = setInterval(() => {
-        remaining--;
-        timerEl.textContent = remaining;
-
-        if (remaining <= 0) {
-            clearInterval(interval);
-            modal.remove();
-            onConfirm();
+        if (isTitle(line)) {
+            output.push("");
+            output.push("## " + line.trim());
+            output.push("");
+            continue;
         }
-    }, 1000);
 
-    confirmBtn.onclick = () => {
-        clearInterval(interval);
-        modal.remove();
-        onConfirm();
-    };
+        output.push(line);
+    }
 
-    cancelBtn.onclick = () => {
-        clearInterval(interval);
-        modal.remove();
-        onCancel();
-    };
+    const markdown = output
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+    textarea.value = markdown;
 }
