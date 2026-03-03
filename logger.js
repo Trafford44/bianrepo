@@ -1,6 +1,6 @@
 // logger.js
 
-const shouldLog = false;
+const shouldLog = true;
 
 const LOG_LEVELS = {
   NONE: 0,
