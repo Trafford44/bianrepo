@@ -67,8 +67,37 @@ export async function startSyncLoop() {
     }, syncInterval);
 }
 
+// re-check the token immediately after wake to handle cases where GitHub token becomes invalid after laptop suspend
+export async function bindVisibilityEvents() {
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            runSyncCheck("resume");
+        }
+    });
+}
+
 export async function runSyncCheck(reason) {
     logger.info("sync: runSyncCheck", `Running sync check (reason: ${reason})`);
+
+    // --- Guard: stop if token or gistId missing (common after laptop suspend) ---
+    const token = getToken();
+    const gistId = getGistId();
+
+    if (!token || !gistId) {
+        logger.error("sync: runSyncCheck", "Missing token or gistId — likely after suspend/wake. Stopping sync.");
+        setSyncStatus("error", "Disconnected");
+        showNotification("error", "GitHub connection lost. Reconnect.");
+
+        const loginBtn = document.getElementById("github-login");
+        if (loginBtn) {
+            loginBtn.textContent = "Sign in with GitHub";
+            loginBtn.classList.add("github-login-needed");
+            loginBtn.classList.remove("connected"); // optional but keeps state clean
+        }
+
+        return;
+    }
+    // ---------------------------------------------------------------------------
 
     const now = Date.now();
     const idleReturn = now - lastSuccessfulSyncTime > idleReturnThreshold;
