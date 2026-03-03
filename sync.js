@@ -19,7 +19,7 @@ let syncIntervalId = null;
 
 
 const GIST_API = "https://api.github.com/gists";
-
+console.log("sync.js loaded from:", import.meta.url);
 async function getCurrentWorkspaceGist() {
     if (!requireLogin()) {
         logger.info("sync: getCurrentWorkspaceGist", "Not logged in.");
@@ -67,13 +67,15 @@ async function getCurrentWorkspaceGist() {
 
 export async function startSyncLoop() {
     await runSyncCheck("startup");
-
+console.log("startSyncLoop called");
     syncIntervalId = setInterval(async () => {
         await runSyncCheck("periodic");
     }, syncInterval);
 }
 
 export function stopSyncLoop() {
+    console.log("stopSyncLoop:", syncIntervalId);
+
     if (syncIntervalId !== null) {
         clearInterval(syncIntervalId);
         syncIntervalId = null;
@@ -403,7 +405,7 @@ export async function loadWorkspaceFromGist() {
     setSubjects(subjects);
     saveState();
     renderSidebar();
-    showNotification("success", "Workspace loaded from cloud");
+    showNotification("success", "Workspace loaded from Cloud");
 }
 
 async function getNewestGistAcrossAccount() {
@@ -433,7 +435,7 @@ export async function listGistRevisions() {
     const gistId = getGistId();
 
     if (!gistId) {
-        showNotification("info", "No Gist ID found");
+        showNotification("info", "No File ID found");
         return [];
     }
 
