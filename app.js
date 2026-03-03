@@ -1,7 +1,7 @@
 import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, setSubjects } from "./ui.js";
 import { setupMarked } from "./md-editor.js";
-import { startSyncLoop } from "./sync.js";
+import { startSyncLoop, bindVisibilityEvents } from "./sync.js";
 
 /* it's critical that the order remains as below
 This ensures:
@@ -23,8 +23,12 @@ async function init() {
         setSubjects(stored);
     }
 
+    // 3.5 re-check the token immediately after wake
+    bindVisibilityEvents();
+
     // 4. Start sync loop AFTER token is known
     startSyncLoop();
+
 
     // 5. Render UI
     renderSidebar();
