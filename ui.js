@@ -573,13 +573,16 @@ export function showNotification(type, text) {
 
     el.className = "notification";
     el.classList.add(`notification-${type}`, "show");
-    el.textContent = text;
+
+    // Allow HTML - needed for reconnect link
+    el.innerHTML = text;
 
     clearTimeout(notificationTimeout);
     notificationTimeout = setTimeout(() => {
         el.classList.remove("show");
     }, 5000);
 }
+
 
 export function updateLoginIndicator() {
     const token = getToken();
