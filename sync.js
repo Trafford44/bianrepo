@@ -15,7 +15,7 @@ let lastLocalEditTime = 0;     // Last time user typed anything
 let syncInterval = 2 * 60 * 1000; // 2 minutes
 let idleReturnThreshold = syncInterval * 2; // 4 minutes = “user returned”
 let lastSyncedHash = localStorage.getItem("lastSyncedHash") || null;
-
+let syncIntervalId = null;
 
 
 const GIST_API = "https://api.github.com/gists";
@@ -28,9 +28,9 @@ async function getCurrentWorkspaceGist() {
 
     const gistId = getGistId();
     const githubToken = getToken();
-
-    if (!gistId) {
-        logger.info("sync: getCurrentWorkspaceGist", "No gistId found in localStorage.");
+    if (!gistId || !githubToken) {
+        logger.info("sync: getCurrentWorkspaceGist", "No gistId or token found in localStorage.");
+        disconnectFromGitHub("Cloud connection lost.");
         return null;
     }
 
@@ -42,17 +42,7 @@ async function getCurrentWorkspaceGist() {
 
     if (res.status === 401) {
         logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired. Disconnecting.");
-
-        const loginBtn = document.getElementById("github-login");
-        if (loginBtn) {
-            loginBtn.textContent = "Sign in with GitHub";
-            loginBtn.classList.add("github-login-needed");
-            loginBtn.classList.remove("connected");
-        }
-
-        setSyncStatus("error", "Disconnected");
-        showNotification("error", "GitHub token expired. Please reconnect.");
-
+        disconnectFromGitHub("Cloud token expired.");
         return null;
     }
 
@@ -78,10 +68,18 @@ async function getCurrentWorkspaceGist() {
 export async function startSyncLoop() {
     await runSyncCheck("startup");
 
-    setInterval(async () => {
+    syncIntervalId = setInterval(async () => {
         await runSyncCheck("periodic");
     }, syncInterval);
 }
+
+export function stopSyncLoop() {
+    if (syncIntervalId !== null) {
+        clearInterval(syncIntervalId);
+        syncIntervalId = null;
+    }
+}
+
 
 // re-check the token immediately after wake to handle cases where GitHub token becomes invalid after laptop suspend
 export async function bindVisibilityEvents() {
@@ -92,25 +90,58 @@ export async function bindVisibilityEvents() {
     });
 }
 
+function setConnectionButtonState(connected) {
+    const loginBtn = document.getElementById("github-login");
+    if (!loginBtn) return;
+
+    if (connected) {
+        loginBtn.textContent = "Connected to Cloud";
+        loginBtn.classList.add("connected");
+        loginBtn.classList.remove("github-login-needed");
+    } else {
+        loginBtn.textContent = "Sign in to Cloud";
+        loginBtn.classList.add("github-login-needed");
+        loginBtn.classList.remove("connected");
+    }
+}
+
+function bindReconnectLink() {
+    // Delay ensures the notification HTML is in the DOM
+    setTimeout(() => {
+        const link = document.getElementById("reconnect-link");
+        if (!link) return;
+
+        link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const btn = document.getElementById("github-login");
+            if (btn) btn.click();
+        });
+    }, 0);
+}
+
+function disconnectFromGitHub(message) {
+    setSyncStatus("error", "Disconnected");
+    setConnectionButtonState(false);
+    showNotification("error",`${message} <a href="#" id="reconnect-link">Reconnect</a>.`);
+    bindReconnectLink();
+    stopSyncLoop();
+}
+
+function connectToGitHub() {
+    setSyncStatus("synced", "Connected");
+    setConnectionButtonState(true);
+    showNotification("success", "Connected to cloud");
+}
+
 export async function runSyncCheck(reason) {
     logger.info("sync: runSyncCheck", `Running sync check (reason: ${reason})`);
 
     // --- Guard: stop if token or gistId missing (common after laptop suspend) ---
     const token = getToken();
     const gistId = getGistId();
-
     if (!token || !gistId) {
         logger.error("sync: runSyncCheck", "Missing token or gistId — likely after suspend/wake. Stopping sync.");
-        setSyncStatus("error", "Disconnected");
-        showNotification("error", "GitHub connection lost. Reconnect.");
-
-        const loginBtn = document.getElementById("github-login");
-        if (loginBtn) {
-            loginBtn.textContent = "Sign in with GitHub";
-            loginBtn.classList.add("github-login-needed");
-            loginBtn.classList.remove("connected"); // optional but keeps state clean
-        }
-
+        disconnectFromGitHub("Cloud connection lost.");
         return;
     }
     // ---------------------------------------------------------------------------
