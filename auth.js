@@ -62,7 +62,7 @@ export function requireLogin() {
     const token = getToken();
     if (!token) {
         updateLoginIndicator();
-        showNotification("warning", "Please sign in with GitHub first");
+        showNotification("warning", "Please sign in to Cloud first");
         return false;
     }
     return true;
