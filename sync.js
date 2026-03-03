@@ -40,6 +40,22 @@ async function getCurrentWorkspaceGist() {
         headers: { "Authorization": `token ${githubToken}` }
     });
 
+    if (res.status === 401) {
+        logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired. Disconnecting.");
+
+        const loginBtn = document.getElementById("github-login");
+        if (loginBtn) {
+            loginBtn.textContent = "Sign in with GitHub";
+            loginBtn.classList.add("github-login-needed");
+            loginBtn.classList.remove("connected");
+        }
+
+        setSyncStatus("error", "Disconnected");
+        showNotification("error", "GitHub token expired. Please reconnect.");
+
+        return null;
+    }
+
     if (!res.ok) {
         const text = await res.text();
         logger.error("sync: getCurrentWorkspaceGist", `Failed to fetch gist (status: ${res.status})`);
