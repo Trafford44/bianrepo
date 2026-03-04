@@ -37,12 +37,16 @@
  */
 import { updateLoginIndicator, showNotification } from "./ui.js";
 import { runSyncCheck } from "./sync.js";
+import { deviceId } from "./device.js";
 
 const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 
 export function getToken() {
-    const t = localStorage.getItem("github_token");
+    // const t = localStorage.getItem("github_token");  // changeme
+    const t = localStorage.getItem(`github_token_${deviceId}`);
+
+    
     if (!t || t === "undefined" || t === "null") return null;
     return t;
 }
@@ -110,7 +114,8 @@ export async function handleOAuthRedirect() {
     const data = await res.json();
 
     if (data.access_token) {
-        localStorage.setItem("github_token", data.access_token);
+        // localStorage.setItem("github_token", data.access_token); // changeme
+        localStorage.setItem(`github_token_${deviceId}`, data.access_token);
         window.history.replaceState({}, "", window.location.pathname);
         console.log("GitHub login successful");
         updateLoginIndicator();
