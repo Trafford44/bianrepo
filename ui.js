@@ -161,8 +161,14 @@ export function renderSidebar() {
 
         return;
     }
+    
+    const sortedSubjects = [...subjects]
+        .filter(s => s && typeof s.title === "string")
+        .sort((a, b) =>
+            a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+        );
 
-    subjects.forEach(subject => {
+    sortedSubjects.forEach(subject => {
         const sContainer = document.createElement("div");
         sContainer.className = "subject-container";
 
