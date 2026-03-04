@@ -1,7 +1,7 @@
 import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, setSubjects } from "./ui.js";
 import { setupMarked } from "./md-editor.js";
-import { startSyncLoop, bindVisibilityEvents } from "./sync.js";
+import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
 
 /* it's critical that the order remains as below
 This ensures:
@@ -10,6 +10,8 @@ The sync loop starts after the workspace is loaded
 The sync loop starts before the user interacts with the UI
 The sync loop starts before any file is opened
 */
+
+
 async function init() {
     // 1. Markdown renderer must be ready before any preview happens
     setupMarked();
@@ -25,6 +27,8 @@ async function init() {
 
     // 3.5 re-check the token immediately after wake
     bindVisibilityEvents();
+    bindActivityEvents();
+
 
     // 4. Start sync loop AFTER token is known
     startSyncLoop();
