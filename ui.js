@@ -161,7 +161,7 @@ export function renderSidebar() {
 
         return;
     }
-    
+
     const sortedSubjects = [...subjects]
         .filter(s => s && typeof s.title === "string")
         .sort((a, b) =>
@@ -211,8 +211,14 @@ export function renderSidebar() {
 
         sContainer.appendChild(sHeader);
 
-        if (subject.isOpen) {
-            subject.files.forEach(file => {
+        if (subject.isOpen) {        
+            const sortedFiles = [...subject.files]
+                .filter(f => f && typeof f.title === "string")
+                .sort((a, b) =>
+                    a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+                );
+
+            sortedFiles.forEach(file => {
                 const fDiv = document.createElement("div");
                 fDiv.className = `file-item ${file.id === activeFileId ? "active" : ""}`;
                 fDiv.innerHTML = `
