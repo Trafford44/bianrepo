@@ -174,9 +174,10 @@ export function renderSidebar() {
 
         const sHeader = document.createElement("div");
         sHeader.className = "subject-header";
+        // remove any leading underscores used for sorting prefixes in the display
         sHeader.innerHTML = `
             <span class="chevron ${subject.isOpen ? "open" : ""}">▶</span>
-            <span class="subject-title">${subject.title}</span>
+            <span class="subject-title">${subject.title.replace(/^_+/, "")}</span>
 
             <div class="subject-actions">
                 <button class="btn-add-file" title="Add File"><span>✚</span></button>
@@ -221,10 +222,11 @@ export function renderSidebar() {
             sortedFiles.forEach(file => {
                 const fDiv = document.createElement("div");
                 fDiv.className = `file-item ${file.id === activeFileId ? "active" : ""}`;
+                // remove any leading underscores used for sorting prefixes in the display
                 fDiv.innerHTML = `
                     <div style="display: flex; align-items: center; overflow: hidden; flex: 1;">
                         <span class="file-icon">${file.type === "md" ? "M↓" : "⧉"}</span>
-                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.title}</span>
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.title.replace(/^_+/, "")}</span>
                     </div>
                     <div class="file-actions">
                         <div class="icon-btn rename" title="Rename">
