@@ -55,7 +55,9 @@ export function applyMarkdownFormat(type, textarea) {
             replacement = `# ${selected}`;
             break;
         case "link":
-            replacement = `[${selected || "text"}](url)`;
+            insertLink(selected);
+            return;
+
             break;
         case "code": {
             const lines = selected.split("\n");
@@ -653,6 +655,30 @@ Your content here…
     // Move cursor to the "Your title here" text
     const cursorPos = before.length + snippet.indexOf("Your title here");
     textarea.selectionStart = textarea.selectionEnd = cursorPos;
+
+    textarea.focus();
+}
+
+function insertLink(selected) {
+    const textarea = document.getElementById("editor-textarea");
+    textarea.dataset.lastFormatValue = textarea.value;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const linkText = selected || "text";
+
+    const snippet = `<a href="url" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+
+    const before = textarea.value.substring(0, start);
+    const after = textarea.value.substring(end);
+
+    textarea.value = before + snippet + after;
+
+    // Move cursor to inside the "url"
+    const urlPos = before.length + snippet.indexOf("url");
+    textarea.selectionStart = urlPos;
+    textarea.selectionEnd = urlPos + 3; // highlight "url"
 
     textarea.focus();
 }
