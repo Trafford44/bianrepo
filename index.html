@@ -671,6 +671,10 @@
             font-weight: bold;
         }
 
+        details > *:not(summary) {
+            margin-left: 1.2rem;   /* or whatever indent you prefer */
+        }
+
         /* 
         #reconnect-link {
             padding: 2px 6px;
@@ -1095,9 +1099,9 @@
                     <button data-md="underline" title="Underline" class="btn-tool">U</button>
                     <button data-md="strike" title="Strikethrough" class="btn-tool">-S-</button>
                     <button data-md="h1" title="Heading" class="btn-tool">H1</button>
-                    <button data-md="link" title="Insert link" class="btn-tool">Link</button>
+                    <button data-md="link" title="Insert link" class="btn-tool">8</button>
                     <button data-md="code" title="Inline code" class="btn-tool">Code</button>
-                    <button data-md="quote" title="Indent" class="btn-tool">Quote</button>
+                    <button data-md="quote" title="Indent" class="btn-tool">"</button>
                     <button data-md="ul" title="Bullet point list" class="btn-tool">• -</button>
                     <button data-md="ol" title="Numbered list" class="btn-tool">1. -</button>
                     <button data-md="date" title="Insert current date" class="btn-tool">Date</button>
@@ -1107,6 +1111,7 @@
                     <button data-md="bgcolor" title="Background color" class="btn-tool">BG</button>
                     <button data-md="table-menu" title="Table tools" class="btn-tool">⊞</button>
                     <!-- <button data-md="convertMD" title="Convert to Markdown" class="btn-tool">➜MD</button> -->
+                    <button data-md="insert-expand" title="Insert Expand" class="btn-tool">▼</button>
                     <button data-md="clear" title="Clear formatting" class="btn-tool">Clear</button>
                 </div>
 
