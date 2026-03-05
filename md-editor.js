@@ -152,6 +152,10 @@ export function applyMarkdownFormat(type, textarea) {
         case 'convertMD': 
             convertToMarkdown();
             return;
+        case 'insert-expand': 
+            insertExpand();
+            return;
+
     }
     // when this code runs, any just inserted text (like date or BR) is already in place, so we use the original start position and the length of the replacement to set the cursor correctly after insertion
     textarea.setRangeText(before + replacement + after, start, end, "end");
@@ -621,6 +625,36 @@ export function formatTable() {
 
     textarea.focus();
     textarea.dispatchEvent(new Event("input"));
+}
+
+function insertExpand() {
+    // Save previous value for undo (same pattern as other formats)
+    const textarea = document.getElementById("editor-textarea");
+    textarea.dataset.lastFormatValue = textarea.value;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const snippet =
+`<details>
+<summary>Your title here</summary>
+
+Your content here…
+
+</details>
+`;
+
+    const before = textarea.value.substring(0, start);
+    const after = textarea.value.substring(end);
+
+    // Insert the snippet
+    textarea.value = before + snippet + after;
+
+    // Move cursor to the "Your title here" text
+    const cursorPos = before.length + snippet.indexOf("Your title here");
+    textarea.selectionStart = textarea.selectionEnd = cursorPos;
+
+    textarea.focus();
 }
 
 function convertToMarkdown() {
