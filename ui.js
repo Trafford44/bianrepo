@@ -26,7 +26,6 @@ let saveTimer = null;
 let activeFileId = null;
 let notificationTimeout = null;
 let countdownInterval = null;
-// export let folderState = JSON.parse(localStorage.getItem("folderState") || "{}");
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
@@ -209,9 +208,7 @@ function renderFolderNode(folder, depth) {
     header.className = "sidebar-folder-header";
     header.style.paddingLeft = `${depth === 0 ? 10 : depth * 16}px`;
 
-
     header.innerHTML = `
-       
         <span class="folder-toggle">
             <span class="chevron ${isOpen ? "open" : ""}">▶</span>
         </span>
@@ -221,7 +218,6 @@ function renderFolderNode(folder, depth) {
         </span>
     `;
 
-    // Context menu items for folders
     const folderMenuItems = [
         { label: "Add File", action: () => addFile(folder.id) },
         { label: "Add Folder", action: () => createSubfolder(folder.id) },
@@ -229,13 +225,11 @@ function renderFolderNode(folder, depth) {
         { label: "Delete", action: () => deleteFolder(folder.id) }
     ];
 
-    // ⋯ button
     header.querySelector(".item-menu-btn").addEventListener("click", e => {
         e.stopPropagation();
         showContextMenu(folder, folderMenuItems, e.pageX, e.pageY);
     });
 
-    // Right‑click support
     header.addEventListener("contextmenu", e => {
         e.preventDefault();
         e.stopPropagation();
@@ -246,22 +240,12 @@ function renderFolderNode(folder, depth) {
     header.querySelector(".folder-toggle").addEventListener("click", e => {
         e.stopPropagation();
 
-        // Read the *current* state from the folder node
         const newState = !(folder.isOpen ?? true);
-
-        // Update the actual workspace tree
         folder.isOpen = newState;
 
-        // Optional: keep folderState for now
-        folderState[folder.id] = newState;
-        localStorage.setItem("folderState", JSON.stringify(folderState));
-
-        // Persist workspace so extractMetadata sees correct isOpen
-        saveState();
-
-        renderSidebar();
+        saveState();      // persists workspace + metadata
+        renderSidebar();  // re-renders with updated isOpen
     });
-
 
     wrapper.appendChild(header);
 
@@ -278,6 +262,7 @@ function renderFolderNode(folder, depth) {
 
     return wrapper;
 }
+
 
 
 
