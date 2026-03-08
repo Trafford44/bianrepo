@@ -233,14 +233,29 @@ export function unflattenWorkspace(flat) {
                 (part.endsWith(".md") || part.endsWith(".puml"));
 
             if (isFile) {
-                current.push({
-                    id: crypto.randomUUID(),
-                    type: "file",
-                    name: part,
-                    content
-                });
+                // Prevent duplicate files
+                let existing = current.find(
+                    n => n.type === "file" && n.name === part
+                );
+
+                if (!existing) {
+                    existing = {
+                        id: crypto.randomUUID(),
+                        type: "file",
+                        name: part,
+                        content
+                    };
+                    current.push(existing);
+                } else {
+                    // Overwrite content if duplicate
+                    existing.content = content;
+                }
+
             } else {
-                let folder = current.find(n => n.type === "folder" && n.name === part);
+                // Folder
+                let folder = current.find(
+                    n => n.type === "folder" && n.name === part
+                );
 
                 if (!folder) {
                     folder = {
@@ -259,6 +274,7 @@ export function unflattenWorkspace(flat) {
 
     return root;
 }
+
 
 
 // Detect old format: array of { title, files }
