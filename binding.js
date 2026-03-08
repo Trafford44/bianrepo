@@ -1,6 +1,27 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
-import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, addSubject, exportFile, deleteCurrentFile } from "./ui.js";
-import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog } from "./sync.js";
+
+import { 
+    applyBgColorFormat,
+    applyClearFormatting,
+    applyColorFormat,
+    toggleBgColorPopup,
+    toggleColorPopup,
+    toggleTablePopup,
+    zoomEditor,
+    zoomPreview,
+    resetZoom,
+    updatePreview,
+    exportFile,
+    deleteFile
+} from "./ui.js";
+
+import { 
+    markLocalEdit,
+    saveWorkspaceToGist,
+    loadWorkspaceFromGist,
+    showRestoreDialog
+} from "./sync.js";
+
 
 export function bindSmartKeyboardEvents(textarea) {
 
@@ -144,12 +165,12 @@ export function bindScrollSync(textarea) {
 export function bindToolbarEvents(textarea) {
 
     // TOOLBAR & POPUP WIRE-UPS
-    document.getElementById("add-subject-btn")?.addEventListener("click", () => addSubject());
+    document.getElementById("add-folder-btn")?.addEventListener("click", () => addFolder());
     document.getElementById("save-btn")?.addEventListener("click", () => saveWorkspaceToGist());
     document.getElementById("load-btn")?.addEventListener("click", () => loadWorkspaceFromGist());
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
     document.getElementById("export-btn")?.addEventListener("click", () => exportFile());
-    document.getElementById("delete-btn")?.addEventListener("click", () => deleteCurrentFile());
+    document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
 
     // Zoom Buttons
     document.getElementById("zoom-editor-in")?.addEventListener("click", () => {
