@@ -33,3 +33,38 @@ export function extractMetadata(nodes) {
         nodes: meta
     };
 }
+
+// workspace-metadata.js
+
+export function applyMetadata(tree, metadata) {
+    const map = new Map();
+    metadata.nodes.forEach(n => map.set(n.id, n));
+
+    function walk(nodes) {
+        for (const node of nodes) {
+            const meta = map.get(node.id);
+            if (!meta) continue;
+
+            node.name = meta.name;
+
+            if (node.type === "folder") {
+                node.isOpen = !!meta.isOpen;
+
+                // Reorder children to match metadata order
+                node.children.sort((a, b) =>
+                    meta.children.indexOf(a.id) -
+                    meta.children.indexOf(b.id)
+                );
+
+                walk(node.children);
+            } else {
+                node.isPublic = !!meta.isPublic;
+                node.publicId = meta.publicId || null;
+                node.publicAt = meta.publicAt || null;
+                node.updatedAt = meta.updatedAt || null;
+            }
+        }
+    }
+
+    walk(tree);
+}
