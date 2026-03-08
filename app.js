@@ -1,5 +1,12 @@
 import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
-import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, setSubjects } from "./ui.js";
+import { 
+    initResizers, 
+    renderSidebar, 
+    bindEditorEvents, 
+    bindPaneFocusEvents, 
+    updateLoginIndicator
+} from "./ui.js";
+import { loadState } from "./workspace.js";    
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
 
@@ -19,20 +26,15 @@ async function init() {
     // 2. Handle OAuth redirect (may store token)
     await handleOAuthRedirect();
 
-    // 3. Load workspace from localStorage
-    const stored = JSON.parse(localStorage.getItem("kb_data"));
-    if (Array.isArray(stored)) {
-        setSubjects(stored);
-    }
+    // 3. Load workspace from localStorage (new model)
+    loadState(); // loads kb_workspace into the recursive tree
 
-    // 3.5 re-check the token immediately after wake
+    // 3.5 Re-check the token immediately after wake
     bindVisibilityEvents();
     bindActivityEvents();
 
-
     // 4. Start sync loop AFTER token is known
     startSyncLoop();
-
 
     // 5. Render UI
     renderSidebar();
@@ -48,5 +50,6 @@ async function init() {
     bindEditorEvents();
     bindPaneFocusEvents();
 }
+
 
 init();
