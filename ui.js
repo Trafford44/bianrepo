@@ -26,7 +26,7 @@ let saveTimer = null;
 let activeFileId = null;
 let notificationTimeout = null;
 let countdownInterval = null;
-export let folderState = JSON.parse(localStorage.getItem("folderState") || "{}");
+// export let folderState = JSON.parse(localStorage.getItem("folderState") || "{}");
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
@@ -203,7 +203,7 @@ function renderFolderNode(folder, depth) {
     const wrapper = document.createElement("div");
     wrapper.className = "sidebar-folder";
 
-    const isOpen = folderState[folder.id] ?? true;
+    const isOpen = folder.isOpen ?? true;
 
     const header = document.createElement("div");
     header.className = "sidebar-folder-header";
@@ -245,9 +245,20 @@ function renderFolderNode(folder, depth) {
     // Expand/collapse
     header.querySelector(".folder-toggle").addEventListener("click", e => {
         e.stopPropagation();
-        folderState[folder.id] = !isOpen;
+        const newState = !isOpen;
+
+        // Update the actual workspace tree
+        folder.isOpen = newState;
+
+        // (Optional) keep folderState for now, but it’s no longer the source of truth
+        folderState[folder.id] = newState;
         localStorage.setItem("folderState", JSON.stringify(folderState));
+
+        // Persist workspace so extractMetadata sees correct isOpen
+        saveState();
+
         renderSidebar();
+
     });
 
     wrapper.appendChild(header);
