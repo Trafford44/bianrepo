@@ -358,6 +358,7 @@ export async function saveWorkspaceToGist() {
         files.forEach(f => {
             gistFiles[f.path] = { content: f.content || "" };
         });
+console.log("Workspace before metadata:", getWorkspace());
 
         // save metadata as a special file in the gist
         const metadata = extractMetadata(getWorkspace());
@@ -410,6 +411,7 @@ export async function saveWorkspaceToGist() {
         logger.info("sync: saveWorkspaceToGist", `Final request method: ${method}`);
         logger.info("sync: saveWorkspaceToGist", `Final request URL: ${url}`);
         logger.info("sync: saveWorkspaceToGist", `Final file list being sent: ${Object.keys(body.files).join(", ")}`);
+console.log("Final body.files:", Object.keys(body.files));
 
         const res = await fetch(url, {
             method,
