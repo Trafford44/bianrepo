@@ -471,6 +471,7 @@ export async function loadWorkspaceFromGist() {
     }
 
     const tree = unflattenWorkspace(flat);
+console.log("Loaded tree:", tree);
 
     migrateWorkspace(tree); // 🔥 NEW: migrate to the latest model
     setWorkspace(tree);
