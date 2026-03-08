@@ -186,10 +186,9 @@ export function createFile(name) {
 
 
 export function flattenWorkspace(tree) {
-    const output = {};
+    const output = [];
 
     function walk(nodes, pathParts) {
-       
         for (const node of nodes) {
             const encoded = encodeName(node.name);
 
@@ -198,13 +197,16 @@ export function flattenWorkspace(tree) {
             } else if (node.type === "file") {
                 let fileName = encoded;
 
-                // Ensure extension is preserved or defaulted
                 if (!fileName.endsWith(".md") && !fileName.endsWith(".puml")) {
                     fileName += ".md";
                 }
 
                 const fullPath = [...pathParts, fileName].join("___");
-                output[fullPath] = node.content;
+
+                output.push({
+                    path: fullPath,
+                    content: node.content || ""
+                });
             }
         }
     }
@@ -212,6 +214,7 @@ export function flattenWorkspace(tree) {
     walk(tree, []);
     return output;
 }
+
 
 export function unflattenWorkspace(flat) {
     const root = [];
