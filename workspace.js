@@ -109,7 +109,10 @@ export function loadState() {
 
     try {
         const tree = JSON.parse(saved);
+      
+        migrateWorkspace(tree);  // 🔥 NEW: migrate the loaded workspace
         setWorkspace(tree);
+        saveState(); // ensure new fields persist
     } catch (e) {
         console.error("Failed to load workspace:", e);
     }
@@ -146,18 +149,43 @@ export function createFolder(name) {
         id: crypto.randomUUID(),
         type: "folder",
         name,
-        children: []
+        children: [],
+
+        // Internal linking
+        pathCache: null,
+
+        // Public sharing (future)
+        isPublic: false,
+        publicId: null,
+        publicAt: null,
+        updatedAt: Date.now()
     };
 }
 
-export function createFile(name, content = "") {
+
+export function createFile(name) {
     return {
         id: crypto.randomUUID(),
         type: "file",
         name,
-        content
+        content: "",
+
+        // Internal linking
+        pathCache: null,
+
+        // Public sharing
+        isPublic: false,
+        publicId: null,
+        publicAt: null,
+        updatedAt: Date.now(),
+
+        // Future features
+        backlinks: [],
+        tags: [],
+        template: false
     };
 }
+
 
 export function flattenWorkspace(tree) {
     const output = {};
@@ -269,7 +297,33 @@ function migrateOldFormat(oldSubjects) {
     });
 }
 
+function migrateNode(node) {
+    // Internal linking
+    if (!("pathCache" in node)) node.pathCache = null;
 
+    // Public sharing
+    if (!("isPublic" in node)) node.isPublic = false;
+    if (!("publicId" in node)) node.publicId = null;
+    if (!("publicAt" in node)) node.publicAt = null;
+    if (!("updatedAt" in node)) node.updatedAt = Date.now();
+
+    // Future features
+    if (node.type === "file") {
+        if (!("backlinks" in node)) node.backlinks = [];
+        if (!("tags" in node)) node.tags = [];
+        if (!("template" in node)) node.template = false;
+    }
+
+    // Folder-specific
+    if (node.type === "folder") {
+        if (!Array.isArray(node.children)) node.children = [];
+        node.children.forEach(migrateNode);
+    }
+}
+
+function migrateWorkspace(workspace) {
+    workspace.forEach(migrateNode);
+}
 
 // Helpers
 function isFolderNode(node) {
