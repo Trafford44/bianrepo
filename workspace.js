@@ -10,11 +10,12 @@ export function getWorkspace() {
 
 // Main entry point
 export function setWorkspace(data) {
+console.log("setWorkspace CALLED 1", data);    
     if (!data) {
         workspace = [];
         return;
     }
-console.log("setWorkspace CALLED", data);
+console.log("setWorkspace CALLED 2", data);
 
     // Already new-ish format?
     if (Array.isArray(data)) {
