@@ -245,12 +245,14 @@ function renderFolderNode(folder, depth) {
     // Expand/collapse
     header.querySelector(".folder-toggle").addEventListener("click", e => {
         e.stopPropagation();
-        const newState = !isOpen;
+
+        // Read the *current* state from the folder node
+        const newState = !(folder.isOpen ?? true);
 
         // Update the actual workspace tree
         folder.isOpen = newState;
 
-        // (Optional) keep folderState for now, but it’s no longer the source of truth
+        // Optional: keep folderState for now
         folderState[folder.id] = newState;
         localStorage.setItem("folderState", JSON.stringify(folderState));
 
@@ -258,8 +260,8 @@ function renderFolderNode(folder, depth) {
         saveState();
 
         renderSidebar();
-
     });
+
 
     wrapper.appendChild(header);
 
