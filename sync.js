@@ -6,9 +6,37 @@ Timestamps are used only for idle-return and auto-save timing.
 */
 
 
-import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
-import { rebuildWorkspaceFromGist, flattenWorkspace, setSubjects, getSubjects, renderSidebar, saveState, setSyncStatus, showNotification, showCountdownModal, showCountdownNotification } from "./ui.js";
-import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
+import { 
+    getToken, 
+    getGistId, 
+    setGistId, 
+    requireLogin 
+} from "./auth.js";
+
+import { 
+    setWorkspace,
+    saveState
+} from "./workspace.js";
+
+import {
+    renderSidebar,
+    setSyncStatus,
+    showNotification,
+    showCountdownNotification
+} from "./ui.js";
+
+
+import { 
+    flattenWorkspace,
+    unflattenWorkspace
+} from "./workspace.js";
+
+import { 
+    logger, 
+    LOG_LEVELS, 
+    formatDateNZ 
+} from "./logger.js";
+
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
@@ -402,7 +430,7 @@ export async function saveWorkspaceToGist() {
         logger.info("sync: saveWorkspaceToGist", "--- SAVE END ---");
 
         showSyncState("synced");
-        showNotification("success", "Workspace saved to cloud");
+        showNotification("success", "Saved to cloud");
 
     } finally {
         isSaving = false;
@@ -420,7 +448,6 @@ function showSyncState(state) {
 }
 
 export async function loadWorkspaceFromGist() {
-
     if (!requireLogin()) return;
 
     const gistId = getGistId();
@@ -437,12 +464,21 @@ export async function loadWorkspaceFromGist() {
 
     const data = await res.json();
 
-    const subjects = rebuildWorkspaceFromGist(data.files);
-    setSubjects(subjects);
+    // Convert flat gist files → recursive workspace tree
+    const flat = {};
+    for (const filename in data.files) {
+        flat[filename] = data.files[filename].content;
+    }
+
+    const tree = unflattenWorkspace(flat);
+
+    setWorkspace(tree);
     saveState();
     renderSidebar();
+
     showNotification("success", "Workspace loaded from Cloud");
 }
+
 
 async function getNewestGistAcrossAccount() {
     if (!requireLogin()) return null;
@@ -471,7 +507,7 @@ export async function listGistRevisions() {
     const gistId = getGistId();
 
     if (!gistId) {
-        showNotification("info", "No File ID found");
+        showNotification("info", "No cloud backup found");
         return [];
     }
 
@@ -495,13 +531,21 @@ export async function restoreFromGistVersion(versionId) {
 
     const data = await res.json();
 
-    const subjects = rebuildWorkspaceFromGist(data.files);
-    setSubjects(subjects);
+    // Convert flat gist files → recursive workspace tree
+    const flat = {};
+    for (const filename in data.files) {
+        flat[filename] = data.files[filename].content;
+    }
+
+    const tree = unflattenWorkspace(flat);
+
+    setWorkspace(tree);
     saveState();
     renderSidebar();
 
     showNotification("success", "Workspace restored from previous version");
 }
+
 
 export function markLocalEdit() {
     lastLocalEditTime = Date.now();
