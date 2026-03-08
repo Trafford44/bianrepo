@@ -187,7 +187,6 @@ export function renderSidebar() {
     }
 
     tree.forEach(node => {
-        console.log("Rendering node:", node.name, "depth:", 0);
         const el = renderNode(node, 0);
         container.appendChild(el);
     });
