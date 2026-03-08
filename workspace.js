@@ -4,6 +4,7 @@ const STORAGE_KEY = "kb_data";
 export function getWorkspace() {
     // ensure workspace is always sorted
     sortTree(workspace, true); // root stays in user-defined order
+    console.log("GET WORKSPACE:", workspace);
     return workspace;
 }
 
