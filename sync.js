@@ -15,7 +15,8 @@ import {
 
 import { 
     setWorkspace,
-    saveState
+    saveState,
+    getWorkspace,
 } from "./workspace.js";
 
 import {
@@ -50,6 +51,8 @@ const IDLE_THRESHOLD = 30_000; // 30 seconds
 
 const GIST_API = "https://api.github.com/gists";
 console.log("sync.js loaded from:", import.meta.url);
+
+
 async function getCurrentWorkspaceGist() {
     if (!requireLogin()) {
         logger.info("sync: getCurrentWorkspaceGist", "Not logged in.");
@@ -333,8 +336,6 @@ window.debugCloud = async () => {
 };
 
 export async function saveWorkspaceToGist() {
-    console.log("saveWorkspaceToGist sees workspace:", workspace);
-
     if (!requireLogin()) return;
 
     if (isSaving) {
@@ -351,7 +352,7 @@ export async function saveWorkspaceToGist() {
 
         logger.info("sync: saveWorkspaceToGist", `Starting save process. Current gistId: ${gistId || "(none)"}`);
 
-        const files = flattenWorkspace();
+        const files = flattenWorkspace(getWorkspace());
         const gistFiles = {};
         files.forEach(f => {
             gistFiles[f.path] = { content: f.content || "" };
@@ -478,7 +479,7 @@ export async function loadWorkspaceFromGist() {
     if (!Array.isArray(tree)) {
         tree = [tree];
     }
-    
+
     migrateWorkspace(tree); // 🔥 NEW: migrate to the latest model
     setWorkspace(tree);
     saveState();
