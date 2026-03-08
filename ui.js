@@ -367,7 +367,7 @@ export function createSubfolder(parentId) {
     if (!name || !name.trim()) return;
 
     const tree = getWorkspace();
-    const folder = findNodeById(tree, folderId);
+    const parent = findNodeById(tree, parentId);
 
     if (!parent || parent.type !== "folder") return;
 
