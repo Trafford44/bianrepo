@@ -1,27 +1,67 @@
-import { saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog } from "./sync.js";
-import { getToken, bindLoginButton } from "./auth.js";
-import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
+import { 
+    getToken
+} from "./auth.js";
+
+import { 
+    bindSmartKeyboardEvents, 
+    bindGlobalShortcuts, 
+    bindScrollSync, 
+    bindToolbarEvents, 
+    bindPopupEvents, 
+    bindSidebarEvents
+} from "./binding.js";
+
+import {
+    getWorkspace,
+    setWorkspace,
+    findNodeById,
+    findNodeAndParent,
+    createFolder,
+    createFile,
+    saveState
+} from "./workspace.js";
+
 
 let saveTimer = null;
-let subjects = [];
 let activeFileId = null;
-let activeSubjectId = null;
 let notificationTimeout = null;
 let countdownInterval = null;
+export let folderState = JSON.parse(localStorage.getItem("folderState") || "{}");
+const contextMenu = document.getElementById("context-menu");
+const contextMenuList = contextMenu.querySelector("ul");
+let currentContextTarget = null;
 
-export function getSubjects() {
-    return subjects;
+export function showContextMenu(target, items, x, y) {
+    currentContextTarget = target;
+
+    contextMenuList.innerHTML = "";
+
+    items.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item.label;
+        li.addEventListener("click", () => {
+            item.action(target);
+            hideContextMenu();
+        });
+        contextMenuList.appendChild(li);
+    });
+
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+    contextMenu.classList.remove("hidden");
 }
 
-export function setSubjects(newSubjects) {
-    subjects = newSubjects;
+export function hideContextMenu() {
+    contextMenu.classList.add("hidden");
+    currentContextTarget = null;
 }
 
-export function saveState() {
-    localStorage.setItem("kb_data", JSON.stringify(subjects));
-    // optional: auto-save to gist
-    // await saveWorkspaceToGist();
-}
+document.addEventListener("click", e => {
+    if (!contextMenu.contains(e.target)) {
+        hideContextMenu();
+    }
+});
+
 
 export function initResizers() {
     const sbResizer = document.getElementById("sidebar-resizer");
@@ -133,162 +173,232 @@ export function initResizers() {
 }
 
 export function renderSidebar() {
+
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
+    const tree = getWorkspace();
+
     container.innerHTML = "";
 
-    // Empty workspace state
-    if (!subjects || subjects.length === 0) {
-        container.innerHTML = `
-            <div class="empty-workspace">
-                <p>Your workspace is empty.</p>
-                <p class="hint">Use the <strong>+ Folder</strong> button above to create your first subject, or:</p>
-                <button id="github-login" class="btn-tool">Sign in with GitHub</button>
-                <button id="load-from-cloud" class="btn-tool">Load from Cloud</button>
-            </div>
-        `;
-
-        // Bind login button NOW that it exists
-        bindLoginButton();
-        runSyncCheck("login");
-
-        // Bind load-from-cloud button
-        document.getElementById("load-from-cloud").onclick = async () => {
-            await loadWorkspaceFromGist();
-            renderSidebar();
-        };
-
+    if (!tree || tree.length === 0) {
+        container.innerHTML = `<div class="empty-sidebar">No folders yet</div>`;
         return;
     }
 
-    const sortedSubjects = [...subjects]
-        .filter(s => s && typeof s.title === "string")
-        .sort((a, b) =>
-            a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
-        );
-
-    sortedSubjects.forEach(subject => {
-        const sContainer = document.createElement("div");
-        sContainer.className = "subject-container";
-
-        const sHeader = document.createElement("div");
-        sHeader.className = "subject-header";
-        // remove any leading underscores used for sorting prefixes in the display
-        sHeader.innerHTML = `
-            <span class="chevron ${subject.isOpen ? "open" : ""}">▶</span>
-            <span class="subject-title">${subject.title.replace(/^_+/, "")}</span>
-
-            <div class="subject-actions">
-                <button class="btn-add-file" title="Add File"><span>✚</span></button>
-                <button class="btn-rename-folder" title="Rename Folder"><span style="font-weight: bold;">✎</span></button>
-                <button class="btn-delete-folder" title="Delete Folder"><span style="font-weight: bold;">✖</span></button>                
-            </div>
-        `;
-
-        // Add File
-        sHeader.querySelector(".btn-add-file").addEventListener("click", e => {
-            e.stopPropagation();
-            addFile(subject.id);
-        });
-
-        // Rename Folder
-        sHeader.querySelector(".btn-rename-folder").addEventListener("click", e => {
-            e.stopPropagation();
-            renameFolder(subject.id);
-        });
-
-        // Delete Folder
-        sHeader.querySelector(".btn-delete-folder").addEventListener("click", e => {
-            e.stopPropagation();
-            deleteFolder(subject.id);
-        });    
-   
-        sHeader.addEventListener("click", () => {
-            subject.isOpen = !subject.isOpen;
-            saveState();
-            renderSidebar();
-        });
-
-        sContainer.appendChild(sHeader);
-
-        if (subject.isOpen) {        
-            const sortedFiles = [...subject.files]
-                .filter(f => f && typeof f.title === "string")
-                .sort((a, b) =>
-                    a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
-                );
-
-            sortedFiles.forEach(file => {
-                const fDiv = document.createElement("div");
-                fDiv.className = `file-item ${file.id === activeFileId ? "active" : ""}`;
-                // remove any leading underscores used for sorting prefixes in the display
-                fDiv.innerHTML = `
-                    <div style="display: flex; align-items: center; overflow: hidden; flex: 1;">
-                        <span class="file-icon">${file.type === "md" ? "M↓" : "⧉"}</span>
-                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.title.replace(/^_+/, "")}</span>
-                    </div>
-                    <div class="file-actions">
-                        <div class="icon-btn rename" title="Rename">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 20h9"></path>
-                                <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"></path>
-                            </svg>
-                        </div>
-                        <div class="icon-btn" title="Duplicate">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-                            </svg>
-                        </div>
-                        <div class="icon-btn del" title="Delete">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
-                            </svg>
-                        </div>
-                    </div>
-                `;
-
-                fDiv.addEventListener("click", e => {
-                    e.stopPropagation();
-                    loadFile(subject.id, file.id);
-
-                    // Close sidebar automatically on mobile portrait
-                    if (window.innerWidth < 1400 && window.matchMedia("(orientation: portrait)").matches) {
-                        document.body.classList.remove("sidebar-open");
-                    }
-                });
-
-                const [renameBtn, dupBtn, delBtn] = fDiv.querySelectorAll(".icon-btn");
-                renameBtn.addEventListener("click", e => {
-                    e.stopPropagation();
-                    renameFile(subject.id, file.id);
-                });
-                dupBtn.addEventListener("click", e => {
-                    e.stopPropagation();
-                    duplicateFile(subject.id, file.id);
-                });
-                delBtn.addEventListener("click", e => {
-                    e.stopPropagation();
-                    deleteFile(subject.id, file.id);
-                });
-
-                sContainer.appendChild(fDiv);
-            });
-        }
-
-        container.appendChild(sContainer);
+    tree.forEach(node => {
+        console.log("Rendering node:", node.name, "depth:", 0);
+        const el = renderNode(node, 0);
+        container.appendChild(el);
     });
 }
 
-export function loadFile(sId, fId) {
-    activeSubjectId = sId;
-    activeFileId = fId;
 
-    const subject = subjects.find(s => s.id === sId);
-    const file = subject.files.find(f => f.id === fId);
+function renderNode(node, depth) {
+    return node.type === "folder"
+        ? renderFolderNode(node, depth)
+        : renderFileNode(node, depth);
+}
+
+function renderFolderNode(folder, depth) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "sidebar-folder";
+
+    const isOpen = folderState[folder.id] ?? true;
+
+    const header = document.createElement("div");
+    header.className = "sidebar-folder-header";
+    header.style.paddingLeft = `${depth === 0 ? 10 : depth * 16}px`;
+
+
+    header.innerHTML = `
+       
+        <span class="folder-toggle">
+            <span class="chevron ${isOpen ? "open" : ""}">▶</span>
+        </span>
+        <span class="folder-name">${folder.name.replace(/^_+/, "")}</span>
+        <span class="folder-actions">
+            <button class="item-menu-btn" title="Actions">⋯</button>
+        </span>
+    `;
+
+    // Context menu items for folders
+    const folderMenuItems = [
+        { label: "Add File", action: () => addFile(folder.id) },
+        { label: "Add Folder", action: () => createSubfolder(folder.id) },
+        { label: "Rename", action: () => renameFolder(folder.id) },
+        { label: "Delete", action: () => deleteFolder(folder.id) }
+    ];
+
+    // ⋯ button
+    header.querySelector(".item-menu-btn").addEventListener("click", e => {
+        e.stopPropagation();
+        showContextMenu(folder, folderMenuItems, e.pageX, e.pageY);
+    });
+
+    // Right‑click support
+    header.addEventListener("contextmenu", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        showContextMenu(folder, folderMenuItems, e.pageX, e.pageY);
+    });
+
+    // Expand/collapse
+    header.querySelector(".folder-toggle").addEventListener("click", e => {
+        e.stopPropagation();
+        folderState[folder.id] = !isOpen;
+        localStorage.setItem("folderState", JSON.stringify(folderState));
+        renderSidebar();
+    });
+
+    wrapper.appendChild(header);
+
+    if (isOpen && folder.children.length > 0) {
+        const childrenContainer = document.createElement("div");
+        childrenContainer.className = "sidebar-folder-children";
+
+        folder.children.forEach(child => {
+            childrenContainer.appendChild(renderNode(child, depth + 1));
+        });
+
+        wrapper.appendChild(childrenContainer);
+    }
+
+    return wrapper;
+}
+
+
+
+function renderFileNode(file, depth) {
+    console.log("Rendering FILE:", file.name, "depth:", depth);
+
+    const el = document.createElement("div");
+    el.className = `file-item sidebar-file ${file.id === activeFileId ? "active" : ""}`;
+    el.style.paddingLeft = `${depth * 16}px`;
+
+    el.innerHTML = `
+        <div class="file-main" style="display: flex; align-items: center; overflow: hidden; flex: 1;">
+            <span class="file-icon">${file.name.endsWith(".md") ? "M↓" : "⧉"}</span>
+            <span class="file-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${file.name}
+            </span>
+        </div>
+        <div class="file-actions">
+            <button class="item-menu-btn" title="Actions">⋯</button>
+        </div>
+    `;
+
+    // Load file + mobile auto-close
+    el.addEventListener("click", e => {
+        e.stopPropagation();
+        loadFile(file.id);
+
+        if (window.innerWidth < 1400 && window.matchMedia("(orientation: portrait)").matches) {
+            document.body.classList.remove("sidebar-open");
+        }
+    });
+
+    el.querySelector(".item-menu-btn").addEventListener("click", e => {
+        e.stopPropagation();
+
+        showContextMenu(file, [
+            { label: "Rename", action: () => renameFile(file.id) },
+            { label: "Duplicate", action: () => duplicateFile(file.id) },
+            { label: "Delete", action: () => deleteFile(file.id) }
+        ], e.pageX, e.pageY);
+    });
+
+    return el;
+}
+
+export function duplicateFile(fileId) {
+    const tree = getWorkspace();
+    const result = findNodeAndParent(tree, fileId);
+
+    if (!result || result.node.type !== "file") return;
+
+    const { node: file, parent } = result;
+
+    // Generate a unique name like "MyFile.md copy", "MyFile.md copy 2", etc.
+    const newName = generateCopyName(file.name, parent.children);
+
+    const copy = createFile(newName, file.content);
+
+    parent.children.push(copy);
+
+    setWorkspace(tree);
+    saveState();
+    renderSidebar();
+    loadFile(copy.id);
+
+    showNotification("success", "File duplicated");
+}
+
+function generateCopyName(name, siblings) {
+    const extIndex = name.lastIndexOf(".");
+    const base = extIndex !== -1 ? name.slice(0, extIndex) : name;
+    const ext = extIndex !== -1 ? name.slice(extIndex) : "";
+
+    let n = 1;
+    let candidate = `${base} copy${ext}`;
+
+    while (siblings.some(f => f.name === candidate)) {
+        n++;
+        candidate = `${base} copy ${n}${ext}`;
+    }
+
+    return candidate;
+}
+
+
+export function createFileInFolder(parentFolder) {
+    const name = prompt("New file name:");
+    if (!name || !name.trim()) return;
+
+    const fileName = name.trim().endsWith(".md")
+        ? name.trim()
+        : name.trim() + ".md";
+
+    parentFolder.children.push(createFile(fileName, ""));
+
+    commitWorkspace();
+}
+
+
+export function createSubfolder(parentId) {
+    const name = prompt("New Folder Name:");
+    if (!name || !name.trim()) return;
+
+    const tree = getWorkspace();
+    const folder = findNodeById(tree, folderId);
+
+    if (!parent || parent.type !== "folder") return;
+
+    parent.children.push(createFolder(name.trim()));
+
+    parent.children.sort((a, b) => {
+        if (a.type !== b.type) {
+            return a.type === "folder" ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+    });
+
+    setWorkspace(tree);
+    saveState();
+    renderSidebar();
+}
+
+
+export function loadFile(fileId) {
+    const tree = getWorkspace();
+    const file = findNodeById(tree, fileId);
+
+    if (!file || file.type !== "file") {
+        console.warn("loadFile: file not found", fileId);
+        return;
+    }
+
+    activeFileId = file.id;
 
     document.getElementById("empty-state").classList.add("hidden");
     document.getElementById("workspace-grid").classList.remove("hidden");
@@ -297,104 +407,127 @@ export function loadFile(sId, fId) {
     const textarea = document.getElementById("editor-textarea");
     textarea.value = file.content;
 
-    document.getElementById("active-file-title").textContent = `${subject.title} / ${file.title}`;
+    document.getElementById("active-file-title").textContent = file.name;
     document.getElementById("active-file-type-icon").innerHTML =
-        file.type === "md"
+        file.name.endsWith(".md")
             ? '<span class="type-label-md">MD</span>'
             : '<span class="type-label-puml">PUML</span>';
 
-    if (file.type === "md") {
+    if (file.name.endsWith(".md")) {
         document.getElementById("md-toolbar").classList.remove("hidden");
     } else {
         document.getElementById("md-toolbar").classList.add("hidden");
     }
 
-    renderSidebar();
     updatePreview();
-    updateToolbar()
+    updateToolbar();
+    renderSidebar();
 }
 
-function updateToolbar() {
-    const subject = subjects.find(s => s.id === activeSubjectId);
-    const file = subject?.files.find(f => f.id === activeFileId);
+
+
+
+function commitWorkspace() {
+    saveState();
+    renderSidebar();
+}
+
+export function updateToolbar() {
+    const tree = getWorkspace();
+    const file = findNodeById(tree, activeFileId);
 
     const pumlButtons = document.querySelectorAll(".puml-only");
-
-    const show = file?.type === "puml";
+    const show = file && file.name.endsWith(".puml");
 
     pumlButtons.forEach(btn => {
         btn.style.display = show ? "inline-flex" : "none";
     });
 }
 
-export function renameFolder(subjectId) {
-    const subject = subjects.find(s => s.id === subjectId);
-    if (!subject) return;
 
-    const newName = prompt("Rename folder:", subject.title);
+export function renameFolder(folderId) {
+    const tree = getWorkspace();
+    const folder = findNodeById(tree, folderId);
+
+    if (!folder || folder.type !== "folder") return;
+
+    const newName = prompt("Rename folder:", folder.name);
     if (!newName || !newName.trim()) return;
 
-    subject.title = newName.trim();
+    folder.name = newName.trim();
 
+    setWorkspace(tree);
     saveState();
     renderSidebar();
-    showNotification("info", "Folder renamed");
 }
 
-export function deleteFolder(subjectId) {
-    const subject = subjects.find(s => s.id === subjectId);
-    if (!subject) return;
+export function deleteFolder(folderId) {
+    const tree = getWorkspace();
+    const result = findNodeAndParent(tree, folderId);
 
-    if (!confirm(`Delete folder "${subject.title}" and all its files?`)) return;
+    if (!result || result.node.type !== "folder") return;
 
-    // Remove subject
-    subjects = subjects.filter(s => s.id !== subjectId);
+    const { node, parent } = result;
 
-    // Clear active file + UI
-    activeFileId = null;
-    document.getElementById("workspace-grid").classList.add("hidden");
-    document.getElementById("empty-state").classList.remove("hidden");
-    document.getElementById("editor-actions").classList.add("hidden");
+    if (!confirm(`Delete folder "${node.name}" and all its contents?`)) return;
 
-    // Persist + re-render
+    if (parent) {
+        parent.children = parent.children.filter(c => c.id !== folderId);
+    } else {
+        // deleting a top-level folder
+        const newTree = tree.filter(c => c.id !== folderId);
+        setWorkspace(newTree);
+    }
+
+    if (activeFileId && findNodeById(tree, activeFileId) === null) {
+        activeFileId = null;
+        document.getElementById("workspace-grid").classList.add("hidden");
+        document.getElementById("empty-state").classList.remove("hidden");
+        document.getElementById("editor-actions").classList.add("hidden");
+    }
+
     saveState();
     renderSidebar();
-    showNotification("info", "Folder deleted");
 }
 
 
 export function updatePreview() {
     const textarea = document.getElementById("editor-textarea");
     const preview = document.getElementById("preview-pane");
-    const link = document.getElementById('puml-external-link');
+    const link = document.getElementById("puml-external-link");
     const content = textarea.value;
 
-    const subject = subjects.find(s => s.id === activeSubjectId);
-    const file = subject?.files.find(f => f.id === activeFileId);
-    if (!file) return;
+    // Find the active file in the new recursive workspace tree
+    const tree = getWorkspace();
+    const file = findNodeById(tree, activeFileId);
+    if (!file || file.type !== "file") return;
 
-    // debounce saving to avoid breaking undo
+    // Save content (debounced)
     file.content = content;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => saveState(), 300);
 
-
-    if (file.type === "puml") {
+    // PUML preview
+    if (file.name.endsWith(".puml")) {
         const url = getPumlRenderUrl(content);
         preview.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center;">
                 <img src="${url}" alt="PlantUML Diagram" />
                 <a href="${url}" target="_blank" style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">Open SVG link</a>
-            </div>`;
+            </div>
+        `;
         link.href = getPumlHref(content);
-    } else {
-        const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
-        const processed = content.replace(pumlRegex, (match, p1) => {
-            const url = getPumlRenderUrl(p1);
-            return `\n![PlantUML](${url})\n`;
-        });
-        preview.innerHTML = `<div class="prose">${marked.parse(processed)}</div>`;
+        return;
     }
+
+    // Markdown preview (with embedded PUML blocks)
+    const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
+    const processed = content.replace(pumlRegex, (match, p1) => {
+        const url = getPumlRenderUrl(p1);
+        return `\n![PlantUML](${url})\n`;
+    });
+
+    preview.innerHTML = `<div class="prose">${marked.parse(processed)}</div>`;
 }
 
 function getPumlRenderUrl(puml) {
@@ -417,64 +550,68 @@ function getPumlHref(puml) {
     }
 }
 
-export function addSubject() {
-    const title = prompt("New Subject Folder Name:");
-    if (title) {
-        subjects.push({
-            id: "s" + Date.now(),
-            title,
-            isOpen: true,
-            files: []
-        });
-        saveState();
-        renderSidebar();
-    }
-}
+export function addFolder() {
+    const name = prompt("New Folder Name:");
+    if (!name || !name.trim()) return;
 
-export function addFile(sId) {
-    const title = prompt("File Name:");
-    if (!title) return;
+    const tree = getWorkspace();
+    tree.push(createFolder(name.trim()));
 
-    const type = confirm("Press OK for Markdown file, Cancel for PlantUML file") ? "md" : "puml";
-    const subject = subjects.find(s => s.id === sId);
-    const newFile = {
-        id: "f" + Date.now(),
-        title,
-        type,
-        content: type === "md" ? `# ${title}\n` : "@startuml\n\n@enduml"
-    };
-
-    subject.files.push(newFile);
-    subject.isOpen = true;
+    setWorkspace(tree);
     saveState();
     renderSidebar();
-    loadFile(sId, newFile.id);
 }
 
-export function deleteCurrentFile() {
-    if (!confirm("Delete this file?")) return;
-    const subject = subjects.find(s => s.id === activeSubjectId);
-    subject.files = subject.files.filter(f => f.id !== activeFileId);
 
-    activeFileId = null;
-    document.getElementById("empty-state").classList.remove("hidden");
-    document.getElementById("workspace-grid").classList.add("hidden");
-    document.getElementById("editor-actions").classList.add("hidden");
+export function addFile(folderId) {
+    const name = prompt("File Name:");
+    if (!name || !name.trim()) return;
 
-    saveState();
-    renderSidebar();
-    showNotification("info", "File deleted");
-}
 
-export function exportFile() {
-    const subject = subjects.find(s => s.id === activeSubjectId);
-    if (!subject) {
-        showNotification("error", "No file selected to export");
+
+    const isMarkdown = confirm("Press OK for Markdown file, Cancel for PlantUML file");
+    const ext = isMarkdown ? ".md" : ".puml";
+
+    const fileName = name.trim().endsWith(ext)
+        ? name.trim()
+        : name.trim() + ext;
+
+    const tree = getWorkspace();
+    const folder = findNodeById(tree, folderId);
+
+    if (!folder || folder.type !== "folder") {
+        console.warn("addFile: folder not found", folderId);
         return;
     }
 
-    const file = subject.files.find(f => f.id === activeFileId);
-    if (!file) {
+    const newFile = createFile(
+        fileName,
+        isMarkdown ? `# ${fileName}\n` : "@startuml\n\n@enduml"
+    );
+
+    folder.children.push(newFile);
+    // Sort children: folders first, then files, alphabetical
+    folder.children.sort((a, b) => {
+        if (a.type !== b.type) {
+            return a.type === "folder" ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+    });
+
+
+    setWorkspace(tree);
+
+    saveState();
+    renderSidebar();
+    loadFile(newFile.id);
+}
+
+
+export function exportFile() {
+    const tree = getWorkspace();
+    const file = findNodeById(tree, activeFileId);
+
+    if (!file || file.type !== "file") {
         showNotification("error", "No file selected to export");
         return;
     }
@@ -484,49 +621,59 @@ export function exportFile() {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${file.title}.${file.type}`;
+    a.download = file.name;
     a.click();
 
     showNotification("success", "File exported");
 }
 
-export function duplicateFile(sId, fId) {
-    const s = subjects.find(x => x.id === sId);
-    const f = s.files.find(x => x.id === fId);
-    const copy = { ...f, id: "f" + Date.now(), title: f.title + " (Copy)" };
-    s.files.push(copy);
-    saveState();
-    renderSidebar();
-    showNotification("success", "File duplicated");
-}
 
-export function deleteFile(sId, fId) {
-    if (!confirm("Delete file?")) return;
-    const s = subjects.find(x => x.id === sId);
-    s.files = s.files.filter(x => x.id !== fId);
-    if (activeFileId === fId) {
+export function deleteFile(fileId) {
+    const tree = getWorkspace();
+    const result = findNodeAndParent(tree, fileId);
+
+    if (!result || result.node.type !== "file") return;
+
+    const { node, parent } = result;
+
+    if (!confirm(`Delete file "${node.name}"?`)) return;
+
+    parent.children = parent.children.filter(c => c.id !== fileId);
+
+    if (activeFileId === fileId) {
         activeFileId = null;
         document.getElementById("workspace-grid").classList.add("hidden");
         document.getElementById("empty-state").classList.remove("hidden");
         document.getElementById("editor-actions").classList.add("hidden");
     }
+
+    setWorkspace(tree);
     saveState();
     renderSidebar();
-    showNotification("info", "File deleted");
 }
 
-export function renameFile(sId, fId) {
-    const s = subjects.find(x => x.id === sId);
-    const f = s.files.find(x => x.id === fId);
 
-    const newName = prompt("Rename file:", f.title);
-    if (!newName) return;
+export function renameFile(fileId) {
+    const tree = getWorkspace();
+    const file = findNodeById(tree, fileId);
 
-    f.title = newName.trim();
+    if (!file || file.type !== "file") return;
+
+    const newName = prompt("Rename file:", file.name);
+    if (!newName || !newName.trim()) return;
+
+    file.name = newName.trim();
+
+    setWorkspace(tree);
     saveState();
     renderSidebar();
-    showNotification("success", "File renamed");
+
+    if (activeFileId === fileId) {
+        document.getElementById("active-file-title").textContent = file.name;
+        updateToolbar();
+    }
 }
+
 
 export function bindPaneFocusEvents() {
     window.activePane = "editor";
@@ -786,65 +933,6 @@ export function applyBgColorFormat(bg, textarea) {
     textarea.dispatchEvent(new Event("input"));
 }
 
-export function flattenWorkspace() {
-    const files = [];
-    subjects.forEach(subject => {
-        subject.files.forEach(file => {
-            let ext = "";
-            if (file.type === "md" || file.type === "markdown") {
-                ext = ".md";
-            } else if (file.type === "puml" || file.type === "plantuml") {
-                ext = ".puml";
-            } else {
-                ext = ".txt";
-            }
-
-            const safeSubject = subject.title.replace(/\s+/g, "_");
-            const safeFile = file.title.replace(/\s+/g, "_");
-            const path = `${safeSubject}___${safeFile}${ext}`;
-
-            files.push({
-                path,
-                content: file.content || ""
-            });
-        });
-    });
-    return files;
-}
-
-export function rebuildWorkspaceFromGist(gistFiles) {
-    const subjectsMap = {};
-
-    for (const filename in gistFiles) {
-        const content = gistFiles[filename].content;
-        const [rawSubject, rawFileWithExt] = filename.split("___");
-
-        const subjectTitle = rawSubject.replace(/_/g, " ");
-        const fileTitle = rawFileWithExt
-            .replace(/\.[^.]+$/, "")
-            .replace(/_/g, " ");
-
-        const type = rawFileWithExt.endsWith(".puml") ? "puml" : "md";
-
-        if (!subjectsMap[subjectTitle]) {
-            subjectsMap[subjectTitle] = {
-                id: crypto.randomUUID(),
-                title: subjectTitle,
-                isOpen: true,
-                files: []
-            };
-        }
-
-        subjectsMap[subjectTitle].files.push({
-            id: crypto.randomUUID(),
-            title: fileTitle,
-            type,
-            content
-        });
-    }
-
-    return Object.values(subjectsMap);
-}
 
 // Sidebar toggle for mobile
 document.addEventListener("DOMContentLoaded", () => {
@@ -867,64 +955,6 @@ document.getElementById("toggle-editor").addEventListener("click", () => {
     }
 });
 
-export function showCountdownModal({ countdown, message, onConfirm, onCancel }) {
-    // Remove any existing modal
-    const existing = document.getElementById("countdown-modal");
-    if (existing) existing.remove();
-
-    const modal = document.createElement("div");
-    modal.id = "countdown-modal";
-    modal.style.position = "fixed";
-    modal.style.top = "0";
-    modal.style.left = "0";
-    modal.style.width = "100%";
-    modal.style.height = "100%";
-    modal.style.background = "rgba(0,0,0,0.4)";
-    modal.style.display = "flex";
-    modal.style.alignItems = "center";
-    modal.style.justifyContent = "center";
-    modal.style.zIndex = "9999";
-
-    modal.innerHTML = `
-        <div class="modal-panel">
-            <p class="modal-message">${message}</p>
-            <p id="countdown-timer" class="modal-count">${countdown}</p>
-            <button id="countdown-confirm" class="primary">Switch to Cloud Version</button>
-            <button id="countdown-cancel">Cancel</button>
-        </div>
-    `;
-
-
-    document.body.appendChild(modal);
-
-    const timerEl = modal.querySelector("#countdown-timer");
-    const confirmBtn = modal.querySelector("#countdown-confirm");
-    const cancelBtn = modal.querySelector("#countdown-cancel");
-
-    let remaining = countdown;
-    const interval = setInterval(() => {
-        remaining--;
-        timerEl.textContent = remaining;
-
-        if (remaining <= 0) {
-            clearInterval(interval);
-            modal.remove();
-            onConfirm();
-        }
-    }, 1000);
-
-    confirmBtn.onclick = () => {
-        clearInterval(interval);
-        modal.remove();
-        onConfirm();
-    };
-
-    cancelBtn.onclick = () => {
-        clearInterval(interval);
-        modal.remove();
-        onCancel();
-    };
-}
 
 export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
     const el = document.getElementById("notification");
@@ -968,6 +998,9 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
         }
     }, 1000);
 }
+
+
+
 
 // for testing purposes
 if (location.hostname === "localhost") {
