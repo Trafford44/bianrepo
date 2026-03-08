@@ -354,10 +354,17 @@ export async function saveWorkspaceToGist() {
 
         const files = flattenWorkspace(getWorkspace());
         const gistFiles = {};
+
         files.forEach(f => {
             gistFiles[f.path] = { content: f.content || "" };
         });
-console.log("Metadata being saved:", gistFiles["__workspace.json"]);
+
+        // save metadata as a special file in the gist
+        const metadata = extractMetadata(getWorkspace());
+        gistFiles["__workspace.json"] = {
+            content: JSON.stringify(metadata, null, 2)
+        };
+
         logger.info("sync: saveWorkspaceToGist", `Prepared ${Object.keys(gistFiles).length} files for saving: ${Object.keys(gistFiles).join(", ")}`);
 
         const body = {
@@ -373,7 +380,6 @@ console.log("Metadata being saved:", gistFiles["__workspace.json"]);
             method = "PATCH";
             url = `${GIST_API}/${gistId}`;
             logger.info("sync: saveWorkspaceToGist", `Updating existing gist with ID: ${gistId} using PATCH method.`);
-console.log("Final body.files:", Object.keys(body.files));
 
             const existing = await fetch(`${GIST_API}/${gistId}`, {
                 headers: { "Authorization": `token ${githubToken}` }
@@ -384,10 +390,10 @@ console.log("Final body.files:", Object.keys(body.files));
                 logger.info("sync: saveWorkspaceToGist", `Existing cloud files before update: ${existingNames.join(", ")}`);
 
                 for (const existingName of existingNames) {
-
-                     // DO NOT DELETE METADATA FILE
-                    if (existingName === "__workspace.json") continue; 
                     
+                    // DO NOT DELETE METADATA FILE
+                    if (existingName === "__workspace.json") continue;     
+
                     const stillExistsLocally = files.some(f => f.path === existingName);
                     if (!stillExistsLocally) {
                         logger.info("sync: saveWorkspaceToGist", `Marking file for deletion: ${existingName}`);
@@ -404,7 +410,7 @@ console.log("Final body.files:", Object.keys(body.files));
         logger.info("sync: saveWorkspaceToGist", `Final request method: ${method}`);
         logger.info("sync: saveWorkspaceToGist", `Final request URL: ${url}`);
         logger.info("sync: saveWorkspaceToGist", `Final file list being sent: ${Object.keys(body.files).join(", ")}`);
-console.log("Final body.files:", Object.keys(body.files));
+
         const res = await fetch(url, {
             method,
             headers: {
@@ -545,20 +551,40 @@ export async function restoreFromGistVersion(versionId) {
 
     const data = await res.json();
 
-    // Convert flat gist files → recursive workspace tree
+    // ⭐ 1. Load metadata file if present
+    const metadataFile = data.files["__workspace.json"];
+    let metadata = null;
+
+    if (metadataFile && metadataFile.content) {
+        try {
+            metadata = JSON.parse(metadataFile.content);
+        } catch (e) {
+            console.warn("Invalid metadata file", e);
+        }
+    }
+
+    // 2. Convert flat gist files → recursive workspace tree
     const flat = {};
     for (const filename in data.files) {
+        if (filename === "__workspace.json") continue; // skip metadata file
         flat[filename] = data.files[filename].content;
     }
 
-    const tree = unflattenWorkspace(flat);
+    let tree = unflattenWorkspace(flat);
 
+    // ⭐ 3. Apply metadata to the reconstructed tree
+    if (metadata) {
+        applyMetadata(tree, metadata);
+    }
+
+    // 4. Save into app state
     setWorkspace(tree);
     saveState();
     renderSidebar();
 
     showNotification("success", "Workspace restored from previous version");
 }
+
 
 
 export function markLocalEdit() {
