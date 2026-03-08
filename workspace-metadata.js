@@ -3,19 +3,22 @@
 export function extractMetadata(nodes) {
     const meta = [];
 
-    function walk(list) {
+    function walk(list, parentPath = "") {
         for (const node of list) {
+            const path = parentPath ? `${parentPath}___${node.name}` : node.name;
+
             const entry = {
                 id: node.id,
                 type: node.type,
-                name: node.name
+                name: node.name,
+                path
             };
 
             if (node.type === "folder") {
                 entry.isOpen = !!node.isOpen;
                 entry.children = node.children.map(c => c.id);
                 meta.push(entry);
-                walk(node.children);
+                walk(node.children, path);
             } else {
                 entry.isPublic = !!node.isPublic;
                 entry.publicId = node.publicId || null;
@@ -38,33 +41,41 @@ export function extractMetadata(nodes) {
 
 export function applyMetadata(tree, metadata) {
     const map = new Map();
-    metadata.nodes.forEach(n => map.set(n.id, n));
+    metadata.nodes.forEach(n => map.set(n.path, n));
 
-    function walk(nodes) {
+    function walk(nodes, parentPath = "") {
         for (const node of nodes) {
-            const meta = map.get(node.id);
-            if (!meta) continue;
+            const nodePath = parentPath
+                ? `${parentPath}___${node.name}`
+                : node.name;
 
-            node.name = meta.name;
+            const meta = map.get(nodePath);
+            if (meta) {
+                node.id = meta.id;            // ⭐ restore ID
+                node.name = meta.name;
 
-            if (node.type === "folder") {
-                node.isOpen = !!meta.isOpen;
+                if (node.type === "folder") {
+                    node.isOpen = !!meta.isOpen;
 
-                // Reorder children to match metadata order
-                node.children.sort((a, b) =>
-                    meta.children.indexOf(a.id) -
-                    meta.children.indexOf(b.id)
-                );
+                    // reorder children
+                    node.children.sort((a, b) =>
+                        meta.children.indexOf(a.id) -
+                        meta.children.indexOf(b.id)
+                    );
+                } else {
+                    node.isPublic = !!meta.isPublic;
+                    node.publicId = meta.publicId || null;
+                    node.publicAt = meta.publicAt || null;
+                    node.updatedAt = meta.updatedAt || null;
+                }
+            }
 
-                walk(node.children);
-            } else {
-                node.isPublic = !!meta.isPublic;
-                node.publicId = meta.publicId || null;
-                node.publicAt = meta.publicAt || null;
-                node.updatedAt = meta.updatedAt || null;
+            if (node.children) {
+                walk(node.children, nodePath);
             }
         }
     }
 
     walk(tree);
 }
+
