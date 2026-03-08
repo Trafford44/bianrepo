@@ -4,19 +4,19 @@ const STORAGE_KEY = "kb_data";
 export function getWorkspace() {
     // ensure workspace is always sorted
     sortTree(workspace, true); // root stays in user-defined order
-    console.log("GET WORKSPACE:", workspace);
+
     return workspace;
 }
 
 
 // Main entry point
 export function setWorkspace(data) {
-console.log("setWorkspace CALLED 1", data);    
+ 
     if (!data) {
         workspace = [];
         return;
     }
-console.log("setWorkspace CALLED 2", data);
+
 
     // Already new-ish format?
     if (Array.isArray(data)) {
