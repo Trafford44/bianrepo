@@ -15,15 +15,19 @@ export function setWorkspace(data) {
         return;
     }
 
-    // Already new format?
+    // Already new-ish format?
     if (Array.isArray(data)) {
-        workspace = data;
+        // Normalize every node (handles mixed old/new)
+        workspace = data.map(normalizeNode);
+
+        // Save normalized version
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
         return;
     }
 
     // Old format?
     if (looksLikeOldFormat(data)) {
-        const migrated = migrateOldFormat(data);
+        const migrated = migrateOldFormat(data).map(normalizeNode);
         workspace = migrated;
 
         // Save new format so migration happens only once
@@ -34,6 +38,7 @@ export function setWorkspace(data) {
     // Fallback: empty workspace
     workspace = [];
 }
+
 
 function sortTree(nodes, isRoot = false) {
     // Only sort children, not the root
@@ -54,6 +59,30 @@ function sortTree(nodes, isRoot = false) {
             sortTree(node.children, false);
         }
     });
+}
+
+function normalizeNode(node) {
+    // Convert old "title" to new "name"
+    if (!node.name && node.title) {
+        node.name = node.title;
+    }
+
+    // Infer type if missing
+    if (!node.type) {
+        node.type = node.children ? "folder" : "file";
+    }
+
+    // Ensure children array exists for folders
+    if (node.type === "folder" && !Array.isArray(node.children)) {
+        node.children = [];
+    }
+
+    // Recurse
+    if (node.children) {
+        node.children = node.children.map(normalizeNode);
+    }
+
+    return node;
 }
 
 
