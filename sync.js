@@ -357,7 +357,7 @@ export async function saveWorkspaceToGist() {
         files.forEach(f => {
             gistFiles[f.path] = { content: f.content || "" };
         });
-
+console.log("Metadata being saved:", gistFiles["__workspace.json"]);
         logger.info("sync: saveWorkspaceToGist", `Prepared ${Object.keys(gistFiles).length} files for saving: ${Object.keys(gistFiles).join(", ")}`);
 
         const body = {
@@ -373,6 +373,7 @@ export async function saveWorkspaceToGist() {
             method = "PATCH";
             url = `${GIST_API}/${gistId}`;
             logger.info("sync: saveWorkspaceToGist", `Updating existing gist with ID: ${gistId} using PATCH method.`);
+console.log("Final body.files:", Object.keys(body.files));
 
             const existing = await fetch(`${GIST_API}/${gistId}`, {
                 headers: { "Authorization": `token ${githubToken}` }
