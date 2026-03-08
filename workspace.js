@@ -108,15 +108,22 @@ export function loadState() {
     if (!saved) return;
 
     try {
-        const tree = JSON.parse(saved);
-      
-        migrateWorkspace(tree);  // 🔥 NEW: migrate the loaded workspace
+        let tree = JSON.parse(saved);
+
+        // Ensure root is ALWAYS an array
+        if (!Array.isArray(tree)) {
+            tree = [tree];
+        }
+
+        migrateWorkspace(tree);  // Migrate to new model
+
         setWorkspace(tree);
         saveState(); // ensure new fields persist
     } catch (e) {
         console.error("Failed to load workspace:", e);
     }
 }
+
 
 export function findNodeById(nodeList, id) {
     for (const node of nodeList) {
