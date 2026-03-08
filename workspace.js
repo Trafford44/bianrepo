@@ -3,7 +3,7 @@ const STORAGE_KEY = "kb_data";
 
 export function getWorkspace() {
     // ensure workspace is always sorted
-    sortTree(workspace, true); // root stays in user-defined order
+    sortTree(workspace); // root stays in user-defined order
     return workspace;
 }
 
@@ -40,22 +40,17 @@ export function setWorkspace(data) {
 }
 
 
-function sortTree(nodes, isRoot = false) {
-    if (!isRoot) {
-        nodes.sort((a, b) => {
-            return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-        });
-    }
+function sortTree(nodes) {
+    nodes.sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    );
 
-    // Recurse into children
     nodes.forEach(node => {
         if (node.type === "folder" && Array.isArray(node.children)) {
-            sortTree(node.children, false);
+            sortTree(node.children);
         }
     });
 }
-
-
 
 
 function normalizeNode(node) {
