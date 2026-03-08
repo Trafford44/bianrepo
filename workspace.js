@@ -67,14 +67,35 @@ function normalizeNode(node) {
         node.name = node.title;
     }
 
-    // Infer type if missing
-    if (!node.type) {
-        node.type = node.children ? "folder" : "file";
+    // Detect folder-like nodes
+    const looksLikeFolder =
+        Array.isArray(node.children) ||
+        Array.isArray(node.files) ||
+        node.isOpen === true; // old folders had isOpen
+
+    // Fix type
+    if (!node.type || node.type === "md" || node.type === "puml") {
+        node.type = looksLikeFolder ? "folder" : "file";
     }
 
-    // Ensure children array exists for folders
-    if (node.type === "folder" && !Array.isArray(node.children)) {
-        node.children = [];
+    // Ensure folder children
+    if (node.type === "folder") {
+        if (!Array.isArray(node.children)) {
+            node.children = [];
+        }
+
+        // Migrate old "files" array
+        if (Array.isArray(node.files)) {
+            node.files.forEach(f => {
+                node.children.push(normalizeNode({
+                    id: f.id || crypto.randomUUID(),
+                    type: "file",
+                    name: f.title || f.name,
+                    content: f.content || ""
+                }));
+            });
+            delete node.files;
+        }
     }
 
     // Recurse
