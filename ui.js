@@ -178,6 +178,7 @@ export function renderSidebar() {
     if (!container) return;
 
     const tree = getWorkspace();
+console.log("RENDER SIDEBAR WITH:", workspace);
 
     container.innerHTML = "";
 
