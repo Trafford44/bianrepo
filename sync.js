@@ -333,6 +333,8 @@ window.debugCloud = async () => {
 };
 
 export async function saveWorkspaceToGist() {
+    console.log("saveWorkspaceToGist sees workspace:", workspace);
+
     if (!requireLogin()) return;
 
     if (isSaving) {
