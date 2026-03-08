@@ -14,6 +14,7 @@ export function setWorkspace(data) {
         workspace = [];
         return;
     }
+console.log("setWorkspace CALLED", data);
 
     // Already new-ish format?
     if (Array.isArray(data)) {
