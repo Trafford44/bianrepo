@@ -198,6 +198,11 @@ export function flattenWorkspace(tree) {
     const output = {};
 
     function walk(nodes, pathParts) {
+        if (!Array.isArray(nodes)) {
+            console.error("❌ walk() received non-array:", nodes);
+            console.error("pathParts:", pathParts);
+            throw new Error("walk() received non-array");
+        }        
         for (const node of nodes) {
             const encoded = encodeName(node.name);
 
