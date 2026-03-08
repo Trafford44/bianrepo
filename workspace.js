@@ -1,4 +1,4 @@
-export let workspace = []
+let workspace = []
 const STORAGE_KEY = "kb_data";
 
 export function getWorkspace() {
