@@ -73,12 +73,14 @@ function normalizeNode(node) {
     // Detect folder-like nodes
     const looksLikeFolder =
         Array.isArray(node.children) ||
-        Array.isArray(node.files) ||
-        node.isOpen === true; // old folders had isOpen
+        Array.isArray(node.files) ||   // ← THIS IS THE IMPORTANT LINE
+        node.isOpen === true;
 
     // Fix type
-    if (!node.type || node.type === "md" || node.type === "puml") {
-        node.type = looksLikeFolder ? "folder" : "file";
+    if (looksLikeFolder) {
+        node.type = "folder";
+    } else {
+        node.type = "file";
     }
 
     // Ensure folder children
@@ -91,9 +93,9 @@ function normalizeNode(node) {
         if (Array.isArray(node.files)) {
             node.files.forEach(f => {
                 node.children.push(normalizeNode({
-                    id: f.id || crypto.randomUUID(),
+                    id: f.id,
                     type: "file",
-                    name: f.title || f.name,
+                    name: f.title,
                     content: f.content || ""
                 }));
             });
@@ -101,13 +103,9 @@ function normalizeNode(node) {
         }
     }
 
-    // Recurse
-    if (node.children) {
-        node.children = node.children.map(normalizeNode);
-    }
-
     return node;
 }
+
 
 
 export function saveState() {
