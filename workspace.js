@@ -4,19 +4,16 @@ const STORAGE_KEY = "kb_data";
 export function getWorkspace() {
     // ensure workspace is always sorted
     sortTree(workspace, true); // root stays in user-defined order
-
     return workspace;
 }
 
 
 // Main entry point
 export function setWorkspace(data) {
- 
     if (!data) {
         workspace = [];
         return;
     }
-
 
     // Already new-ish format?
     if (Array.isArray(data)) {
@@ -44,25 +41,26 @@ export function setWorkspace(data) {
 
 
 function sortTree(nodes, isRoot = false) {
-    // Only sort children, not the root
     if (!isRoot) {
         nodes.sort((a, b) => {
-            // files first
+            // folders first
             if (a.type !== b.type) {
-                return a.type === "file" ? -1 : 1;
+                return a.type === "folder" ? -1 : 1;
             }
-            // alphabetical within type
+
+            // alphabetical within type (raw names, underscores included)
             return a.name.localeCompare(b.name);
         });
     }
 
-    // Recurse into folders
+    // Recurse into children
     nodes.forEach(node => {
         if (node.type === "folder" && Array.isArray(node.children)) {
             sortTree(node.children, false);
         }
     });
 }
+
 
 function normalizeNode(node) {
     // Convert old "title" to new "name"
