@@ -10,34 +10,25 @@ export function getWorkspace() {
 
 // Main entry point
 export function setWorkspace(data) {
+    // If nothing provided, initialize empty array
     if (!data) {
         workspace = [];
-        return;
-    }
-
-    // Already new-ish format?
-    if (Array.isArray(data)) {
-        // Normalize every node (handles mixed old/new)
-        workspace = data.map(normalizeNode);
-
-        // Save normalized version
         localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
         return;
     }
 
-    // Old format?
-    if (looksLikeOldFormat(data)) {
-        const migrated = migrateOldFormat(data).map(normalizeNode);
-        workspace = migrated;
-
-        // Save new format so migration happens only once
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-        return;
+    // If data is a single object, wrap it
+    if (!Array.isArray(data)) {
+        data = [data];
     }
 
-    // Fallback: empty workspace
-    workspace = [];
+    // Normalize every node
+    workspace = data.map(normalizeNode);
+
+    // Save normalized version
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
 }
+
 
 
 function sortTree(nodes) {
@@ -198,11 +189,7 @@ export function flattenWorkspace(tree) {
     const output = {};
 
     function walk(nodes, pathParts) {
-        if (!Array.isArray(nodes)) {
-            console.error("❌ walk() received non-array:", nodes);
-            console.error("pathParts:", pathParts);
-            throw new Error("walk() received non-array");
-        }        
+       
         for (const node of nodes) {
             const encoded = encodeName(node.name);
 
