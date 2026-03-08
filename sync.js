@@ -384,6 +384,10 @@ console.log("Final body.files:", Object.keys(body.files));
                 logger.info("sync: saveWorkspaceToGist", `Existing cloud files before update: ${existingNames.join(", ")}`);
 
                 for (const existingName of existingNames) {
+
+                     // DO NOT DELETE METADATA FILE
+                    if (existingName === "__workspace.json") continue; 
+                    
                     const stillExistsLocally = files.some(f => f.path === existingName);
                     if (!stillExistsLocally) {
                         logger.info("sync: saveWorkspaceToGist", `Marking file for deletion: ${existingName}`);
@@ -400,7 +404,7 @@ console.log("Final body.files:", Object.keys(body.files));
         logger.info("sync: saveWorkspaceToGist", `Final request method: ${method}`);
         logger.info("sync: saveWorkspaceToGist", `Final request URL: ${url}`);
         logger.info("sync: saveWorkspaceToGist", `Final file list being sent: ${Object.keys(body.files).join(", ")}`);
-
+console.log("Final body.files:", Object.keys(body.files));
         const res = await fetch(url, {
             method,
             headers: {
