@@ -10,6 +10,7 @@ export function getWorkspace() {
 
 // Main entry point
 export function setWorkspace(data) {
+    console.log("setWorkspace called with:", data);
     // If nothing provided, initialize empty array
     if (!data) {
         workspace = [];
