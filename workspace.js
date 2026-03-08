@@ -43,8 +43,7 @@ export function setWorkspace(data) {
 function sortTree(nodes, isRoot = false) {
     if (!isRoot) {
         nodes.sort((a, b) => {
-            // alphabetical using raw names (underscores included)
-            return a.name.localeCompare(b.name);
+            return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
         });
     }
 
@@ -55,6 +54,7 @@ function sortTree(nodes, isRoot = false) {
         }
     });
 }
+
 
 
 
