@@ -39,8 +39,10 @@ import {
 } from "./logger.js";
 
 import {
-    extractMetadata
+    extractMetadata,
+    applyMetadata
 } from "./workspace-metadata.js";   
+
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
@@ -361,7 +363,6 @@ export async function saveWorkspaceToGist() {
         files.forEach(f => {
             gistFiles[f.path] = { content: f.content || "" };
         });
-console.log("Workspace before metadata:", getWorkspace());
 
         // save metadata as a special file in the gist
         const metadata = extractMetadata(getWorkspace());
@@ -394,7 +395,7 @@ console.log("Workspace before metadata:", getWorkspace());
                 logger.info("sync: saveWorkspaceToGist", `Existing cloud files before update: ${existingNames.join(", ")}`);
 
                 for (const existingName of existingNames) {
-                    
+
                     // DO NOT DELETE METADATA FILE
                     if (existingName === "__workspace.json") continue;     
 
@@ -414,7 +415,6 @@ console.log("Workspace before metadata:", getWorkspace());
         logger.info("sync: saveWorkspaceToGist", `Final request method: ${method}`);
         logger.info("sync: saveWorkspaceToGist", `Final request URL: ${url}`);
         logger.info("sync: saveWorkspaceToGist", `Final file list being sent: ${Object.keys(body.files).join(", ")}`);
-console.log("Final body.files:", Object.keys(body.files));
 
         const res = await fetch(url, {
             method,
