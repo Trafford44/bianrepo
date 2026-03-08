@@ -269,8 +269,6 @@ function renderFolderNode(folder, depth) {
 
 
 function renderFileNode(file, depth) {
-    console.log("Rendering FILE:", file.name, "depth:", depth);
-
     const el = document.createElement("div");
     el.className = `file-item sidebar-file ${file.id === activeFileId ? "active" : ""}`;
     el.style.paddingLeft = `${depth * 16}px`;
