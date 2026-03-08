@@ -472,11 +472,12 @@ export async function loadWorkspaceFromGist() {
 
     const tree = unflattenWorkspace(flat);
 
+    migrateWorkspace(tree); // 🔥 NEW: migrate to the latest model
     setWorkspace(tree);
     saveState();
     renderSidebar();
 
-    showNotification("success", "Workspace loaded from Cloud");
+    showNotification("success", "Data loaded from Cloud");
 }
 
 
