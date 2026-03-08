@@ -38,6 +38,9 @@ import {
     formatDateNZ 
 } from "./logger.js";
 
+import {
+    extractMetadata
+} from "./workspace-metadata.js";   
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
