@@ -29,7 +29,8 @@ import {
 
 import { 
     flattenWorkspace,
-    unflattenWorkspace
+    unflattenWorkspace,
+    migrateWorkspace
 } from "./workspace.js";
 
 import { 
@@ -40,8 +41,7 @@ import {
 
 import {
     extractMetadata,
-    applyMetadata,
-    migrateWorkspace
+    applyMetadata
 } from "./workspace-metadata.js";   
 
 
