@@ -83,9 +83,10 @@ export function bindLoginButton() {
         const redirectOverride = new URLSearchParams(window.location.search).get("redirect");
 
         // 2. Use override if present, otherwise use the current page
-        const redirectUri = redirectOverride
-            ? redirectOverride
-            : window.location.origin + window.location.pathname;
+        // comment out old
+        // const redirectUri = redirectOverride ? redirectOverride : window.location.origin + window.location.pathname;
+        const redirectUri = "https://bkb.trafford.nz/auth/callback";
+
 
         // 3. Build GitHub OAuth URL
         const url =
