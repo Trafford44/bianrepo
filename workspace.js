@@ -339,7 +339,7 @@ function migrateNode(node) {
     }
 }
 
-function migrateWorkspace(workspace) {
+export function migrateWorkspace(workspace) {
     workspace.forEach(migrateNode);
 }
 
