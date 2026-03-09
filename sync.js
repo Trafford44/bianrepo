@@ -40,7 +40,8 @@ import {
 
 import {
     extractMetadata,
-    applyMetadata
+    applyMetadata,
+    migrateWorkspace
 } from "./workspace-metadata.js";   
 
 
