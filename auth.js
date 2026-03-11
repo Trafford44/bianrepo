@@ -101,25 +101,10 @@ export function bindLoginButton() {
 export async function handleOAuthRedirect() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    // if (!code) return;
 
-    
-    // DEBUG: Let's see if the function even sees the URL
-    // alert("URL Search: " + window.location.search); 
+    // Exit silently if there is no code (standard page load)
+    if (!code) return;
 
-    if (!code) {
-        // If we are on the callback page but have no code, that's the bug.
-        if (window.location.pathname.includes("callback")) {
-             alert("On callback page but NO CODE found in URL!");
-        }
-        return;
-    }
-    
-    alert("Code found: " + code + ". Attempting worker fetch...");
-    // ... rest of the fetch code
-
-
-    
     try {
         const res = await fetch(WORKER_URL, {
             method: "POST",
@@ -127,28 +112,36 @@ export async function handleOAuthRedirect() {
             body: JSON.stringify({ code })
         });
 
-        alert("Worker responded: " + res.status);
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Worker Error (${res.status}): ${errorText}`);
+        }
 
-        // 1. Get raw text first to avoid the .json() crash
-        const text = await res.text();
-        alert("Raw response: " + text.substring(0, 100)); // Show the start of the response
-
-        const data = JSON.parse(text);
+        const data = await res.json();
 
         if (data.access_token) {
+            // 1. Store the token
             localStorage.setItem("github_token", data.access_token);
-            alert("Token saved! Updating UI...");
             
+            // 2. Clean up URL immediately so 'code' isn't reused on refresh
+            window.history.replaceState({}, "", window.location.origin + window.location.pathname);
+            
+            // 3. Update UI and Sync
             updateLoginIndicator();
-            await runSyncCheck("login");
             
-            // Commented out for now to prevent the mobile loop
-            // window.history.replaceState({}, "", window.location.origin + window.location.pathname);
+            // We use .catch here so if sync fails, it doesn't break the auth flow
+            runSyncCheck("login").catch(e => console.error("Post-login sync failed:", e));
+
+            console.log("GitHub Authentication successful.");
         } else {
-            alert("GitHub Error: " + (data.error || "No token in response"));
+            // Handle specific GitHub errors (like expired codes)
+            const errorMsg = data.error_description || data.error || "No token received";
+            alert("Login Failed: " + errorMsg);
         }
     } catch (err) {
-        alert("CRASH in auth: " + err.message);
+        // This will catch Network errors, CORS issues, and JSON parsing errors
+        console.error("Authentication crash:", err);
+        alert("Connection Error: " + err.message);
     }
 }
 
