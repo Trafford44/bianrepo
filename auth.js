@@ -103,23 +103,27 @@ export async function handleOAuthRedirect() {
     const code = params.get("code");
     if (!code) return;
 
-    const res = await fetch(WORKER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code })
-    });
+    try {
+        const res = await fetch(WORKER_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code })
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (data.access_token) {
-        // Use the global key here
-        localStorage.setItem("github_token", data.access_token);        
-        window.history.replaceState({}, "", window.location.pathname);
-        updateLoginIndicator();
-        await runSyncCheck("login");
-
-    } else {
-        console.error("OAuth error:", data);
+        if (data.access_token) {
+            localStorage.setItem("github_token", data.access_token);        
+            window.history.replaceState({}, "", window.location.origin + window.location.pathname);
+            updateLoginIndicator();
+            await runSyncCheck("login");
+        } else {
+            // IF IT FAILS: This will tell us why on the phone screen
+            alert("OAuth Error: " + (data.error || "No token received"));
+        }
+    } catch (err) {
+        // IF THE NETWORK FAILS: (CORS or Worker down)
+        alert("Fetch Error: " + err.message);
     }
 }
 
