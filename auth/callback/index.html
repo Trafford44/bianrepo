@@ -7,8 +7,10 @@
 <body>
   <p>Completing login…</p>
 
-  <script type="module" src="./callback-handler.js"></script>
-
-
+  <script type="module">
+    console.log("Callback script is running");
+    import { handleOAuthRedirect } from "/auth.js";
+    handleOAuthRedirect();
+  </script>
 </body>
 </html>
