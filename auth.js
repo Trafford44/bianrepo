@@ -81,10 +81,9 @@ export function bindLoginButton() {
         const redirectOverride = new URLSearchParams(window.location.search).get("redirect");
 
         // 2. Use override if present, otherwise use the current page
-        // comment out old
-        // const redirectUri = redirectOverride ? redirectOverride : window.location.origin + window.location.pathname;
-        const redirectUri = "https://bkb.trafford.nz/auth/callback";
-
+        const redirectUri = redirectOverride
+            ? redirectOverride
+            : window.location.origin + window.location.pathname;
 
         // 3. Build GitHub OAuth URL
         const url =
@@ -113,8 +112,8 @@ export async function handleOAuthRedirect() {
     const data = await res.json();
 
     if (data.access_token) {
-        // localStorage.setItem("github_token", data.access_token); // changeme
-        localStorage.setItem("github_token", data.access_token);
+        // Use the global key here
+        localStorage.setItem("github_token", data.access_token);        
         window.history.replaceState({}, "", window.location.pathname);
         updateLoginIndicator();
         await runSyncCheck("login");
@@ -124,6 +123,10 @@ export async function handleOAuthRedirect() {
     }
 }
 
+
+//to be called on logout or if token is invalid/expired to clear the stored token and update the UI accordingly
+//TO be wired up to the 'Logout' button in the UI and also called if we detect an auth error during API calls to ensure we clear out invalid tokens
+// Gemini:  Without a clearToken function, the only way a user can "log out" is by manually clearing their browser cache or being a wizard in the DevTools console. If you ever want to switch GitHub accounts or troubleshoot a borked session, you'll be stuck in that login loop again.
 export function clearToken() {
     // Remove the global token we just standardized
     localStorage.removeItem("github_token");
