@@ -140,7 +140,7 @@ export async function handleOAuthRedirect() {
 
         if (data.access_token) {
             localStorage.setItem("github_token", data.access_token);        
-            window.history.replaceState({}, "", window.location.origin + window.location.pathname);
+        //    window.history.replaceState({}, "", window.location.origin + window.location.pathname);
             updateLoginIndicator();
             await runSyncCheck("login");
         } else {
