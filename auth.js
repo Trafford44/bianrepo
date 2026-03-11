@@ -101,8 +101,25 @@ export function bindLoginButton() {
 export async function handleOAuthRedirect() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    if (!code) return;
+    // if (!code) return;
 
+    
+    // DEBUG: Let's see if the function even sees the URL
+    // alert("URL Search: " + window.location.search); 
+
+    if (!code) {
+        // If we are on the callback page but have no code, that's the bug.
+        if (window.location.pathname.includes("callback")) {
+             alert("On callback page but NO CODE found in URL!");
+        }
+        return;
+    }
+    
+    alert("Code found: " + code + ". Attempting worker fetch...");
+    // ... rest of the fetch code
+
+
+    
     try {
         const res = await fetch(WORKER_URL, {
             method: "POST",
