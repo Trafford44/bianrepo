@@ -126,7 +126,13 @@ export async function handleOAuthRedirect() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ code })
         });
-
+        
+        // Add this check!
+        if (!res.ok) {
+            const errBody = await res.text();
+            alert("Worker Server Error: " + errBody);
+            return;
+        }
         const data = await res.json();
 
         if (data.access_token) {
