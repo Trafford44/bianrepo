@@ -127,29 +127,28 @@ export async function handleOAuthRedirect() {
             body: JSON.stringify({ code })
         });
 
-        // debug
-        alert("Worker responded with status: " + res.status);
-        
-        // Add this check!
-        if (!res.ok) {
-            const errBody = await res.text();
-            alert("Worker Server Error: " + errBody);
-            return;
-        }
-        const data = await res.json();
+        alert("Worker responded: " + res.status);
+
+        // 1. Get raw text first to avoid the .json() crash
+        const text = await res.text();
+        alert("Raw response: " + text.substring(0, 100)); // Show the start of the response
+
+        const data = JSON.parse(text);
 
         if (data.access_token) {
-            localStorage.setItem("github_token", data.access_token);        
-        //    window.history.replaceState({}, "", window.location.origin + window.location.pathname);
+            localStorage.setItem("github_token", data.access_token);
+            alert("Token saved! Updating UI...");
+            
             updateLoginIndicator();
             await runSyncCheck("login");
+            
+            // Commented out for now to prevent the mobile loop
+            // window.history.replaceState({}, "", window.location.origin + window.location.pathname);
         } else {
-            // IF IT FAILS: This will tell us why on the phone screen
-            alert("OAuth Error: " + (data.error || "No token received"));
+            alert("GitHub Error: " + (data.error || "No token in response"));
         }
     } catch (err) {
-        // IF THE NETWORK FAILS: (CORS or Worker down)
-        alert("Fetch Error: " + err.message);
+        alert("CRASH in auth: " + err.message);
     }
 }
 
