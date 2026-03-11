@@ -126,6 +126,9 @@ export async function handleOAuthRedirect() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ code })
         });
+
+        // debug
+        alert("Worker responded with status: " + res.status);
         
         // Add this check!
         if (!res.ok) {
