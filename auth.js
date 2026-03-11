@@ -43,9 +43,7 @@ const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 
 export function getToken() {
-    // const t = localStorage.getItem("github_token");  // changeme
-    const t = localStorage.getItem(`github_token_${deviceId}`);
-
+    const t = localStorage.getItem("github_token");
     
     if (!t || t === "undefined" || t === "null") return null;
     return t;
@@ -83,9 +81,10 @@ export function bindLoginButton() {
         const redirectOverride = new URLSearchParams(window.location.search).get("redirect");
 
         // 2. Use override if present, otherwise use the current page
-        const redirectUri = redirectOverride
-            ? redirectOverride
-            : window.location.origin + window.location.pathname;
+        // comment out old
+        // const redirectUri = redirectOverride ? redirectOverride : window.location.origin + window.location.pathname;
+        const redirectUri = "https://bkb.trafford.nz/auth/callback";
+
 
         // 3. Build GitHub OAuth URL
         const url =
@@ -115,9 +114,8 @@ export async function handleOAuthRedirect() {
 
     if (data.access_token) {
         // localStorage.setItem("github_token", data.access_token); // changeme
-        localStorage.setItem(`github_token_${deviceId}`, data.access_token);
+        localStorage.setItem("github_token", data.access_token);
         window.history.replaceState({}, "", window.location.pathname);
-        console.log("GitHub login successful");
         updateLoginIndicator();
         await runSyncCheck("login");
 
@@ -126,3 +124,18 @@ export async function handleOAuthRedirect() {
     }
 }
 
+export function clearToken() {
+    // Remove the global token we just standardized
+    localStorage.removeItem("github_token");
+    
+    // Optional: If you want to clear the specific Gist too on logout
+    // localStorage.removeItem("gist_id");
+
+    console.log("Logged out: Token cleared.");
+    
+    // Update the UI so the 'Reconnect' button shows up immediately
+    updateLoginIndicator();
+    
+    // Optional: Redirect to home or refresh to reset app state
+    // window.location.href = window.location.origin + window.location.pathname;
+}
