@@ -5,41 +5,12 @@ Cloud-newer detection is cloudHash !== lastSyncedHash.
 Timestamps are used only for idle-return and auto-save timing.
 */
 
-alert("5. sync.js is trying to load");
-import { 
-    getToken, 
-    getGistId, 
-    setGistId, 
-    requireLogin,
-    disconnectFromGitHub
-} from "./auth.js";
-
-import { 
-    setWorkspace,
-    saveState,
-    getWorkspace,
-    flattenWorkspace,
-    unflattenWorkspace,
-    migrateWorkspace
-} from "./workspace.js";
-
-import {
-    renderSidebar,
-    setSyncStatus,
-    showNotification,
-    showCountdownNotification
-} from "./ui.js";
-
-import { 
-    logger, 
-    LOG_LEVELS, 
-    formatDateNZ 
-} from "./logger.js";
-
-import {
-    extractMetadata,
-    applyMetadata
-} from "./workspace-metadata.js";   
+alert("5. sync.js is trying to load")
+import { getToken, getGistId, setGistId, requireLogin} from "./auth.js";
+import { setWorkspace, saveState, getWorkspace, flattenWorkspace, unflattenWorkspace, migrateWorkspace} from "./workspace.js";
+import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
+import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
+import { extractMetadata, applyMetadata} from "./workspace-metadata.js";  
 
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
