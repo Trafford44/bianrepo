@@ -101,10 +101,25 @@ export function bindLoginButton() {
 export async function handleOAuthRedirect() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
+    // if (!code) return;
 
-    // Exit silently if there is no code (standard page load)
-    if (!code) return;
+    
+    // DEBUG: Let's see if the function even sees the URL
+    // alert("URL Search: " + window.location.search); 
 
+    if (!code) {
+        // If we are on the callback page but have no code, that's the bug.
+        if (window.location.pathname.includes("callback")) {
+             alert("On callback page but NO CODE found in URL!");
+        }
+        return;
+    }
+    
+    alert("Code found: " + code + ". Attempting worker fetch...");
+    // ... rest of the fetch code
+
+
+    
     try {
         const res = await fetch(WORKER_URL, {
             method: "POST",
@@ -112,36 +127,23 @@ export async function handleOAuthRedirect() {
             body: JSON.stringify({ code })
         });
 
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Worker Error (${res.status}): ${errorText}`);
-        }
+        alert("Worker responded: " + res.status);
 
         const data = await res.json();
+        alert("Raw response: " + text.substring(0, 100)); // Show the start of the response
 
         if (data.access_token) {
-            // 1. Store the token
-            localStorage.setItem("github_token", data.access_token);
-            
-            // 2. Clean up URL immediately so 'code' isn't reused on refresh
+            localStorage.setItem("github_token", data.access_token);        
             window.history.replaceState({}, "", window.location.origin + window.location.pathname);
-            
-            // 3. Update UI and Sync
             updateLoginIndicator();
-            
-            // We use .catch here so if sync fails, it doesn't break the auth flow
-            runSyncCheck("login").catch(e => console.error("Post-login sync failed:", e));
-
-            console.log("GitHub Authentication successful.");
+            await runSyncCheck("login");
         } else {
-            // Handle specific GitHub errors (like expired codes)
-            const errorMsg = data.error_description || data.error || "No token received";
-            alert("Login Failed: " + errorMsg);
+            // IF IT FAILS: This will tell us why on the phone screen
+            alert("OAuth Error: " + (data.error || "No token received"));
         }
     } catch (err) {
-        // This will catch Network errors, CORS issues, and JSON parsing errors
-        console.error("Authentication crash:", err);
-        alert("Connection Error: " + err.message);
+        // IF THE NETWORK FAILS: (CORS or Worker down)
+        alert("Fetch Error: " + err.message);
     }
 }
 
