@@ -43,7 +43,9 @@ const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 
 export function getToken() {
-    const t = localStorage.getItem("github_token");
+    // const t = localStorage.getItem("github_token");  // changeme
+    const t = localStorage.getItem(`github_token_${deviceId}`);
+
     
     if (!t || t === "undefined" || t === "null") return null;
     return t;
@@ -81,9 +83,10 @@ export function bindLoginButton() {
         const redirectOverride = new URLSearchParams(window.location.search).get("redirect");
 
         // 2. Use override if present, otherwise use the current page
-        const redirectUri = redirectOverride
-            ? redirectOverride
-            : window.location.origin + window.location.pathname;
+        // comment out old
+        // const redirectUri = redirectOverride ? redirectOverride : window.location.origin + window.location.pathname;
+        const redirectUri = "https://bkb.trafford.nz/auth/callback";
+
 
         // 3. Build GitHub OAuth URL
         const url =
@@ -101,68 +104,25 @@ export function bindLoginButton() {
 export async function handleOAuthRedirect() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    // if (!code) return;
+    if (!code) return;
 
-    
-    // DEBUG: Let's see if the function even sees the URL
-    // alert("URL Search: " + window.location.search); 
+    const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
+    });
 
-    if (!code) {
-        // If we are on the callback page but have no code, that's the bug.
-        if (window.location.pathname.includes("callback")) {
-             alert("On callback page but NO CODE found in URL!");
-        }
-        return;
+    const data = await res.json();
+
+    if (data.access_token) {
+        // localStorage.setItem("github_token", data.access_token); // changeme
+        localStorage.setItem(`github_token_${deviceId}`, data.access_token);
+        window.history.replaceState({}, "", window.location.pathname);
+        console.log("GitHub login successful");
+        updateLoginIndicator();
+        await runSyncCheck("login");
+
+    } else {
+        console.error("OAuth error:", data);
     }
-    
-    alert("Code found: " + code + ". Attempting worker fetch...");
-    // ... rest of the fetch code
-
-
-    
-    try {
-        const res = await fetch(WORKER_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code })
-        });
-
-        alert("Worker responded: " + res.status);
-
-        const data = await res.json();
-        alert("Raw response: " + text.substring(0, 100)); // Show the start of the response
-
-        if (data.access_token) {
-            localStorage.setItem("github_token", data.access_token);        
-            window.history.replaceState({}, "", window.location.origin + window.location.pathname);
-            updateLoginIndicator();
-            await runSyncCheck("login");
-        } else {
-            // IF IT FAILS: This will tell us why on the phone screen
-            alert("OAuth Error: " + (data.error || "No token received"));
-        }
-    } catch (err) {
-        // IF THE NETWORK FAILS: (CORS or Worker down)
-        alert("Fetch Error: " + err.message);
-    }
-}
-
-
-//to be called on logout or if token is invalid/expired to clear the stored token and update the UI accordingly
-//TO be wired up to the 'Logout' button in the UI and also called if we detect an auth error during API calls to ensure we clear out invalid tokens
-// Gemini:  Without a clearToken function, the only way a user can "log out" is by manually clearing their browser cache or being a wizard in the DevTools console. If you ever want to switch GitHub accounts or troubleshoot a borked session, you'll be stuck in that login loop again.
-export function clearToken() {
-    // Remove the global token we just standardized
-    localStorage.removeItem("github_token");
-    
-    // Optional: If you want to clear the specific Gist too on logout
-    // localStorage.removeItem("gist_id");
-
-    console.log("Logged out: Token cleared.");
-    
-    // Update the UI so the 'Reconnect' button shows up immediately
-    updateLoginIndicator();
-    
-    // Optional: Redirect to home or refresh to reset app state
-    // window.location.href = window.location.origin + window.location.pathname;
 }
