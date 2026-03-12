@@ -6,11 +6,43 @@ Timestamps are used only for idle-return and auto-save timing.
 */
 
 
-import { getToken, getGistId, setGistId, requireLogin} from "./auth.js";
-import { setWorkspace, saveState, getWorkspace, flattenWorkspace, unflattenWorkspace, migrateWorkspace} from "./workspace.js";
-import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
-import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
-import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
+import { 
+    getToken, 
+    getGistId, 
+    setGistId, 
+    requireLogin 
+} from "./auth.js";
+
+import { 
+    setWorkspace,
+    saveState,
+    getWorkspace,
+} from "./workspace.js";
+
+import {
+    renderSidebar,
+    setSyncStatus,
+    showNotification,
+    showCountdownNotification
+} from "./ui.js";
+
+
+import { 
+    flattenWorkspace,
+    unflattenWorkspace,
+    migrateWorkspace
+} from "./workspace.js";
+
+import { 
+    logger, 
+    LOG_LEVELS, 
+    formatDateNZ 
+} from "./logger.js";
+
+import {
+    extractMetadata,
+    applyMetadata
+} from "./workspace-metadata.js";   
 
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
@@ -35,20 +67,9 @@ async function getCurrentWorkspaceGist() {
 
     const gistId = getGistId();
     const githubToken = getToken();
-
-    // 1. If the token is missing, we are truly disconnected
-    if (!githubToken) {
+    if (!gistId || !githubToken) {
         logger.info("sync: getCurrentWorkspaceGist", "No gistId or token found in localStorage.");
         disconnectFromGitHub("Cloud connection lost.");
-        return null;
-    }
-
-    // 2. If ONLY the gistId is missing, DON'T disconnect!
-    // This happens on every new login before the first save.
-    if (!gistId) {
-        logger.info("sync", "No gistId yet. Staying connected.");
-        // We return null so the sync loop knows there's nothing to fetch yet,
-        // but we stay "Connected" in the UI.
         return null;
     }
 
@@ -59,8 +80,8 @@ async function getCurrentWorkspaceGist() {
     });
 
     if (res.status === 401) {
-        logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired.");
-        // disconnectFromGitHub("Cloud token expired.");
+        logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired. Disconnecting.");
+        disconnectFromGitHub("Cloud token expired.");
         return null;
     }
 
@@ -157,7 +178,7 @@ function bindReconnectLink() {
     }, 0);
 }
 
-export function disconnectFromGitHub(message) {
+function disconnectFromGitHub(message) {
     setSyncStatus("error", "Disconnected");
     setConnectionButtonState(false);
     showNotification("error",`${message} <a href="#" id="reconnect-link">Reconnect</a>.`);
@@ -179,7 +200,7 @@ export async function runSyncCheck(reason) {
     const gistId = getGistId();
     if (!token || !gistId) {
         logger.error("sync: runSyncCheck", "Missing token or gistId — likely after suspend/wake. Stopping sync.");
-        //disconnectFromGitHub("Cloud connection lost.");
+        disconnectFromGitHub("Cloud connection lost.");
         return;
     }
     // ---------------------------------------------------------------------------
@@ -476,7 +497,7 @@ export async function loadWorkspaceFromGist() {
         tree = [tree];
     }
 
-    migrateWorkspace(tree); //  NEW: migrate to the latest model
+    migrateWorkspace(tree); // 🔥 NEW: migrate to the latest model
     setWorkspace(tree);
     saveState();
     renderSidebar();
