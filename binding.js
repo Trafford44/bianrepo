@@ -225,7 +225,7 @@ export function bindPopupEvents(textarea) {
             tablePopup.classList.add("hidden");
         });
     }
-
+ 
     document.addEventListener("click", (e) => {
         hidePopupsIfClickedOutside(e);
     });
