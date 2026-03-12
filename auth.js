@@ -45,7 +45,10 @@ const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 export function getToken() {
     const t = localStorage.getItem("github_token");
     
-    if (!t || t === "undefined" || t === "null") return null;
+    // Check if it's missing, OR if it's one of those pesky "stringified" nulls
+    if (!t || t === "undefined" || t === "null" || t.length < 10) {
+        return null; 
+    }
     return t;
 }
 
