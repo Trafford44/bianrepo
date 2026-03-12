@@ -1114,19 +1114,15 @@
     </style>
 </head>
 <body>
-<script>
-    // Catch regular errors
-    window.onerror = function(msg, url, line) {
-        alert("NORMAL ERROR: " + msg + "\nFile: " + url);
-    };
+<body>
+    <script>
+        // No fancy logic, just a loud shout to prove the browser is reading this file
+        alert("1. HTML is loading");
+    </script>
 
-    // Catch Module/Asset loading errors (Like 404s on your JS files)
-    window.addEventListener('error', function(event) {
-        if (event.target.tagName === 'SCRIPT') {
-            alert("LOAD ERROR: Could not load " + event.target.src);
-        }
-    }, true);
-</script>
+    <script type="module">
+        alert("2. Module system is working");
+    </script>
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h1>BIAN Knowledge Base</h1>
