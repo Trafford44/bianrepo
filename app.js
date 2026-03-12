@@ -12,6 +12,11 @@ The sync loop starts before the user interacts with the UI
 The sync loop starts before any file is opened
 */
 
+// app.js - Top of file
+if (window.location.protocol === 'http:' && !window.location.hostname.includes('localhost')) {
+    window.location.href = window.location.href.replace('http:', 'https:');
+}
+
 async function init() {
 
     let currentToken = localStorage.getItem("github_token");
