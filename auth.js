@@ -45,10 +45,7 @@ const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 export function getToken() {
     const t = localStorage.getItem("github_token");
     
-    // Check if it's missing, OR if it's one of those pesky "stringified" nulls
-    if (!t || t === "undefined" || t === "null" || t.length < 10) {
-        return null; 
-    }
+    if (!t || t === "undefined" || t === "null") return null;
     return t;
 }
 
@@ -79,33 +76,34 @@ export function bindLoginButton() {
     if (!btn) return;
 
     btn.addEventListener("click", () => {
-        // 1. HARDCODE THIS to match your GitHub settings exactly
-        const PROD_URL = "https://bkb.trafford.nz/"; 
 
-        // 2. Use the hardcoded URL if not on localhost
-        const isLocal = window.location.hostname === 'localhost';
-        const redirectUri = isLocal 
-            ? window.location.origin + window.location.pathname 
-            : PROD_URL;
+        // 1. Check for ?redirect=... in the URL (dev override)
+        const redirectOverride = new URLSearchParams(window.location.search).get("redirect");
 
-        // 3. Build the URL
-        const url = `https://github.com/login/oauth/authorize` +
-                    `?client_id=${GITHUB_CLIENT_ID}` +
-                    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-                    `&scope=gist`;
+        // 2. Use override if present, otherwise use the current page
+        const redirectUri = redirectOverride
+            ? redirectOverride
+            : window.location.origin + window.location.pathname;
 
+        // 3. Build GitHub OAuth URL
+        const url =
+            `https://github.com/login/oauth/authorize` +
+            `?client_id=${GITHUB_CLIENT_ID}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+            `&scope=gist`;
+
+        // 4. Redirect to GitHub
         window.location.href = url;
     });
 }
+
 
 export async function handleOAuthRedirect() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
 
-    if (!code) return; // No code, do nothing.
-
-    // 1. ALERT: Make sure we see the code exists before we do anything
-    alert("Handshake started! Code found: " + code.substring(0, 5));
+    // Exit silently if there is no code (standard page load)
+    if (!code) return;
 
     try {
         const res = await fetch(WORKER_URL, {
@@ -114,21 +112,36 @@ export async function handleOAuthRedirect() {
             body: JSON.stringify({ code })
         });
 
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Worker Error (${res.status}): ${errorText}`);
+        }
+
         const data = await res.json();
 
         if (data.access_token) {
+            // 1. Store the token
             localStorage.setItem("github_token", data.access_token);
             
-            // 2. ONLY NOW do we clean the URL
+            // 2. Clean up URL immediately so 'code' isn't reused on refresh
             window.history.replaceState({}, "", window.location.origin + window.location.pathname);
             
-            alert("Token saved! Reloading...");
-            location.reload(); 
+            // 3. Update UI and Sync
+            updateLoginIndicator();
+            
+            // We use .catch here so if sync fails, it doesn't break the auth flow
+            runSyncCheck("login").catch(e => console.error("Post-login sync failed:", e));
+
+            console.log("GitHub Authentication successful.");
         } else {
-            alert("GitHub rejected the code: " + (data.error_description || data.error));
+            // Handle specific GitHub errors (like expired codes)
+            const errorMsg = data.error_description || data.error || "No token received";
+            alert("Login Failed: " + errorMsg);
         }
     } catch (err) {
-        alert("Worker Error: " + err.message);
+        // This will catch Network errors, CORS issues, and JSON parsing errors
+        console.error("Authentication crash:", err);
+        alert("Connection Error: " + err.message);
     }
 }
 
