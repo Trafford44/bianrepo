@@ -745,30 +745,16 @@ export function updateLoginIndicator() {
     const loggedIn = !!token;
 
     // Update GitHub login button
-    let loginBtn = document.getElementById("github-login");
-
-    // IF THE BUTTON IS MISSING AND WE NEED TO LOGIN, CREATE IT!
-    if (!loginBtn && !loggedIn) {
-        const sidebar = document.getElementById("sidebar"); // Or your main container
-        if (sidebar) {
-            sidebar.innerHTML = '<button id="github-login" class="github-login-needed">Sign in with GitHub</button>';
-            loginBtn = document.getElementById("github-login");
-            // Important: We must re-bind the click event because we just created a new element
-            import("./auth.js").then(auth => auth.bindLoginButton());
-        }
-    }
-    
+    const loginBtn = document.getElementById("github-login");
     if (loginBtn) {
         if (loggedIn) {
             loginBtn.classList.remove("github-login-needed");
             loginBtn.classList.add("github-logged-in");
             loginBtn.textContent = "GitHub Connected";
-            loginBtn.disabled = true; // Optional: stop them from clicking it again
         } else {
             loginBtn.classList.remove("github-logged-in");
             loginBtn.classList.add("github-login-needed");
             loginBtn.textContent = "Sign in with GitHub";
-            loginBtn.disabled = false;
         }
     }
 
