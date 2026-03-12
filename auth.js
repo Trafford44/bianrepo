@@ -102,8 +102,10 @@ export async function handleOAuthRedirect() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
 
-    // Exit silently if there is no code (standard page load)
-    if (!code) return;
+    if (!code) return; // No code, do nothing.
+
+    // 1. ALERT: Make sure we see the code exists before we do anything
+    alert("Handshake started! Code found: " + code.substring(0, 5));
 
     try {
         const res = await fetch(WORKER_URL, {
@@ -112,36 +114,21 @@ export async function handleOAuthRedirect() {
             body: JSON.stringify({ code })
         });
 
-        if (!res.ok) {
-            const errorText = await res.text();
-            throw new Error(`Worker Error (${res.status}): ${errorText}`);
-        }
-
         const data = await res.json();
 
         if (data.access_token) {
-            // 1. Store the token
             localStorage.setItem("github_token", data.access_token);
             
-            // 2. Clean up URL immediately so 'code' isn't reused on refresh
+            // 2. ONLY NOW do we clean the URL
             window.history.replaceState({}, "", window.location.origin + window.location.pathname);
             
-            // 3. Update UI and Sync
-            updateLoginIndicator();
-            
-            // We use .catch here so if sync fails, it doesn't break the auth flow
-            runSyncCheck("login").catch(e => console.error("Post-login sync failed:", e));
-
-            console.log("GitHub Authentication successful.");
+            alert("Token saved! Reloading...");
+            location.reload(); 
         } else {
-            // Handle specific GitHub errors (like expired codes)
-            const errorMsg = data.error_description || data.error || "No token received";
-            alert("Login Failed: " + errorMsg);
+            alert("GitHub rejected the code: " + (data.error_description || data.error));
         }
     } catch (err) {
-        // This will catch Network errors, CORS issues, and JSON parsing errors
-        console.error("Authentication crash:", err);
-        alert("Connection Error: " + err.message);
+        alert("Worker Error: " + err.message);
     }
 }
 
