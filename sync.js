@@ -10,13 +10,17 @@ import {
     getToken, 
     getGistId, 
     setGistId, 
-    requireLogin 
+    requireLogin,
+    disconnectFromGitHub
 } from "./auth.js";
 
 import { 
     setWorkspace,
     saveState,
     getWorkspace,
+    flattenWorkspace,
+    unflattenWorkspace,
+    migrateWorkspace
 } from "./workspace.js";
 
 import {
@@ -25,13 +29,6 @@ import {
     showNotification,
     showCountdownNotification
 } from "./ui.js";
-
-
-import { 
-    flattenWorkspace,
-    unflattenWorkspace,
-    migrateWorkspace
-} from "./workspace.js";
 
 import { 
     logger, 
@@ -508,7 +505,7 @@ export async function loadWorkspaceFromGist() {
         tree = [tree];
     }
 
-    migrateWorkspace(tree); // 🔥 NEW: migrate to the latest model
+    migrateWorkspace(tree); //  NEW: migrate to the latest model
     setWorkspace(tree);
     saveState();
     renderSidebar();
