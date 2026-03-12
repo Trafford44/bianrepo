@@ -5,7 +5,7 @@ Cloud-newer detection is cloudHash !== lastSyncedHash.
 Timestamps are used only for idle-return and auto-save timing.
 */
 
-
+alert("5. sync.js is trying to load");
 import { 
     getToken, 
     getGistId, 
