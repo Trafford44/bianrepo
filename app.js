@@ -1,7 +1,7 @@
 import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator} from "./ui.js";
-//import { loadState } from "./workspace.js";    
-//import { setupMarked } from "./md-editor.js";
+import { loadState } from "./workspace.js";    
+import { setupMarked } from "./md-editor.js";
 //import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
 
 /* it's critical that the order remains as below
@@ -12,7 +12,7 @@ The sync loop starts before the user interacts with the UI
 The sync loop starts before any file is opened
 */
 
-alert("3. app.js is alive!");
+alert("4. Still alive without sync.js");
 
 const token = localStorage.getItem("github_token");
 
