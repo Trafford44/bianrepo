@@ -79,23 +79,21 @@ export function bindLoginButton() {
     if (!btn) return;
 
     btn.addEventListener("click", () => {
+        // HARDCODE this to match your GitHub "Authorization callback URL" exactly
+        // Example: "https://your-username.github.io/your-repo/"
+        const PROD_URL = "https://bkb.trafford.nz/"; 
 
-        // 1. Check for ?redirect=... in the URL (dev override)
         const redirectOverride = new URLSearchParams(window.location.search).get("redirect");
+        const redirectUri = redirectOverride ? redirectOverride : PROD_URL;
 
-        // 2. Use override if present, otherwise use the current page
-        const redirectUri = redirectOverride
-            ? redirectOverride
-            : window.location.origin + window.location.pathname;
+        alert("Redirecting with URI: " + redirectUri); // Important: Verify this on the phone!
 
-        // 3. Build GitHub OAuth URL
         const url =
             `https://github.com/login/oauth/authorize` +
             `?client_id=${GITHUB_CLIENT_ID}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&scope=gist`;
 
-        // 4. Redirect to GitHub
         window.location.href = url;
     });
 }
