@@ -80,8 +80,8 @@ async function getCurrentWorkspaceGist() {
     });
 
     if (res.status === 401) {
-        logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired. Disconnecting.");
-        disconnectFromGitHub("Cloud token expired.");
+        logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired.");
+        // disconnectFromGitHub("Cloud token expired.");
         return null;
     }
 
@@ -200,7 +200,7 @@ export async function runSyncCheck(reason) {
     const gistId = getGistId();
     if (!token || !gistId) {
         logger.error("sync: runSyncCheck", "Missing token or gistId — likely after suspend/wake. Stopping sync.");
-        disconnectFromGitHub("Cloud connection lost.");
+        //disconnectFromGitHub("Cloud connection lost.");
         return;
     }
     // ---------------------------------------------------------------------------
