@@ -49,6 +49,12 @@ async function init() {
     initResizers();
     bindEditorEvents();
     bindPaneFocusEvents();
+
+    const token = localStorage.getItem("github_token");
+    if (!token) {
+        // This will put the "Reconnect" link into your navbar notification area immediately.
+        disconnectFromGitHub("Cloud sync is off."); 
+    }    
 }
 
 
