@@ -2,7 +2,7 @@ import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator} from "./ui.js";
 import { loadState } from "./workspace.js";    
 import { setupMarked } from "./md-editor.js";
-import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
+import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, disconnectFromGitHub } from "./sync.js";
 
 /* it's critical that the order remains as below
 This ensures:
@@ -12,7 +12,6 @@ The sync loop starts before the user interacts with the UI
 The sync loop starts before any file is opened
 */
 
-alert("4. Still alive without sync.js");
 
 const token = localStorage.getItem("github_token");
 
@@ -58,11 +57,13 @@ if (token) {
     bindEditorEvents();
     bindPaneFocusEvents();
 
-    const token = localStorage.getItem("github_token");
-    if (!token) {
-        // This will put the "Reconnect" link into your navbar notification area immediately.
-        disconnectFromGitHub("Cloud sync is off."); 
-    }    
+    // 3. Final check - use the value directly to avoid "Redeclaration" errors
+    if (!localStorage.getItem("github_token")) {
+        // Only run this if we STILL don't have a token after redirect handling
+        if (typeof disconnectFromGitHub === "function") {
+            disconnectFromGitHub("Cloud sync is off."); 
+        }
+    }   
 }
 
 
