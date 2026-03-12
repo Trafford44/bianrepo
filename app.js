@@ -17,9 +17,20 @@ The sync loop starts after the workspace is loaded
 The sync loop starts before the user interacts with the UI
 The sync loop starts before any file is opened
 */
-
+const token = localStorage.getItem("github_token");
 
 async function init() {
+
+// TEMPORARY DEBUG
+
+alert("DEBUG: Token is " + (token ? "FOUND" : "MISSING"));
+if (token) {
+    document.body.style.border = "10px solid green";
+} else {
+    document.body.style.border = "10px solid red";
+}
+
+
     // 1. Markdown renderer must be ready before any preview happens
     setupMarked();
 
