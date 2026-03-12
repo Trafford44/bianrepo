@@ -67,9 +67,20 @@ async function getCurrentWorkspaceGist() {
 
     const gistId = getGistId();
     const githubToken = getToken();
-    if (!gistId || !githubToken) {
+
+    // 1. If the token is missing, we are truly disconnected
+    if (!githubToken) {
         logger.info("sync: getCurrentWorkspaceGist", "No gistId or token found in localStorage.");
         disconnectFromGitHub("Cloud connection lost.");
+        return null;
+    }
+
+    // 2. If ONLY the gistId is missing, DON'T disconnect!
+    // This happens on every new login before the first save.
+    if (!gistId) {
+        logger.info("sync", "No gistId yet. Staying connected.");
+        // We return null so the sync loop knows there's nothing to fetch yet,
+        // but we stay "Connected" in the UI.
         return null;
     }
 
