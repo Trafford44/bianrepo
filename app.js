@@ -1,14 +1,8 @@
 import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
-import { 
-    initResizers, 
-    renderSidebar, 
-    bindEditorEvents, 
-    bindPaneFocusEvents, 
-    updateLoginIndicator
-} from "./ui.js";
-import { loadState } from "./workspace.js";    
-import { setupMarked } from "./md-editor.js";
-import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
+import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator} from "./ui.js";
+//import { loadState } from "./workspace.js";    
+//import { setupMarked } from "./md-editor.js";
+//import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
 
 /* it's critical that the order remains as below
 This ensures:
@@ -17,6 +11,9 @@ The sync loop starts after the workspace is loaded
 The sync loop starts before the user interacts with the UI
 The sync loop starts before any file is opened
 */
+
+alert("3. app.js is alive!");
+
 const token = localStorage.getItem("github_token");
 
 async function init() {
