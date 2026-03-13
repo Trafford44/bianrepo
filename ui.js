@@ -934,45 +934,54 @@ document.getElementById("toggle-editor").addEventListener("click", () => {
 
 export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
     const el = document.getElementById("notification");
-    if (!el) return;
+    if (!el) {
+        logger.info("ui: showCountdownNotification", "Couldn't find element 'notification'");
+        return;
+    }
 
     clearTimeout(notificationTimeout);
     clearInterval(countdownInterval);
 
-    let remaining = countdown;
+    try {
+        let remaining = countdown;
 
-    function bindCancel() {
-        const cancel = el.querySelector("#cancel-countdown");
-        if (cancel) {
-            cancel.onclick = () => {
-                clearInterval(countdownInterval);
-                el.classList.remove("show");
-                onCancel();
-            };
+        function bindCancel() {
+            const cancel = el.querySelector("#cancel-countdown");
+            if (cancel) {
+                cancel.onclick = () => {
+                    clearInterval(countdownInterval);
+                    el.classList.remove("show");
+                    onCancel();
+                };
+            }
         }
-    }
 
-    function render() {
-        el.className = "notification notification-countdown show";
-        el.innerHTML = `
-            Overwriting with newer cloud version in <strong>${remaining}</strong> seconds.
-            <a id="cancel-countdown">Cancel</a>
-        `;
-        bindCancel();   // must be called after every render
-    }
+        function render() {
+            el.className = "notification notification-countdown show";
+            el.innerHTML = `
+                Overwriting with newer cloud version in <strong>${remaining}</strong> seconds.
+                <a id="cancel-countdown">Cancel</a>
+            `;
+            bindCancel();   // must be called after every render
+        }
 
-    render();
-
-    countdownInterval = setInterval(() => {
-        remaining--;
         render();
 
-        if (remaining <= 0) {
-            clearInterval(countdownInterval);
-            el.classList.remove("show");
-            onConfirm();
-        }
-    }, 1000);
+        countdownInterval = setInterval(() => {
+            remaining--;
+            render();
+
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                el.classList.remove("show");
+                onConfirm();
+            }
+        }, 1000);
+
+    } catch (error) {
+        logger.error("ui: showCountdownNotification", error);
+        return;
+    }     
 }
 
 
