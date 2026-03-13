@@ -6,43 +6,11 @@ Timestamps are used only for idle-return and auto-save timing.
 */
 
 
-import { 
-    getToken, 
-    getGistId, 
-    setGistId, 
-    requireLogin 
-} from "./auth.js";
-
-import { 
-    setWorkspace,
-    saveState,
-    getWorkspace,
-} from "./workspace.js";
-
-import {
-    renderSidebar,
-    setSyncStatus,
-    showNotification,
-    showCountdownNotification
-} from "./ui.js";
-
-
-import { 
-    flattenWorkspace,
-    unflattenWorkspace,
-    migrateWorkspace
-} from "./workspace.js";
-
-import { 
-    logger, 
-    LOG_LEVELS, 
-    formatDateNZ 
-} from "./logger.js";
-
-import {
-    extractMetadata,
-    applyMetadata
-} from "./workspace-metadata.js";   
+import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
+import { setWorkspace, saveState, getWorkspace, flattenWorkspace, unflattenWorkspace, migrateWorkspace } from "./workspace.js";
+import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
+import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
+import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
 
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
