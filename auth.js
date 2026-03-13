@@ -38,45 +38,66 @@
 import { updateLoginIndicator, showNotification } from "./ui.js";
 import { runSyncCheck } from "./sync.js";
 import { deviceId } from "./device.js";
+import { logger } from "./logger.js";
 
 const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 
 export function getToken() {
-    // const t = localStorage.getItem("github_token");  // changeme
-    const t = localStorage.getItem(`github_token_${deviceId}`);
+    try {
+        // const t = localStorage.getItem("github_token");  // changeme
+        const t = localStorage.getItem(`github_token_${deviceId}`);
+        
+        if (!t || t === "undefined" || t === "null") return null;
+        return t;
 
-    
-    if (!t || t === "undefined" || t === "null") return null;
-    return t;
+    } catch (error) {
+        logger.error("auth: getToken", error);
+        return null;        
+    }
 }
 
 export function getGistId() {
-    const raw = localStorage.getItem("gist_id");
-    if (!raw || raw === "undefined" || raw === "null") return null;
-    return raw;
+    try {    
+        const raw = localStorage.getItem("gist_id");
+        if (!raw || raw === "undefined" || raw === "null") return null;
+        return raw;
+    } catch (error) {
+        logger.error("auth: getGistId", error);
+    }        
 }
 
 export function setGistId(id) {
-    localStorage.setItem("gist_id", id);
+    try {      
+        localStorage.setItem("gist_id", id);
+    } catch (error) {
+        logger.error("auth: setGistId", "Failed to store gist id", { id, error });
+    }         
 }
 
 
 export function requireLogin() {
-    const token = getToken();
-    if (!token) {
-        updateLoginIndicator();
-        showNotification("warning", "Please sign in to Cloud first");
+    try {      
+        const token = getToken();
+        if (!token) {
+            updateLoginIndicator();
+            showNotification("warning", "Please sign in to Cloud first");
+            return false;
+        }
+        return true;
+    } catch (error) {
+        logger.error("auth: requireLogin", error);
         return false;
-    }
-    return true;
+    }          
 }
 
 
 export function bindLoginButton() {
     const btn = document.getElementById("github-login");
-    if (!btn) return;
-
+    if (!btn) {
+        logger.info("auth: bindLoginButton", "Login button not found");
+        return;
+    }
     btn.addEventListener("click", () => {
 
         // 1. Check for ?redirect=... in the URL (dev override)
@@ -100,32 +121,42 @@ export function bindLoginButton() {
         // 4. Redirect to GitHub
         window.location.href = url;
     });
+    
 }
 
 
 export async function handleOAuthRedirect() {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    if (!code) return;
+    try {      
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
+        if (!code) return;
 
-    const res = await fetch(WORKER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code })
-    });
+        const res = await fetch(WORKER_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code })
+        });
+        if (!res.ok) {
+            logger.error("auth: handleOAuthRedirect", "OAuth worker failed", res.status);
+            return;
+        }
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (data.access_token) {
-        // localStorage.setItem("github_token", data.access_token); // changeme
-        localStorage.setItem(`github_token_${deviceId}`, data.access_token);
-        window.history.replaceState({}, "", window.location.pathname);
-        console.log("GitHub login successful");
-        updateLoginIndicator();
-        await runSyncCheck("login");
+        if (data.access_token) {
+            // localStorage.setItem("github_token", data.access_token); // changeme
+            localStorage.setItem(`github_token_${deviceId}`, data.access_token);
+            window.history.replaceState({}, "", window.location.pathname);
+            logger.info("auth: handleOAuthRedirect", "GitHub login successful");
+            updateLoginIndicator();
+            await runSyncCheck("login");
 
-    } else {
-        console.error("OAuth error:", data);
-    }
+        } else {
+            logger.error("auth: handleOAuthRedirect", "OAuth response missing token", data);
+        }
+    } catch (error) {
+        logger.error("auth: handleOAuthRedirect", error);
+    }    
+
 }
 
