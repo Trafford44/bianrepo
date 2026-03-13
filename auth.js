@@ -44,6 +44,7 @@ const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 
 export function getToken() {
+    logger.debug("auth", "Running getToken()");
     try {
         // const t = localStorage.getItem("github_token");  // changeme
         const t = localStorage.getItem(`github_token_${deviceId}`);
@@ -58,25 +59,30 @@ export function getToken() {
 }
 
 export function getGistId() {
+    logger.debug("auth", "Running getGistId()");
     try {    
         const raw = localStorage.getItem("gist_id");
         if (!raw || raw === "undefined" || raw === "null") return null;
         return raw;
     } catch (error) {
         logger.error("auth: getGistId", error);
+        return null;
     }        
 }
 
 export function setGistId(id) {
+    logger.debug("auth", "Running setGistId()");
     try {      
         localStorage.setItem("gist_id", id);
     } catch (error) {
         logger.error("auth: setGistId", "Failed to store gist id", { id, error });
+        return;
     }         
 }
 
 
 export function requireLogin() {
+    logger.debug("auth", "Running requireLogin()");
     try {      
         const token = getToken();
         if (!token) {
@@ -93,6 +99,7 @@ export function requireLogin() {
 
 
 export function bindLoginButton() {
+    logger.debug("auth", "Running bindLoginButton()");
     const btn = document.getElementById("github-login");
     if (!btn) {
         logger.info("auth: bindLoginButton", "Login button not found");
@@ -126,6 +133,7 @@ export function bindLoginButton() {
 
 
 export async function handleOAuthRedirect() {
+    logger.debug("auth", "Running handleOAuthRedirect()");
     try {      
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
@@ -156,6 +164,7 @@ export async function handleOAuthRedirect() {
         }
     } catch (error) {
         logger.error("auth: handleOAuthRedirect", error);
+        return;
     }    
 
 }
