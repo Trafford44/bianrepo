@@ -43,6 +43,7 @@ async function init() {
     initResizers();
     bindEditorEvents();
     bindPaneFocusEvents();
+    console.log("made it to here");
 }
 
 
