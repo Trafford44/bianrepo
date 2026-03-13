@@ -24,8 +24,8 @@ let lastActivityTime = Date.now();
 const IDLE_THRESHOLD = 30_000; // 30 seconds
 
 const GIST_API = "https://api.github.com/gists";
-console.log("sync.js loaded from:", import.meta.url);
 
+logger.debug("sync","sync.js loaded from:", import.meta.url);
 
 async function getCurrentWorkspaceGist() {
     if (!requireLogin()) {
@@ -43,55 +43,74 @@ async function getCurrentWorkspaceGist() {
 
     logger.info("sync: getCurrentWorkspaceGist", `Fetching gist with ID: ${gistId}`);
 
-    const res = await fetch(`${GIST_API}/${gistId}`, {
-        headers: { "Authorization": `token ${githubToken}` }
-    });
+    try {
+        const res = await fetch(`${GIST_API}/${gistId}`, {
+            headers: { "Authorization": `token ${githubToken}` }
+        });
 
-    if (res.status === 401) {
-        logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired. Disconnecting.");
-        disconnectFromGitHub("Cloud token expired.");
+        if (res.status === 401) {
+            logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired. Disconnecting.");
+            disconnectFromGitHub("Cloud token expired.");
+            return null;
+        }
+
+        if (!res.ok) {
+            const text = await res.text();
+            logger.error("sync: getCurrentWorkspaceGist", `Failed to fetch gist (status: ${res.status})`);
+            return null;
+        }
+
+        const data = await res.json();
+
+        if (!data || !data.files) {
+            logger.error("sync: getCurrentWorkspaceGist", "Response missing files property");
+            return null;
+        }   
+
+        logger.info("sync: getCurrentWorkspaceGist", `Fetched gist with ID: ${data.id}, updated_at: ${formatDateNZ(data.updated_at)}`, { files: Object.keys(data.files) });
+
+        return data;
+
+    } catch (error) {
+        logger.error("sync: getCurrentWorkspaceGist", error);
         return null;
-    }
-
-    if (!res.ok) {
-        const text = await res.text();
-        logger.error("sync: getCurrentWorkspaceGist", `Failed to fetch gist (status: ${res.status})`);
-        return null;
-    }
-
-    const data = await res.json();
-
-    if (!data || !data.files) {
-        logger.error("sync: getCurrentWorkspaceGist", "Response missing files property");
-        return null;
-    }   
-
-    logger.info("sync: getCurrentWorkspaceGist", `Fetched gist with ID: ${data.id}, updated_at: ${formatDateNZ(data.updated_at)}`, { files: Object.keys(data.files) });
-
-    return data;
+    }            
 }
 
 
 export async function startSyncLoop() {
-    await runSyncCheck("startup");
-console.log("startSyncLoop called");
-    syncIntervalId = setInterval(async () => {
-        await runSyncCheck("periodic");
-    }, syncInterval);
+    logger.debug("sync", "Running startSyncLoop()");
+    try {
+        await runSyncCheck("startup");
+        logger.info("startSyncLoop called");
+        syncIntervalId = setInterval(async () => {
+            await runSyncCheck("periodic");
+        }, syncInterval);
+    } catch (error) {
+        logger.error("sync: startSyncLoop", error);
+        return null;
+    }        
 }
 
 export function stopSyncLoop() {
-    console.log("stopSyncLoop:", syncIntervalId);
-
-    if (syncIntervalId !== null) {
-        clearInterval(syncIntervalId);
-        syncIntervalId = null;
-    }
+    logger.debug("sync", "Running stopSyncLoop()");
+    try {      
+        if (syncIntervalId !== null) {
+            clearInterval(syncIntervalId);
+            syncIntervalId = null;
+            logger.info("stopSyncLoop:", syncIntervalId);
+        }
+    } catch (error) {
+        logger.error("sync: stopSyncLoop", error);
+        return null;
+    }           
 }
 
 
 // re-check the token immediately after wake to handle cases where GitHub token becomes invalid after laptop suspend
 export async function bindVisibilityEvents() {
+    logger.debug("sync", "Running bindVisibilityEvents()");
+
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
             runSyncCheck("resume");
@@ -100,6 +119,7 @@ export async function bindVisibilityEvents() {
 }
 
 export function bindActivityEvents() {
+    logger.debug("sync", "Running bindActivityEvents()");
     document.addEventListener("keydown", markActivity);
     document.addEventListener("mousemove", markActivity);
     document.addEventListener("mousedown", markActivity);
@@ -108,6 +128,7 @@ export function bindActivityEvents() {
 }
 
 function markActivity() {
+    logger.debug("sync", "Running markActivity()");
     const now = Date.now();
     const wasIdle = (now - lastActivityTime) > IDLE_THRESHOLD;
     lastActivityTime = now;
@@ -118,8 +139,12 @@ function markActivity() {
 }
 
 function setConnectionButtonState(connected) {
+    logger.debug("sync", "Running setConnectionButtonState()");
     const loginBtn = document.getElementById("github-login");
-    if (!loginBtn) return;
+    if (!loginBtn) {
+        logger.info("sync: setConnectionButtonState", "Button 'github-login' not found");
+        return;
+    }
 
     if (connected) {
         loginBtn.textContent = "Connected to Cloud";
@@ -134,9 +159,13 @@ function setConnectionButtonState(connected) {
 
 function bindReconnectLink() {
     // Delay ensures the notification HTML is in the DOM
+    logger.debug("sync", "Running bindReconnectLink()");
     setTimeout(() => {
         const link = document.getElementById("reconnect-link");
-        if (!link) return;
+        if (!link) {
+            logger.info("sync: bindReconnectLink", "Link 'reconnect-link' not found");
+            return;
+        }        
 
         link.addEventListener("click", (e) => {
             e.preventDefault();
@@ -147,6 +176,7 @@ function bindReconnectLink() {
 }
 
 function disconnectFromGitHub(message) {
+    logger.debug("sync", "Running disconnectFromGitHub()");
     setSyncStatus("error", "Disconnected");
     setConnectionButtonState(false);
     showNotification("error",`${message} <a href="#" id="reconnect-link">Reconnect</a>.`);
@@ -155,6 +185,8 @@ function disconnectFromGitHub(message) {
 }
 
 function connectToGitHub() {
+    logger.debug("sync", "Running connectToGitHub()");
+    setSyncStatus("error", "Disconnected");
     setSyncStatus("synced", "Connected");
     setConnectionButtonState(true);
     showNotification("success", "Connected to cloud");
@@ -224,12 +256,14 @@ export async function runSyncCheck(reason) {
 
 
 function updateSyncState() {
+    logger.debug("sync", "Running updateSyncState()");
     // Only updates timing — never the hash.
     lastSuccessfulSyncTime = Date.now();
 }
 
 
 async function handleCloudChange(latest, idleReturn) {
+    logger.debug("sync", "Running handleCloudChange()");
     const now = Date.now();
     const recentlyTyped = (now - lastLocalEditTime) < 30_000;
 
@@ -255,31 +289,42 @@ async function handleCloudChange(latest, idleReturn) {
 }
 
 async function hashGistContent(files) {
-    const entries = Object.entries(files)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([name, f]) => name + "\n" + (f.content || ""));
+    logger.debug("sync", "Running hashGistContent()");
+    try {
+        const entries = Object.entries(files)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([name, f]) => name + "\n" + (f.content || ""));
 
-    const content = entries.join("\n---\n");
+        const content = entries.join("\n---\n");
 
-    const buffer = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(content)
-    );
+        const buffer = await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder().encode(content)
+        );
 
-    return Array.from(new Uint8Array(buffer))
-        .map(x => x.toString(16).padStart(2, "0"))
-        .join("");
+        return Array.from(new Uint8Array(buffer))
+            .map(x => x.toString(16).padStart(2, "0"))
+            .join("");
+
+    } catch (error) {
+        logger.error("sync: hashGistContent", error);
+        return null;
+    }         
 }
 
 
 
 async function maybeAutoSave() {
+    logger.debug("sync", "Running maybeAutoSave()");
     const now = Date.now();
 
     // Only auto-save if user typed since last sync
     const hasLocalChanges = (now - lastLocalEditTime) < syncInterval;
 
-    if (!hasLocalChanges) return;
+    if (!hasLocalChanges) {
+        logger.info("sync: maybeAutoSave", "No local changes found")
+        return;
+    }
 
     // Do not auto-save if cloud is newer
     if (await cloudHashChanged()) return;
@@ -288,14 +333,19 @@ async function maybeAutoSave() {
 }
 
 async function cloudHashChanged() {
+    logger.debug("sync", "Running cloudHashChanged()");
     const latest = await getCurrentWorkspaceGist();
-    if (!latest) return false;
+    if (!latest) {
+        logger.info("sync: cloudHashChanged", "Latest Gist workspace notfound")
+        return false;
+    }
 
     const cloudHash = await hashGistContent(latest.files);
     return cloudHash !== lastSyncedHash;
 }
 
 window.debugCloud = async () => {
+    logger.debug("sync", "Assigning window.debugCloud");
     const latest = await getNewestGistAcrossAccount();
 
     if (!latest) {
@@ -310,6 +360,7 @@ window.debugCloud = async () => {
 };
 
 export async function saveWorkspaceToGist() {
+    logger.debug("sync", "Running saveWorkspaceToGist()");
     if (!requireLogin()) return;
 
     if (isSaving) {
@@ -420,13 +471,18 @@ export async function saveWorkspaceToGist() {
         showSyncState("synced");
         showNotification("success", "Saved to cloud");
 
-    } finally {
+    } catch (error) {
+        logger.error("sync: saveWorkspaceToGist", error);
+        return false;
+    }   
+    finally {
         isSaving = false;
     }
 }
 
 
 function showSyncState(state) {
+    logger.debug("sync", "Running showSyncState()");
     const map = {
         saving: ["saving", "Saving…"],
         synced: ["synced", "Synced"],
@@ -436,151 +492,202 @@ function showSyncState(state) {
 }
 
 export async function loadWorkspaceFromGist() {
-    if (!requireLogin()) return;
-
+    logger.debug("sync", "Running loadWorkspaceFromGist()");
+    if (!requireLogin()) {
+        logger.info("sync: loadWorkspaceFromGist", "Login not required")
+        return;
+    }
     const gistId = getGistId();
     const githubToken = getToken();
 
-    if (!gistId) {
+    if (!gistId) {        
         showNotification("info", "No cloud backup found. Save to Cloud first.");
+        logger.info("sync: loadWorkspaceFromGist", "No cloud backup found. Instructed user to save to Cloud first")
         return;
     }
 
-    const res = await fetch(`${GIST_API}/${gistId}`, {
-        headers: { "Authorization": `token ${githubToken}` }
-    });
+    try {
+        const res = await fetch(`${GIST_API}/${gistId}`, {
+            headers: { "Authorization": `token ${githubToken}` }
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    // Convert flat gist files → recursive workspace tree
-    const flat = {};
-    for (const filename in data.files) {
-        flat[filename] = data.files[filename].content;
-    }
+        // Convert flat gist files → recursive workspace tree
+        const flat = {};
+        for (const filename in data.files) {
+            flat[filename] = data.files[filename].content;
+        }
 
-    const tree = unflattenWorkspace(flat);
+        const tree = unflattenWorkspace(flat);
 
-    // Ensure root is ALWAYS an array
-    if (!Array.isArray(tree)) {
-        tree = [tree];
-    }
+        // Ensure root is ALWAYS an array
+        if (!Array.isArray(tree)) {
+            tree = [tree];
+        }
 
-    migrateWorkspace(tree); // 🔥 NEW: migrate to the latest model
-    setWorkspace(tree);
-    saveState();
-    renderSidebar();
+        migrateWorkspace(tree); // NEW: migrate to the latest model
+        setWorkspace(tree);
+        saveState();
+        renderSidebar();
 
-    showNotification("success", "Data loaded from Cloud");
+        showNotification("success", "Data loaded from Cloud");
+
+    } catch (error) {
+        logger.error("sync: loadWorkspaceFromGist", error);
+        return;
+    }    
 }
 
 
 async function getNewestGistAcrossAccount() {
-    if (!requireLogin()) return null;
+    logger.debug("sync", "Running getNewestGistAcrossAccount()");
+    if (!requireLogin()) {
+        logger.info("sync: getNewestGistAcrossAccount", "Login not required")
+        return null;
+    }
 
-    const githubToken = getToken();
+    try {
+        const githubToken = getToken();
 
-    const res = await fetch("https://api.github.com/gists", {
-        headers: { "Authorization": `token ${githubToken}` }
-    });
+        const res = await fetch("https://api.github.com/gists", {
+            headers: { "Authorization": `token ${githubToken}` }
+        });
 
-    if (!res.ok) return null;
+        if (!res.ok) return null;
 
-    const list = await res.json();
-    if (!Array.isArray(list) || list.length === 0) return null;
+        const list = await res.json();
+        if (!Array.isArray(list) || list.length === 0) return null;
 
-    // Sort by updated_at descending
-    list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+        // Sort by updated_at descending
+        list.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
-    return list[0]; // newest gist
+        return list[0]; // newest gist
+
+    } catch (error) {
+        logger.error("sync: getNewestGistAcrossAccount", error);
+        return null;
+    }      
 }
 
 export async function listGistRevisions() {
-    if (!requireLogin()) return [];
-
-    const githubToken = getToken();
-    const gistId = getGistId();
-
-    if (!gistId) {
-        showNotification("info", "No cloud backup found");
+    logger.debug("sync", "Running listGistRevisions()");
+    if (!requireLogin()) {
+        logger.info("sync: listGistRevisions", "Login not required")
         return [];
     }
 
-    const res = await fetch(`${GIST_API}/${gistId}/commits`, {
-        headers: { "Authorization": `token ${githubToken}` }
-    });
+    try {
+        const githubToken = getToken();
+        const gistId = getGistId();
 
-    const data = await res.json();
-    return data;
+        if (!gistId) {
+            showNotification("info", "No cloud backup found");
+            return [];
+        }
+
+        const res = await fetch(`${GIST_API}/${gistId}/commits`, {
+            headers: { "Authorization": `token ${githubToken}` }
+        });
+
+        const data = await res.json();
+        return data;
+
+    } catch (error) {
+        logger.error("sync: listGistRevisions", error);
+        return [];
+    }     
 }
 
 export async function restoreFromGistVersion(versionId) {
-    if (!requireLogin()) return;
+    logger.debug("sync", "Running restoreFromGistVersion()");
+    if (!requireLogin()) {
+        logger.info("sync: restoreFromGistVersion", "Login not required")
+        return;
+    }
 
-    const gistId = getGistId();
-    const githubToken = getToken();
+    try {
+        const gistId = getGistId();
+        const githubToken = getToken();
 
-    const res = await fetch(`${GIST_API}/${gistId}/${versionId}`, {
-        headers: { "Authorization": `token ${githubToken}` }
-    });
+        const res = await fetch(`${GIST_API}/${gistId}/${versionId}`, {
+            headers: { "Authorization": `token ${githubToken}` }
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    // ⭐ 1. Load metadata file if present
-    const metadataFile = data.files["__workspace.json"];
-    let metadata = null;
+        // ⭐ 1. Load metadata file if present
+        const metadataFile = data.files["__workspace.json"];
+        let metadata = null;
 
-    if (metadataFile && metadataFile.content) {
-        try {
-            metadata = JSON.parse(metadataFile.content);
-        } catch (e) {
-            console.warn("Invalid metadata file", e);
+        if (metadataFile && metadataFile.content) {
+            try {
+                metadata = JSON.parse(metadataFile.content);
+            } catch (e) {
+                console.warn("Invalid metadata file", e);
+            }
         }
-    }
 
-    // 2. Convert flat gist files → recursive workspace tree
-    const flat = {};
-    for (const filename in data.files) {
-        if (filename === "__workspace.json") continue; // skip metadata file
-        flat[filename] = data.files[filename].content;
-    }
+        // 2. Convert flat gist files → recursive workspace tree
+        const flat = {};
+        for (const filename in data.files) {
+            if (filename === "__workspace.json") continue; // skip metadata file
+            flat[filename] = data.files[filename].content;
+        }
 
-    let tree = unflattenWorkspace(flat);
+        let tree = unflattenWorkspace(flat);
 
-    // ⭐ 3. Apply metadata to the reconstructed tree
-    if (metadata) {
-        applyMetadata(tree, metadata);
-    }
+        // ⭐ 3. Apply metadata to the reconstructed tree
+        if (metadata) {
+            applyMetadata(tree, metadata);
+        }
 
-    // 4. Save into app state
-    setWorkspace(tree);
-    saveState();
-    renderSidebar();
+        // 4. Save into app state
+        setWorkspace(tree);
+        saveState();
+        renderSidebar();
 
-    showNotification("success", "Workspace restored from previous version");
+        showNotification("success", "Workspace restored from previous version");
+
+    } catch (error) {
+        logger.error("sync: restoreFromGistVersion", error);
+        return;
+    }     
 }
 
 
 
 export function markLocalEdit() {
+    logger.debug("sync", "Running markLocalEdit()");
     lastLocalEditTime = Date.now();
     logger.info("sync: markLocalEdit", `Local edit detected at ${new Date(lastLocalEditTime).toISOString()}`);
 }
 
 export async function showRestoreDialog() {
+    logger.debug("sync", "Running showRestoreDialog()");
     const revisions = await listGistRevisions();
-    if (!revisions || revisions.length === 0) return;
+    if (!revisions || revisions.length === 0) {
+        logger.info("sync: showRestoreDialog", "No Gist revisions found")
+        return;
+    }    
 
-    let msg = "Choose a version to restore:\n\n";
-    revisions.forEach((rev, i) => {
-        msg += `${i + 1}. ${rev.version} — ${rev.committed_at}\n`;
-    });
+    try {
+        let msg = "Choose a version to restore:\n\n";
+        revisions.forEach((rev, i) => {
+            msg += `${i + 1}. ${rev.version} — ${rev.committed_at}\n`;
+        });
 
-    const choice = prompt(msg);
-    if (!choice) return;
+        const choice = prompt(msg);
+        if (!choice) return;
 
-    const index = parseInt(choice, 10) - 1;
-    const versionId = revisions[index]?.version;
-    if (!versionId) return;
+        const index = parseInt(choice, 10) - 1;
+        const versionId = revisions[index]?.version;
+        if (!versionId) return;
 
-    await restoreFromGistVersion(versionId);
+        await restoreFromGistVersion(versionId);
+
+    } catch (error) {
+        logger.error("sync: showRestoreDialog", error);
+        return;
+    }      
 }
