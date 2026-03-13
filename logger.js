@@ -1,6 +1,5 @@
 // logger.js
 
-const shouldLog = false;
 
 const LOG_LEVELS = {
   NONE: 0,
@@ -10,11 +9,12 @@ const LOG_LEVELS = {
   DEBUG: 4
 };
 
+
 // Change this per module if you want different log levels for different parts of the app
 let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
 function log(levelName, levelValue, source, message, details) {
-  if (!shouldLog) return;
+  if (CURRENT_LEVEL === LOG_LEVELS.NONE) return;
   if (levelValue > CURRENT_LEVEL) return;
 
   const timestamp = formatDateNZ();
