@@ -1,11 +1,5 @@
 import { handleOAuthRedirect, bindLoginButton } from "./auth.js";
-import { 
-    initResizers, 
-    renderSidebar, 
-    bindEditorEvents, 
-    bindPaneFocusEvents, 
-    updateLoginIndicator
-} from "./ui.js";
+import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator} from "./ui.js";
 import { loadState } from "./workspace.js";    
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
