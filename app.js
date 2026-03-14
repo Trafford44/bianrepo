@@ -15,10 +15,10 @@ The sync loop starts before any file is opened
 
 logger.debug("app", "app.js loaded from:", import.meta.url);
 
-function hasOAuthCode() {
-    const params = new URLSearchParams(window.location.search);
-    logger.debug("auth", "hasOAuthCode():", has, "URL:", window.location.href);
-    return params.has("code");
+export function hasOAuthCode() {
+    const has = window.location.search.includes("code=");
+    logger.debug("auth", `hasOAuthCode(): ${has}`, `URL: ${window.location.href}`);
+    return has;
 }
 
 async function init() {
