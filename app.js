@@ -45,7 +45,7 @@ async function init() {
     initResizers();
     bindEditorEvents();
     bindPaneFocusEvents();
-    console.log("made it to here");
+    console.log("Made it to end in init()");
 }
 
 
