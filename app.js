@@ -12,6 +12,7 @@ The sync loop starts before the user interacts with the UI
 The sync loop starts before any file is opened
 */
 
+logger.debug("app","app.js loaded from:", import.meta.url);
 
 async function init() {
     // 1. Markdown renderer must be ready before any preview happens
