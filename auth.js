@@ -129,6 +129,7 @@ export function bindLoginButton() {
             `&scope=gist`;
 
         // 4. Redirect to GitHub
+        logger.debug("auth: bindLoginButton", "OAuth URL:", url);
         window.location.href = url;
     });
     
