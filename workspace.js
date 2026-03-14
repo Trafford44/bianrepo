@@ -1,3 +1,5 @@
+import { logger } from "./logger.js";
+
 let workspace = []
 const STORAGE_KEY = "kb_data";
 
