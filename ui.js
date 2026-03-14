@@ -179,7 +179,7 @@ export function renderSidebar() {
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
-    const tree = getWorkspace();
+    let tree = getWorkspace();
 
     container.innerHTML = "";
 
