@@ -1,5 +1,7 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 
+logger.debug("binding","binding.js loaded from:", import.meta.url);
+
 import { 
     applyBgColorFormat,
     applyClearFormatting,
