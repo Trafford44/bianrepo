@@ -158,6 +158,7 @@ export async function handleOAuthRedirect() {
             // localStorage.setItem("github_token", data.access_token); // changeme
             logger.debug("auth", "Saving token under key:", "github_token_" + String(deviceId));
             localStorage.setItem("github_token_" + String(deviceId), data.access_token);
+            logger.debug("auth", "After save, reading back token:", localStorage.getItem(`github_token_${String(deviceId)}`));
             window.history.replaceState({}, "", window.location.pathname);
             logger.info("auth: handleOAuthRedirect", "GitHub login successful");
             updateLoginIndicator();
