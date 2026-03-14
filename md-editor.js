@@ -8,6 +8,7 @@ If it changes UI → ui.js, likely starting applyMarkdownFormat()
 logger.debug("md-editor","md-editor.js loaded from:", import.meta.url);
 
 export function setupMarked() {
+    logger.debug("md-editor", "setupMarked()");
     const renderer = new marked.Renderer();
 
     // Keep lists tight but paragraphs spaced
@@ -29,6 +30,7 @@ export function setupMarked() {
 }
 
 export function applyMarkdownFormat(type, textarea) {
+    logger.debug("md-editor", "applyMarkdownFormat()");
     // store previous value for one-level formatting undo
     textarea.dataset.lastFormatValue = textarea.value;
 
