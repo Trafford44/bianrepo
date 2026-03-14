@@ -5,6 +5,8 @@ If it changes UI → ui.js, likely starting applyMarkdownFormat()
 
 // md-editor.js (top of file or near other exports)
 
+logger.debug("md-editor","md-editor.js loaded from:", import.meta.url);
+
 export function setupMarked() {
     const renderer = new marked.Renderer();
 
