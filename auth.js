@@ -100,7 +100,6 @@ export function requireLogin() {
     }          
 }
 
-
 export function bindLoginButton() {
     logger.debug("auth", "Running bindLoginButton()");
     const btn = document.getElementById("github-login");
@@ -108,6 +107,7 @@ export function bindLoginButton() {
         logger.info("auth: bindLoginButton", "Login button not found");
         return;
     }
+    console.log("Bind-time button:", btn);
     btn.addEventListener("click", () => {
 
         // 1. Check for ?redirect=... in the URL (dev override)
@@ -131,11 +131,11 @@ export function bindLoginButton() {
         // 4. Redirect to GitHub
         logger.debug("auth: bindLoginButton", "OAuth URL:", url);
         window.location.href = url;
+        console.log("Click-time button:", event.target);
+
     });
     
 }
-
-
 export async function handleOAuthRedirect() {
     logger.debug("auth", "Running handleOAuthRedirect()");
     try {      
