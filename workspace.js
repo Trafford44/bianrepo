@@ -1,6 +1,8 @@
 let workspace = []
 const STORAGE_KEY = "kb_data";
 
+logger.debug("workspace","workspace.js loaded from:", import.meta.url);
+
 export function getWorkspace() {
     // ensure workspace is always sorted
     sortTree(workspace); // root stays in user-defined order
