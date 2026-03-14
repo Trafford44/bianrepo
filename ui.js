@@ -727,12 +727,23 @@ export function showNotification(type, text) {
 
 
 export function updateLoginIndicator() {
-    logger.debug("ui", "updateLoginIndicator()");
-    const token = getToken();
-    const loggedIn = !!token;
+    logger.debug("ui", "Running updateLoginIndicator()");
 
     // Update GitHub login button
     const loginBtn = document.getElementById("github-login");
+    if (!loginBtn) {
+        logger.debug("ui: updateLoginIndicator", "login button not yet in DOM");
+        return;
+    }
+
+    const token = getToken();
+    const gistId = getGistId();
+    // A user is only "logged in" if BOTH token and gistId exist
+    const loggedIn = !!token && !!gistId;
+
+    // Clean slate - seems old states being held
+    loginBtn.classList.remove("github-logged-in", "github-login-needed");
+
     if (loginBtn) {
         if (loggedIn) {
             loginBtn.classList.remove("github-login-needed");
