@@ -128,7 +128,6 @@ export function bindActivityEvents() {
 }
 
 function markActivity() {
-    logger.debug("sync", "Running markActivity()");
     const now = Date.now();
     const wasIdle = (now - lastActivityTime) > IDLE_THRESHOLD;
     lastActivityTime = now;
