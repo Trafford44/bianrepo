@@ -1,4 +1,5 @@
 // device.js
+import { logger } from "./logger.js";
 
 logger.debug("device","device.js loaded from:", import.meta.url);
 
