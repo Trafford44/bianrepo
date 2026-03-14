@@ -736,47 +736,51 @@ export function updateLoginIndicator() {
         return;
     }
 
-    const token = getToken();
-    const gistId = getGistId();
-    // A user is only "logged in" if BOTH token and gistId exist
-    const loggedIn = !!token && !!gistId;
+    try {
+        const token = getToken();
+        const gistId = getGistId();    
+        const loggedIn = !!token && !!gistId;  // A user is only "logged in" if BOTH token and gistId exist
 
-    // Clean slate - seems old states being held
-    loginBtn.classList.remove("github-logged-in", "github-login-needed");
+        // Clean slate - seems old states being held
+        loginBtn.classList.remove("github-logged-in", "github-login-needed");
 
-    if (loginBtn) {
-        if (loggedIn) {
-            loginBtn.classList.remove("github-login-needed");
-            loginBtn.classList.add("github-logged-in");
-            loginBtn.textContent = "GitHub Connected";
-        } else {
-            loginBtn.classList.remove("github-logged-in");
-            loginBtn.classList.add("github-login-needed");
-            loginBtn.textContent = "Sign in with GitHub";
+        if (loginBtn) {
+            if (loggedIn) {
+                loginBtn.classList.remove("github-login-needed");
+                loginBtn.classList.add("github-logged-in");
+                loginBtn.textContent = "GitHub Connected";
+            } else {
+                loginBtn.classList.remove("github-logged-in");
+                loginBtn.classList.add("github-login-needed");
+                loginBtn.textContent = "Sign in with GitHub";
+            }
         }
-    }
 
-    // Cloud‑action buttons to toggle
-    const cloudButtons = [
-        "save-btn",
-        "load-btn",
-        "restore-btn",
-        "export-btn",
-        "delete-btn"
-    ];
+        // Cloud‑action buttons to toggle
+        const cloudButtons = [
+            "save-btn",
+            "load-btn",
+            "restore-btn",
+            "export-btn",
+            "delete-btn"
+        ];
 
-    cloudButtons.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
+        cloudButtons.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
 
-        el.disabled = !loggedIn;
+            el.disabled = !loggedIn;
 
-        if (!loggedIn) {
-            el.classList.add("cloud-disabled");
-        } else {
-            el.classList.remove("cloud-disabled");
-        }
-    });
+            if (!loggedIn) {
+                el.classList.add("cloud-disabled");
+            } else {
+                el.classList.remove("cloud-disabled");
+            }
+        });
+
+    } catch (err) {
+        logger.error("ui: updateLoginIndicator", err);
+    }    
 }
 
 export function bindEditorEvents() {
