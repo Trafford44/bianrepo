@@ -4,6 +4,7 @@ If it changes UI → ui.js, likely starting applyMarkdownFormat()
 */
 
 // md-editor.js (top of file or near other exports)
+import { logger } from "./logger.js";
 
 logger.debug("md-editor","md-editor.js loaded from:", import.meta.url);
 
