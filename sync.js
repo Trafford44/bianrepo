@@ -206,17 +206,16 @@ export async function runSyncCheck(reason) {
             return;
         }
         gistId = newId;
-        // Reset sync baseline so first-sync logic runs
-        lastSyncedHash = null;
-        localStorage.removeItem("lastSyncedHash");
-
-        // Load workspace immediately
-        await loadWorkspaceFromGist();    
     }
     else if (!token || !gistId) {
         logger.error("sync: runSyncCheck", "Missing token or gistId — likely after suspend/wake. Stopping sync.");
         disconnectFromGitHub("Cloud connection lost.");
         return;
+    }
+    // If we have a gistId and the workspace is empty, load it now
+    if (gistId && workspaceIsEmpty()) {
+        logger.info("sync: runSyncCheck", "Workspace empty — loading from cloud");
+        await loadWorkspaceFromGist();
     }
 
     const now = Date.now();
@@ -268,7 +267,10 @@ export async function runSyncCheck(reason) {
     maybeAutoSave();
 }
 
-
+function workspaceIsEmpty() {
+    const ws = getWorkspace();   // you already have this
+    return !Array.isArray(ws) || ws.length === 0;
+}
 
 function updateSyncState() {
     logger.debug("sync", "Running updateSyncState()");
