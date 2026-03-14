@@ -100,6 +100,7 @@ export function requireLogin() {
     }          
 }
 
+
 export function bindLoginButton() {
     logger.debug("auth", "Running bindLoginButton()");
     const btn = document.getElementById("github-login");
@@ -136,6 +137,8 @@ export function bindLoginButton() {
     });
     
 }
+
+
 export async function handleOAuthRedirect() {
     logger.debug("auth", "Running handleOAuthRedirect()");
     try {      
@@ -148,6 +151,7 @@ export async function handleOAuthRedirect() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ code })
         });
+
         if (!res.ok) {
             logger.error("auth: handleOAuthRedirect", "OAuth worker failed", res.status);
             return;
@@ -155,23 +159,42 @@ export async function handleOAuthRedirect() {
 
         const data = await res.json();
 
-        if (data.access_token) {
-            // localStorage.setItem("github_token", data.access_token); // changeme
-            logger.debug("auth", "Saving token under key:", "github_token_" + String(deviceId));
-            localStorage.setItem("github_token_" + String(deviceId), data.access_token);
-            logger.debug("auth", "After save, reading back token:", localStorage.getItem(`github_token_${String(deviceId)}`));
-            window.history.replaceState({}, "", window.location.pathname);
-            logger.info("auth: handleOAuthRedirect", "GitHub login successful");
-            updateLoginIndicator();
-            await runSyncCheck("login");
-
-        } else {
+        if (!data.access_token) {
             logger.error("auth: handleOAuthRedirect", "OAuth response missing token", data);
+            return;
         }
+
+        // --- Save token ---
+        const key = "github_token_" + String(deviceId);
+        logger.debug("auth", "Saving token under key:", key);
+        localStorage.setItem(key, data.access_token);
+        logger.debug("auth", "After save, reading back token:", localStorage.getItem(key));
+
+        // Clean URL
+        window.history.replaceState({}, "", window.location.pathname);
+        logger.info("auth: handleOAuthRedirect", "GitHub login successful");
+
+        // --- NEW: Create or load workspace gist ---
+        logger.info("auth: handleOAuthRedirect", "Creating or loading workspace gist...");
+        const gistId = await createOrLoadGist();
+
+        if (!gistId) {
+            logger.error("auth: handleOAuthRedirect", "Failed to create or load gist. Cannot continue.");
+            return;
+        }
+
+        logger.info("auth: handleOAuthRedirect", "Saving gistId:", gistId);
+        setGistId(gistId);
+
+        // Update UI
+        updateLoginIndicator();
+
+        // Now sync can run because token + gistId both exist
+        await runSyncCheck("login");
+
     } catch (error) {
         logger.error("auth: handleOAuthRedirect", error);
-        return;
-    }    
-
+    }
 }
+
 
