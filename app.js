@@ -79,7 +79,6 @@ async function init() {
         logger.debug("app: init()", "Running ui.bindPaneFocusEvents()");
         bindPaneFocusEvents();
 
-        console.log("Made it to end in init()");
     } catch (err) {
         logger.error("app: init()", "Unhandled error in init()", err);
     }
