@@ -49,8 +49,8 @@ export function getToken() {
     logger.debug("auth", "Running getToken()");
     try {
         // const t = localStorage.getItem("github_token");  // changeme
-        logger.debug("auth", "getToken() reading key:", `github_token_${deviceId}`);
-        const t = localStorage.getItem(`github_token_${deviceId}`);
+        logger.debug("auth", "getToken() reading key:", `github_token_${String(deviceId)}`);
+        const t = localStorage.getItem(`github_token_${String(deviceId)}`);
         
         if (!t || t === "undefined" || t === "null") return null;
         return t;
@@ -156,8 +156,8 @@ export async function handleOAuthRedirect() {
 
         if (data.access_token) {
             // localStorage.setItem("github_token", data.access_token); // changeme
-            logger.debug("auth", "Saving token under key:", `github_token_${deviceId}`);
-            localStorage.setItem(`github_token_${deviceId}`, data.access_token);
+            logger.debug("auth", "Saving token under key:", "github_token_" + String(deviceId));
+            localStorage.setItem("github_token_" + String(deviceId), data.access_token);
             window.history.replaceState({}, "", window.location.pathname);
             logger.info("auth: handleOAuthRedirect", "GitHub login successful");
             updateLoginIndicator();
