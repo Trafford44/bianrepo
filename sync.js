@@ -234,6 +234,7 @@ export async function runSyncCheck(reason) {
         logger.info("sync: runSyncCheck", "No lastSyncedHash found. Adopting cloud hash as baseline."); 
         lastSyncedHash = cloudHash;
         localStorage.setItem("lastSyncedHash", cloudHash);
+        await loadWorkspaceFromGist();  // Load workspace from cloud on first sync
         updateSyncState();
         return;
     }
@@ -741,10 +742,7 @@ async function adoptOrCreateGist() {
         });
 
         if (!res.ok) {
-            logger.error(
-                "sync: adoptOrCreateGist",
-                `GitHub returned ${res.status} when creating gist`
-            );
+            logger.error( "sync: adoptOrCreateGist", `GitHub returned ${res.status} when creating gist` );
             return null;
         }
 
