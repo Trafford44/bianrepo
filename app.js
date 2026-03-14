@@ -17,6 +17,7 @@ logger.debug("app", "app.js loaded from:", import.meta.url);
 
 function hasOAuthCode() {
     const params = new URLSearchParams(window.location.search);
+    logger.debug("auth", "hasOAuthCode():", has, "URL:", window.location.href);
     return params.has("code");
 }
 
@@ -50,6 +51,12 @@ async function init() {
             startSyncLoop();
         } else {
             logger.debug("app: init()", "Not starting sync loop — missing token or gistId");
+
+            // ⭐ NEW: ensure login button is visible
+            const editorActions = document.getElementById("editor-actions");
+            if (editorActions) {
+                editorActions.classList.remove("hidden");
+            }            
         }
 
         // 5. Render UI
