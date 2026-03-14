@@ -174,12 +174,18 @@ function isExclusionFile(node) {
     return node.type === "file" && EXCLUSION_FILES.has(node.name);
 }
 
+function prepareChildren(nodes) {
+    return nodes
+        .filter(node => !isExclusionFile(node))
+        .sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
+}
+
 export function renderSidebar() {
     logger.debug("ui", "renderSidebar()");
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
-    let tree = getWorkspace();
+    let tree = prepareChildren(getWorkspace());
 
     container.innerHTML = "";
 
@@ -259,7 +265,7 @@ function renderFolderNode(folder, depth) {
         const childrenContainer = document.createElement("div");
         childrenContainer.className = "sidebar-folder-children";
 
-        folder.children.forEach(child => {
+        prepareChildren(folder.children).forEach(child => {
             childrenContainer.appendChild(renderNode(child, depth + 1));
         });
 
@@ -1027,6 +1033,8 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
         return;
     }     
 }
+
+
 
 
 // for testing purposes
