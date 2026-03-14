@@ -46,6 +46,7 @@ document.addEventListener("click", e => {
 
 
 export function initResizers() {
+    logger.debug("ui", "initResizers()");
     const sbResizer = document.getElementById("sidebar-resizer");
     const sidebar = document.getElementById("sidebar");
     const edResizer = document.getElementById("editor-resizer");
@@ -155,7 +156,7 @@ export function initResizers() {
 }
 
 export function renderSidebar() {
-
+    logger.debug("ui", "renderSidebar()");
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
@@ -368,6 +369,7 @@ export function createSubfolder(parentId) {
 
 
 export function loadFile(fileId) {
+    logger.debug("ui", "loadFile()");
     const tree = getWorkspace();
     const file = findNodeById(tree, fileId);
 
@@ -406,6 +408,7 @@ export function loadFile(fileId) {
 
 
 function commitWorkspace() {
+    logger.debug("ui", "commitWorkspace()");
     saveState();
     renderSidebar();
 }
@@ -724,6 +727,7 @@ export function showNotification(type, text) {
 
 
 export function updateLoginIndicator() {
+    logger.debug("ui", "updateLoginIndicator()");
     const token = getToken();
     const loggedIn = !!token;
 
@@ -765,6 +769,7 @@ export function updateLoginIndicator() {
 }
 
 export function bindEditorEvents() {
+    logger.debug("ui", "bindEditorEvents()");
     const textarea = document.getElementById("editor-textarea");
     if (!textarea) return;
 
@@ -935,6 +940,7 @@ document.getElementById("toggle-editor").addEventListener("click", () => {
 
 
 export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
+    logger.debug("ui", "showCountdownNotification()");
     const el = document.getElementById("notification");
     if (!el) {
         logger.info("ui: showCountdownNotification", "Couldn't find element 'notification'");
