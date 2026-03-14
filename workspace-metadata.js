@@ -1,4 +1,5 @@
 // workspace-metadata.js
+import { logger } from "./logger.js";
 
 logger.debug("workspace-metadata","workspace-metadata.js loaded from:", import.meta.url);
 
