@@ -174,7 +174,7 @@ function bindReconnectLink() {
     }, 0);
 }
 
-function disconnectFromGitHub(message) {
+export function disconnectFromGitHub(message) {
     logger.debug("sync", "Running disconnectFromGitHub()");
     setSyncStatus("error", "Disconnected");
     setConnectionButtonState(false);
@@ -194,15 +194,24 @@ function connectToGitHub() {
 export async function runSyncCheck(reason) {
     logger.info("sync: runSyncCheck", `Running sync check (reason: ${reason})`);
 
-    // --- Guard: stop if token or gistId missing (common after laptop suspend) ---
     const token = getToken();
-    const gistId = getGistId();
-    if (!token || !gistId) {
+    let gistId = getGistId();
+
+    // First-time login: token exists but no gistId
+    if (reason === "login" && token && !gistId) {
+        logger.info("sync: runSyncCheck", "Token exists but no gistId — adopting or creating gist");
+        const newId = await adoptOrCreateGist();
+        if (!newId) {
+            logger.error("sync: runSyncCheck", "Failed to adopt or create gist");
+            return;
+        }
+        gistId = newId;
+    }
+    else if (!token || !gistId) {
         logger.error("sync: runSyncCheck", "Missing token or gistId — likely after suspend/wake. Stopping sync.");
         disconnectFromGitHub("Cloud connection lost.");
         return;
     }
-    // ---------------------------------------------------------------------------
 
     const now = Date.now();
     const idleReturn = now - lastSuccessfulSyncTime > idleReturnThreshold;
@@ -479,6 +488,11 @@ export async function saveWorkspaceToGist() {
     }
 }
 
+export function markLocalEdit() {
+    logger.debug("sync", "Running markLocalEdit()");
+    lastLocalEditTime = Date.now();
+    logger.info("sync: markLocalEdit", `Local edit detected at ${new Date(lastLocalEditTime).toISOString()}`);
+}
 
 function showSyncState(state) {
     logger.debug("sync", "Running showSyncState()");
@@ -654,14 +668,6 @@ export async function restoreFromGistVersion(versionId) {
     }     
 }
 
-
-
-export function markLocalEdit() {
-    logger.debug("sync", "Running markLocalEdit()");
-    lastLocalEditTime = Date.now();
-    logger.info("sync: markLocalEdit", `Local edit detected at ${new Date(lastLocalEditTime).toISOString()}`);
-}
-
 export async function showRestoreDialog() {
     logger.debug("sync", "Running showRestoreDialog()");
     const revisions = await listGistRevisions();
@@ -689,4 +695,72 @@ export async function showRestoreDialog() {
         logger.error("sync: showRestoreDialog", error);
         return;
     }      
+}
+
+async function adoptOrCreateGist() {
+    logger.debug("sync", "Running adoptOrCreateGist()");
+    const token = getToken();
+    if (!token) {
+        logger.info("sync: adoptOrCreateGist", `Token was null - exiting`);
+        return null
+    };
+
+    // --- 1. Try to adopt newest existing gist ---
+    try {
+        const newest = await getNewestGistAcrossAccount();
+
+        if (newest && newest.id) {
+            logger.info("sync: adoptOrCreateGist", `Adopting existing gist ${newest.id}`);
+            setGistId(newest.id);
+            return newest.id;
+        }
+
+        logger.info("sync: adoptOrCreateGist", "No existing gists found — will create new gist");
+    } catch (err) {
+        logger.error("sync: adoptOrCreateGist", "Failed while checking for existing gists", err);
+        // We *continue* — failure to list gists should not block creation
+    }
+
+    // --- 2. Create a new gist ---
+    try {
+        const res = await fetch("https://api.github.com/gists", {
+            method: "POST",
+            headers: {
+                "Authorization": `token ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                description: "Workspace",
+                public: false,
+                files: {
+                    "workspace.json": {
+                        content: JSON.stringify({ created: Date.now() }, null, 2)
+                    }
+                }
+            })
+        });
+
+        if (!res.ok) {
+            logger.error(
+                "sync: adoptOrCreateGist",
+                `GitHub returned ${res.status} when creating gist`
+            );
+            return null;
+        }
+
+        const data = await res.json();
+
+        if (!data || !data.id) {
+            logger.error("sync: adoptOrCreateGist", "GitHub response missing gist ID", data);
+            return null;
+        }
+
+        logger.info("sync: adoptOrCreateGist", `Created new gist ${data.id}`);
+        setGistId(data.id);
+        return data.id;
+
+    } catch (err) {
+        logger.error("sync: adoptOrCreateGist", "Exception while creating gist", err);
+        return null;
+    }
 }
