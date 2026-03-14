@@ -11,6 +11,8 @@ const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
 
+logger.debug("ui","ui.js loaded from:", import.meta.url);
+
 export function showContextMenu(target, items, x, y) {
     currentContextTarget = target;
 
