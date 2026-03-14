@@ -1,5 +1,7 @@
 // workspace-metadata.js
 
+logger.debug("workspace-metadata","workspace-metadata.js loaded from:", import.meta.url);
+
 export function extractMetadata(nodes) {
     const meta = [];
 
