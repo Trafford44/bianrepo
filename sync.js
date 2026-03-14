@@ -206,6 +206,12 @@ export async function runSyncCheck(reason) {
             return;
         }
         gistId = newId;
+        // Reset sync baseline so first-sync logic runs
+        lastSyncedHash = null;
+        localStorage.removeItem("lastSyncedHash");
+
+        // Load workspace immediately
+        await loadWorkspaceFromGist();    
     }
     else if (!token || !gistId) {
         logger.error("sync: runSyncCheck", "Missing token or gistId — likely after suspend/wake. Stopping sync.");
