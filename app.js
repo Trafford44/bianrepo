@@ -3,6 +3,7 @@ import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, upd
 import { loadState } from "./workspace.js";    
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
+import { logger } from "./logger.js";
 
 /* it's critical that the order remains as below
 This ensures:
