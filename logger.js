@@ -1,5 +1,6 @@
 // logger.js
 
+logger.debug("logger","logger.js loaded from:", import.meta.url);
 
 const LOG_LEVELS = {
   NONE: 0,
