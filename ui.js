@@ -171,7 +171,7 @@ function getSortKey(node) {
 }
 
 function isExclusionFile(node) {
-    return node.type === "file" && EXCLUSION_FILESFILES.has(node.name);
+    return node.type === "file" && EXCLUSION_FILES.has(node.name);
 }
 
 export function renderSidebar() {
