@@ -12,6 +12,7 @@ export function getWorkspace() {
 
 // Main entry point
 export function setWorkspace(data) {
+    logger.debug("workspace", "setWorkspace()");
     // If nothing provided, initialize empty array
     if (!data) {
         workspace = [];
@@ -91,12 +92,14 @@ function normalizeNode(node) {
 
 
 export function saveState() {
+    logger.debug("workspace", "saveState()");
     const tree = getWorkspace();
     if (!Array.isArray(tree)) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tree));
 }
 
 export function loadState() {
+    logger.debug("workspace", "loadState()");
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return;
 
