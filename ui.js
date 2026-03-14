@@ -1,4 +1,4 @@
-import { getToken} from "./auth.js";
+import { getToken, getGistId} from "./auth.js";
 import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
 import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState} from "./workspace.js";
 import { logger } from "./logger.js";
