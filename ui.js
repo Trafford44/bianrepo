@@ -2,6 +2,7 @@ import { getToken, getGistId} from "./auth.js";
 import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
 import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState} from "./workspace.js";
 import { logger } from "./logger.js";
+import { EXCLUSION_FILES } from "./sync.js";
 
 let saveTimer = null;
 let activeFileId = null;
@@ -155,12 +156,18 @@ export function initResizers() {
     }
 }
 
+function isExclusionFile(node) {
+    return node.type === "file" && EXCLUSION_FILES.has(node.name);
+}
+
 export function renderSidebar() {
     logger.debug("ui", "renderSidebar()");
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
     const tree = getWorkspace();
+    // Filter out exclusion files
+    tree = tree.filter(node => !isExclusionFile(node));
 
     container.innerHTML = "";
 
