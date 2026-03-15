@@ -179,9 +179,6 @@ function logNodes(nodes, depth = 0) {
     });
 }
 
-console.log("=== WORKSPACE TREE ===");
-logNodes(tree);
-
 export function renderSidebar() {
     logger.debug("ui", "renderSidebar()");
     const container = document.getElementById("sidebar-list");
