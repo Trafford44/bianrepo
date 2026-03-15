@@ -22,7 +22,7 @@ let syncIntervalId = null;
 let isSaving = false;
 let lastActivityTime = Date.now(); 
 const IDLE_THRESHOLD = 30_000; // 30 seconds
-const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
+export const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
 
 const GIST_API = "https://api.github.com/gists";
 
