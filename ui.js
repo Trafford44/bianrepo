@@ -9,7 +9,6 @@ let notificationTimeout = null;
 let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
-const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
 let currentContextTarget = null;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
@@ -156,36 +155,12 @@ export function initResizers() {
     }
 }
 
-function getDisplayName(name) {
-    return name.replace(/^_+/, "");
-}
-
-function getSortKey(node) {
-    // Count leading underscores
-    const underscores = (node.name.match(/^_+/) || [""])[0].length;
-
-    // Sort folders before files, then by underscore priority, then alpha
-    const typeRank = node.type === "folder" ? "0" : "1";
-
-    return `${typeRank}_${String(underscores).padStart(3, "0")}_${node.name.toLowerCase()}`;
-}
-
-function isExclusionFile(node) {
-    return node.type === "file" && EXCLUSION_FILES.has(node.name);
-}
-
-function prepareChildren(nodes) {
-    return nodes
-        .filter(node => !isExclusionFile(node))
-        .sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
-}
-
 export function renderSidebar() {
     logger.debug("ui", "renderSidebar()");
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
-    let tree = prepareChildren(getWorkspace());
+    const tree = getWorkspace();
 
     container.innerHTML = "";
 
@@ -193,9 +168,6 @@ export function renderSidebar() {
         container.innerHTML = `<div class="empty-sidebar">No folders yet</div>`;
         return;
     }
-
-    tree = tree.filter(node => !isExclusionFile(node));
-    tree.sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
 
     tree.forEach(node => {
         const el = renderNode(node, 0);
@@ -224,7 +196,7 @@ function renderFolderNode(folder, depth) {
         <span class="folder-toggle">
             <span class="chevron ${isOpen ? "open" : ""}">▶</span>
         </span>
-        <span class="folder-name">${getDisplayName(folder.name)}</span>
+        <span class="folder-name">${folder.name.replace(/^_+/, "")}</span>
         <span class="folder-actions">
             <button class="item-menu-btn" title="Actions">⋯</button>
         </span>
@@ -265,7 +237,7 @@ function renderFolderNode(folder, depth) {
         const childrenContainer = document.createElement("div");
         childrenContainer.className = "sidebar-folder-children";
 
-        prepareChildren(folder.children).forEach(child => {
+        folder.children.forEach(child => {
             childrenContainer.appendChild(renderNode(child, depth + 1));
         });
 
@@ -274,6 +246,8 @@ function renderFolderNode(folder, depth) {
 
     return wrapper;
 }
+
+
 
 
 function renderFileNode(file, depth) {
@@ -285,7 +259,7 @@ function renderFileNode(file, depth) {
         <div class="file-main" style="display: flex; align-items: center; overflow: hidden; flex: 1;">
             <span class="file-icon">${file.name.endsWith(".md") ? "M↓" : "⧉"}</span>
             <span class="file-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                ${getDisplayName(file.name)}
+                ${file.name}
             </span>
         </div>
         <div class="file-actions">
@@ -315,7 +289,6 @@ function renderFileNode(file, depth) {
 
     return el;
 }
-
 
 export function duplicateFile(fileId) {
     const tree = getWorkspace();
@@ -1049,5 +1022,4 @@ showCountdownNotification({
     onCancel: () => console.log("CANCELLED")
 });
 */
-
 
