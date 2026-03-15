@@ -539,7 +539,11 @@ export async function loadWorkspaceFromGist() {
         // Convert flat gist files → recursive workspace tree
         const flat = {};
         for (const filename in data.files) {
-            if (EXCLUSION_FILES.has(filename)) continue;   // Skip excluded files
+            console.log("Gist filename:", filename);
+            if (EXCLUSION_FILES.has(filename)) {
+                console.log("Skipping system file:", filename);
+                continue;
+            }
             flat[filename] = data.files[filename].content;
         }
 
