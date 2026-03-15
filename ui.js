@@ -157,7 +157,8 @@ export function initResizers() {
 }
 
 function isExclusionFile(node) {
-    return node.type === "file" && EXCLUSION_FILES.has(node.name);
+    //return node.type === "file" && EXCLUSION_FILES.has(node.name);
+    return EXCLUSION_FILES.has(node.name);
 }
 
 // After: let tree = getWorkspace();
@@ -187,9 +188,10 @@ export function renderSidebar() {
     let tree = getWorkspace();
 
     // testing purposes
+    /*
     console.log("=== WORKSPACE TREE ===");
     logNodes(tree);
-
+    */
 
     // Filter out exclusion files
     tree = tree.filter(node => !isExclusionFile(node));
@@ -1038,6 +1040,9 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
         return;
     }     
 }
+
+
+
 
 // for testing purposes
 if (location.hostname === "localhost") {
