@@ -165,7 +165,7 @@ export function renderSidebar() {
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
-    const tree = getWorkspace();
+    let tree = getWorkspace();
     // Filter out exclusion files
     tree = tree.filter(node => !isExclusionFile(node));
 
