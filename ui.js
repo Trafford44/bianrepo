@@ -160,12 +160,40 @@ function isExclusionFile(node) {
     return node.type === "file" && EXCLUSION_FILES.has(node.name);
 }
 
+// After: let tree = getWorkspace();
+// use this for testing purposes
+function logNodes(nodes, depth = 0) {
+    nodes.forEach(node => {
+        const indent = "  ".repeat(depth);
+
+        if (node.type === "file") {
+            console.log(`${indent}FILE: name="${node.name}", path="${node.path}", id=${node.id}`);
+        } else if (node.type === "folder") {
+            console.log(`${indent}FOLDER: name="${node.name}", path="${node.path}", id=${node.id}`);
+            if (Array.isArray(node.children)) {
+                logNodes(node.children, depth + 1);
+            }
+        } else {
+            console.log(`${indent}UNKNOWN NODE TYPE`, node);
+        }
+    });
+}
+
+console.log("=== WORKSPACE TREE ===");
+logNodes(tree);
+
 export function renderSidebar() {
     logger.debug("ui", "renderSidebar()");
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
     let tree = getWorkspace();
+
+    // testing purposes
+    console.log("=== WORKSPACE TREE ===");
+    logNodes(tree);
+
+
     // Filter out exclusion files
     tree = tree.filter(node => !isExclusionFile(node));
 
@@ -1013,9 +1041,6 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
         return;
     }     
 }
-
-
-
 
 // for testing purposes
 if (location.hostname === "localhost") {
