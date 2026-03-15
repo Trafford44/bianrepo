@@ -22,6 +22,7 @@ let syncIntervalId = null;
 let isSaving = false;
 let lastActivityTime = Date.now(); 
 const IDLE_THRESHOLD = 30_000; // 30 seconds
+const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
 
 const GIST_API = "https://api.github.com/gists";
 
@@ -538,6 +539,7 @@ export async function loadWorkspaceFromGist() {
         // Convert flat gist files → recursive workspace tree
         const flat = {};
         for (const filename in data.files) {
+            if (EXCLUSION_FILES.has(filename)) continue;   // Skip excluded files
             flat[filename] = data.files[filename].content;
         }
 
