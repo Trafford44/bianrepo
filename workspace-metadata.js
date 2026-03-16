@@ -46,6 +46,7 @@ export function applyMetadata(tree, metadata) {
     const map = new Map();
     metadata.nodes.forEach(n => map.set(n.path, n));
 
+    // amend this function if adding a new field
     function walk(nodes, parentPath = "") {
         for (const node of nodes) {
             const nodePath = parentPath
@@ -54,8 +55,8 @@ export function applyMetadata(tree, metadata) {
 
             const meta = map.get(nodePath);
             if (meta) {
-                node.id = meta.id;            // ⭐ restore ID
-                node.name = meta.name;
+                node.id = meta.id;            // restore ID
+                //node.name = meta.name;          // NEVER restore node.name
 
                 if (node.type === "folder") {
                     node.isOpen = !!meta.isOpen;
