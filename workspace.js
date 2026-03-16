@@ -30,6 +30,9 @@ export function setWorkspace(data) {
     // Normalize every node
     workspace = data.map(normalizeNode);
 
+    // ensure all nodes have required fields - this allows adding a new field easily
+    migrateWorkspace(workspace);
+
     // Save normalized version
     localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
 }
@@ -204,6 +207,7 @@ export function flattenWorkspace(tree) {
             } else if (node.type === "file") {
                 let fileName = encoded;
 
+                // anything without a file extension is saved as 'md' file type
                 if (!fileName.endsWith(".md") && !fileName.endsWith(".puml")) {
                     fileName += ".md";
                 }
@@ -235,6 +239,7 @@ export function unflattenWorkspace(flat) {
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
 
+            // this line results in anthign that's no 'md or 'puml' being treated as a folder e.g. 'json'
             const isFile =
                 i === parts.length - 1 &&
                 (part.endsWith(".md") || part.endsWith(".puml"));
@@ -306,6 +311,7 @@ function migrateOldFormat(oldSubjects) {
                 // keep as-is
             } else {
                 // Detect PUML content
+                // md files can contain puml scripts - so that would suggest that potentially md files are being renamed as puml
                 const isPuml = /@startuml[\s\S]*?@enduml/.test(content);
                 name += isPuml ? ".puml" : ".md";
             }
@@ -322,6 +328,29 @@ function migrateOldFormat(oldSubjects) {
     });
 }
 
+
+/*
+
+Summary Table — All Fields, All Locations
+Field	Workspace Tree?	Metadata?	Saved In	Meaning
+id	✔	✔	__workspace.json (metadata)	Stable node identity
+type	✔	✔	Both	"file" or "folder"
+name	✔	✔ (⚠ copy only)	Workspace tree → Gist	Canonical filename/folder name
+children	✔ (actual nodes)	✔ (IDs only)	Metadata	Real hierarchy vs UI ordering
+content	✔	❌	Gist	File content
+isOpen	❌	✔	Metadata	UI folder open/closed state
+isPublic	✔	✔	Workspace tree → Gist	Public sharing flag
+publicId	✔	✔	Workspace tree → Gist	Public share ID
+publicAt	✔	✔	Workspace tree → Gist	Timestamp of publication
+updatedAt	✔	✔	Workspace tree → Gist	Last modified timestamp
+backlinks	✔	❌	Workspace tree → Gist	Future feature
+tags	✔	❌	Workspace tree → Gist	Future feature
+template	✔	❌	Workspace tree → Gist	Future feature
+pathCache	✔	❌	Workspace tree (local only)	Internal linking helper
+path	❌	✔	Metadata	Full path used as metadata key
+
+*/
+
 function migrateNode(node) {
     // Internal linking
     if (!("pathCache" in node)) node.pathCache = null;
@@ -333,18 +362,21 @@ function migrateNode(node) {
     if (!("updatedAt" in node)) node.updatedAt = Date.now();
 
     // Future features
+    /*
     if (node.type === "file") {
         if (!("backlinks" in node)) node.backlinks = [];
         if (!("tags" in node)) node.tags = [];
         if (!("template" in node)) node.template = false;
     }
-
+    */
+   
     // Folder-specific
     if (node.type === "folder") {
         if (!Array.isArray(node.children)) node.children = [];
         node.children.forEach(migrateNode);
     }
 }
+
 
 export function migrateWorkspace(workspace) {
     workspace.forEach(migrateNode);
