@@ -156,7 +156,7 @@ export function createFolder(name) {
     return {
         id: crypto.randomUUID(),
         type: "folder",
-        name,
+        name: sanitizeName(name),
         children: [],
 
         // Internal linking
@@ -175,7 +175,7 @@ export function createFile(name) {
     return {
         id: crypto.randomUUID(),
         type: "file",
-        name,
+        name: sanitizeName(name),
         content: "",
 
         // Internal linking
@@ -192,6 +192,24 @@ export function createFile(name) {
         tags: [],
         template: false
     };
+}
+
+export function sanitizeName(name) {
+    // Illegal in GitHub filenames
+    const illegal = /[\/\\:\?\*"<>\|]/g;
+
+    // Replace illegal characters with underscore
+    let safe = name.replace(illegal, "_");
+
+    // Trim whitespace
+    safe = safe.trim();
+
+    // Prevent empty names
+    if (safe.length === 0) {
+        safe = "untitled";
+    }
+
+    return safe;
 }
 
 
