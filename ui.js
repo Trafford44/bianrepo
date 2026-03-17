@@ -159,11 +159,19 @@ export function initResizers() {
 function isExclusionFile(node) {
     //return node.type === "file" && EXCLUSION_FILES.has(node.name);
     return EXCLUSION_FILES.has(node.name);
+
+    /*
+    When we have paths populated, chane to using paths, so as to avoind duplicate files
+    function isExcluded(node) {
+        return EXCLUSION_PATHS.has(node.path);
+    }
+    */
 }
 
 // After: let tree = getWorkspace();
-// use this for testing purposes
+// use this for testing purposes - output nanmes of files & folders
 function logNodes(nodes, depth = 0) {
+    console.log("=== WORKSPACE TREE ===");
     nodes.forEach(node => {
         const indent = "  ".repeat(depth);
 
@@ -188,10 +196,7 @@ export function renderSidebar() {
     let tree = getWorkspace();
 
     // testing purposes
-    /*
-    console.log("=== WORKSPACE TREE ===");
-    logNodes(tree);
-    */
+    // logNodes(tree);
 
     // Filter out exclusion files
     tree = tree.filter(node => !isExclusionFile(node));
@@ -325,26 +330,39 @@ function renderFileNode(file, depth) {
 }
 
 export function duplicateFile(fileId) {
+    logger.debug("ui", "Running duplicateFile()");
+
     const tree = getWorkspace();
     const result = findNodeAndParent(tree, fileId);
 
-    if (!result || result.node.type !== "file") return;
+    if (!result || result.node.type !== "file") {
+        logger.info("UI: duplicateFile", "File node not found", fileId);
+        return;
+    }
+    try {    
+        const { node: file, parent } = result;
 
-    const { node: file, parent } = result;
+        logger.debug("ui: duplicateFile", "Original file node:", JSON.stringify(file, null, 2));
 
-    // Generate a unique name like "MyFile.md copy", "MyFile.md copy 2", etc.
-    const newName = generateCopyName(file.name, parent.children);
+        // Generate a unique name like "MyFile.md copy", "MyFile.md copy 2", etc.
+        const newName = generateCopyName(file.name, parent.children);
 
-    const copy = createFile(newName, file.content);
+        const copy = createFile(newName, file.content);
+        
+        logger.debug("ui: duplicateFile", "Original file name: ", file.name, "Content length: ", file.content?.length, "Raw: ", file.content); 
 
-    parent.children.push(copy);
+        parent.children.push(copy);
 
-    setWorkspace(tree);
-    saveState();
-    renderSidebar();
-    loadFile(copy.id);
+        setWorkspace(tree);
+        saveState();
+        renderSidebar();
+        loadFile(copy.id);
 
-    showNotification("success", "File duplicated");
+        showNotification("success", "File duplicated");
+    } catch (error) {
+        logger.error("ui: duplicateFile", error);
+        return false;
+    }           
 }
 
 function generateCopyName(name, siblings) {
