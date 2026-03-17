@@ -171,12 +171,12 @@ export function createFolder(name) {
 }
 
 
-export function createFile(name) {
+export function createFile(name, content = "") {
     return {
         id: crypto.randomUUID(),
         type: "file",
         name: sanitizeName(name),
-        content: "",
+        content: typeof content === "string" ? content : "",
 
         // Internal linking
         pathCache: null,
