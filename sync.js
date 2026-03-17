@@ -22,6 +22,8 @@ let syncIntervalId = null;
 let isSaving = false;
 let lastActivityTime = Date.now(); 
 const IDLE_THRESHOLD = 30_000; // 30 seconds
+
+// When we have paths populated, chane to using paths, so as to avoind duplicate files. So wil lbecome EXCLUSION_PATHS
 export const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
 
 const GIST_API = "https://api.github.com/gists";
@@ -499,9 +501,8 @@ export async function saveWorkspaceToGist() {
 }
 
 export function markLocalEdit() {
-    logger.debug("sync", "Running markLocalEdit()");
     lastLocalEditTime = Date.now();
-    logger.info("sync: markLocalEdit", `Local edit detected at ${new Date(lastLocalEditTime).toISOString()}`);
+    //logger.debug("sync: markLocalEdit", `Local edit detected at ${new Date(lastLocalEditTime).toISOString()}`);
 }
 
 function showSyncState(state) {
