@@ -82,6 +82,7 @@ async function init() {
         // ------------------------------------------------------------
         // 9. Browser history: handle Back/Forward navigation
         // ------------------------------------------------------------
+        logger.debug("app: init()", "Adding popState listener");
         window.addEventListener("popstate", (event) => {
             if (event.state && event.state.fileId) {
                 logger.debug("app: popstate", "Navigating to fileId:", event.state.fileId);
