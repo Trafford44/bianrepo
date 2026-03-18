@@ -690,8 +690,17 @@ export function updatePreview() {
     // ------------------------------------------------------------
     //  STEP 4: FINAL MARKDOWN RENDER
     // ------------------------------------------------------------
+
+    // Auto-link bare internal IDs like: app://file/<id>
+    const autoLinkRegex = /app:\/\/file\/([A-Za-z0-9-]+)/g;
+
+    const autoLinked = restored.replace(autoLinkRegex, (match, id) => {
+        return `<a href="app://file/${id}">${match}</a>`;
+    });
+
     try {
-        preview.innerHTML = `<div class="prose">${marked.parse(restored)}</div>`;
+        // IMPORTANT: render autoLinked, not restored
+        preview.innerHTML = `<div class="prose">${marked.parse(autoLinked)}</div>`;
 
         // ------------------------------------------------------------
         //  MAKE INTERNAL LINKS CLICKABLE (app://file/<id>)
@@ -716,6 +725,7 @@ export function updatePreview() {
         logger.error("ui: updatePreview", "Markdown rendering failed:", e);
         preview.innerHTML = `<pre style="color:red;">Markdown rendering error:\n${e}</pre>`;
     }
+
 }
 
 
