@@ -692,6 +692,26 @@ export function updatePreview() {
     // ------------------------------------------------------------
     try {
         preview.innerHTML = `<div class="prose">${marked.parse(restored)}</div>`;
+
+        // ------------------------------------------------------------
+        //  MAKE INTERNAL LINKS CLICKABLE (app://file/<id>)
+        // ------------------------------------------------------------
+        const internalLinks = preview.querySelectorAll('a[href^="app://file/"]');
+
+        internalLinks.forEach(a => {
+            a.addEventListener("click", (e) => {
+                e.preventDefault();
+
+                const href = a.getAttribute("href");
+                const id = href.replace("app://file/", "");
+
+                logger.debug("ui: updatePreview", "Internal link clicked:", id);
+
+                // Load the file in the editor
+                loadFile(id);
+            });
+        });
+
     } catch (e) {
         logger.error("ui: updatePreview", "Markdown rendering failed:", e);
         preview.innerHTML = `<pre style="color:red;">Markdown rendering error:\n${e}</pre>`;
