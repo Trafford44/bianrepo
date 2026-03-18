@@ -616,23 +616,25 @@ function openFileById(id) {
 }
 
 function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
+    logger.debug("ui", "Running resolvePumlIncludes()");
     const includeRegex = /!include\((app:\/\/file\/([^)]+))\)/g;
 
     return pumlText.replace(includeRegex, (match, fullLink, id) => {
         // Prevent infinite include loops
         if (seenIds.has(id)) {
-            logger.warn("ui: resolvePumlIncludes","PUML include cycle detected for id:", id)
+            logger.warn("ui: resolvePumlIncludes","PUML include cycle detected for id: ", id)
             return "";
         }
 
         const node = findNodeById(workspace, id);
         if (!node || node.type !== "file") {
-            logger.warn("ui: resolvePumlIncludes","PUML include target not found for id:", id)
+            logger.warn("ui: resolvePumlIncludes","PUML include target not found for id: ", id)
             return "";
         }
 
         seenIds.add(id);
         const includedContent = node.content || "";
+        logger.debug("ui: resolvePumlIncludes","includedContent: ", includedContent)
         const resolved = resolvePumlIncludes(includedContent, workspace, seenIds);
         seenIds.delete(id);
 
