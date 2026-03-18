@@ -17,7 +17,7 @@ logger.debug("app", "app.js loaded from:", import.meta.url);
 
 export function hasOAuthCode() {
     const has = window.location.search.includes("code=");
-    logger.debug("auth", `hasOAuthCode(): ${has}`, `URL: ${window.location.href}`);
+    logger.debug("auth: init", `hasOAuthCode(): ${has}`, `URL: ${window.location.href}`);
     return has;
 }
 
@@ -78,6 +78,16 @@ async function init() {
         bindEditorEvents();
         logger.debug("app: init()", "Running ui.bindPaneFocusEvents()");
         bindPaneFocusEvents();
+
+        // ------------------------------------------------------------
+        // 9. Browser history: handle Back/Forward navigation
+        // ------------------------------------------------------------
+        window.addEventListener("popstate", (event) => {
+            if (event.state && event.state.fileId) {
+                logger.debug("app: popstate", "Navigating to fileId:", event.state.fileId);
+                loadFile(event.state.fileId);
+            }
+        });
 
     } catch (err) {
         logger.error("app: init()", "Unhandled error in init()", err);
