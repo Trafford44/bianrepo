@@ -718,8 +718,8 @@ export function updatePreview() {
                 logger.debug("ui: updatePreview", "Internal link clicked:", id);
 
                 // Push the page we are leaving
-                if (activeileId && activeileId !== id) {
-                    history.pushState({ fileId: activeileId }, "", `#${activeileId}`);
+                if (activeFileId && activeFileId !== id) {
+                    history.pushState({ fileId: activeFileId }, "", `#${activeFileId}`);
                 }
 
                 // Push the page we are going to
