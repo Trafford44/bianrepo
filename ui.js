@@ -716,8 +716,8 @@ export function updatePreview() {
 
                 logger.debug("ui: updatePreview", "Internal link clicked:", id);
 
-                // Add this page to browser history
-                history.pushState({ fileId: id }, "", `#${id}`);
+                // Force a unique history entry
+                history.pushState({ fileId: id }, "", `#${id}-${Date.now()}`);
 
                 // Load the file in the editor
                 loadFile(id);
