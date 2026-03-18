@@ -322,12 +322,31 @@ function renderFileNode(file, depth) {
         showContextMenu(file, [
             { label: "Rename", action: () => renameFile(file.id) },
             { label: "Duplicate", action: () => duplicateFile(file.id) },
+            { label: "Copy internal link", action: () => copyInternalLink(file.id) },
             { label: "Delete", action: () => deleteFile(file.id) }
         ], e.pageX, e.pageY);
     });
 
     return el;
 }
+
+export function getInternalLink(fileId) {
+    return `app://file/${fileId}`;
+}
+
+export function copyInternalLink(fileId) {
+    const link = getInternalLink(fileId);
+
+    navigator.clipboard.writeText(link)
+        .then(() => {
+            showNotification("success", "Internal link copied");
+        })
+        .catch(err => {
+            console.error("Clipboard error:", err);
+            showNotification("error", "Failed to copy link");
+        });
+}
+
 
 export function duplicateFile(fileId) {
     logger.debug("ui", "Running duplicateFile()");
@@ -530,38 +549,41 @@ export function updatePreview() {
     const link = document.getElementById("puml-external-link");
     const content = textarea.value;
 
-    // Find the active file in the new recursive workspace tree
     const tree = getWorkspace();
     const file = findNodeById(tree, activeFileId);
     if (!file || file.type !== "file") return;
 
-    // Save content (debounced)
     file.content = content;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => saveState(), 300);
 
-    // PUML preview
+    // --- PUML file ---
     if (file.name.endsWith(".puml")) {
-        const url = getPumlRenderUrl(content);
+        const resolved = resolvePumlIncludes(content, tree);
+        const url = getPumlRenderUrl(resolved);
+
         preview.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center;">
                 <img src="${url}" alt="PlantUML Diagram" />
                 <a href="${url}" target="_blank" style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">Open SVG link</a>
             </div>
         `;
-        link.href = getPumlHref(content);
+        link.href = getPumlHref(resolved);
         return;
     }
 
-    // Markdown preview (with embedded PUML blocks)
+    // --- Markdown file (inline @startuml blocks) ---
     const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
-    const processed = content.replace(pumlRegex, (match, p1) => {
-        const url = getPumlRenderUrl(p1);
+
+    const processed = content.replace(pumlRegex, (match, blockContent) => {
+        const resolvedBlock = resolvePumlIncludes(blockContent, tree);
+        const url = getPumlRenderUrl(resolvedBlock);
         return `\n![PlantUML](${url})\n`;
     });
 
     preview.innerHTML = `<div class="prose">${marked.parse(processed)}</div>`;
 }
+
 
 function getPumlRenderUrl(puml) {
     try {
@@ -582,6 +604,42 @@ function getPumlHref(puml) {
         return "";
     }
 }
+
+function openFileById(id) {
+    activeFileId = id;
+    const tree = getWorkspace();
+    const file = findNodeById(tree, id);
+    if (!file) return;
+
+    document.getElementById("editor-textarea").value = file.content;
+    updatePreview();
+}
+
+function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
+    const includeRegex = /!include\((app:\/\/file\/([^)]+))\)/g;
+
+    return pumlText.replace(includeRegex, (match, fullLink, id) => {
+        // Prevent infinite include loops
+        if (seenIds.has(id)) {
+            logger.warn("ui: resolvePumlIncludes","PUML include cycle detected for id:", id)
+            return "";
+        }
+
+        const node = findNodeById(workspace, id);
+        if (!node || node.type !== "file") {
+            logger.warn("ui: resolvePumlIncludes","PUML include target not found for id:", id)
+            return "";
+        }
+
+        seenIds.add(id);
+        const includedContent = node.content || "";
+        const resolved = resolvePumlIncludes(includedContent, workspace, seenIds);
+        seenIds.delete(id);
+
+        return resolved;
+    });
+}
+
 
 export function addFolder() {
     const name = prompt("New Folder Name:");
