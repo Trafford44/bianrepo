@@ -687,9 +687,10 @@ function openFileById(id) {
 
 function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
     logger.debug("ui", "Running resolvePumlIncludes()");
-    const includeRegex = /!include\((app:\/\/file\/([^)]+))\)/g;
+    const includeRegex = /!include\s+app:\/\/file\/([A-Za-z0-9-]+)/g;
 
-    return pumlText.replace(includeRegex, (match, fullLink, id) => {
+    return pumlText.replace(includeRegex, (match, id) => {
+
         // Prevent infinite include loops
         if (seenIds.has(id)) {
             logger.warn("ui: resolvePumlIncludes","PUML include cycle detected for id: ", id)
