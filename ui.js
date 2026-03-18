@@ -711,15 +711,13 @@ export function updatePreview() {
             a.addEventListener("click", (e) => {
                 e.preventDefault();
 
-                // Add this page to browser history
-                history.pushState({ fileId: id }, "", `#${id}`);
-                                
                 const href = e.currentTarget.getAttribute("href");
                 const id = href.replace("app://file/", "");
 
                 logger.debug("ui: updatePreview", "Internal link clicked:", id);
 
-
+                // Add this page to browser history
+                history.pushState({ fileId: id }, "", `#${id}`);
 
                 // Load the file in the editor
                 loadFile(id);
