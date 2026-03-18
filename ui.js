@@ -711,7 +711,7 @@ export function updatePreview() {
             a.addEventListener("click", (e) => {
                 e.preventDefault();
 
-                const href = a.getAttribute("href");
+                const href = e.currentTarget.getAttribute("href");
                 const id = href.replace("app://file/", "");
 
                 logger.debug("ui: updatePreview", "Internal link clicked:", id);
