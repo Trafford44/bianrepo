@@ -692,7 +692,7 @@ export function updatePreview() {
     // ------------------------------------------------------------
 
     // Auto-link bare internal IDs like: app://file/<id>
-    const autoLinkRegex = /app:\/\/file\/([A-Za-z0-9-]+)/g;
+    const autoLinkRegex = /(?<!["(>])\bapp:\/\/file\/([A-Za-z0-9-]+)\b/g;
 
     const autoLinked = restored.replace(autoLinkRegex, (match, id) => {
         return `<a href="app://file/${id}">${match}</a>`;
