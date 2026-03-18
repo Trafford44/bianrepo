@@ -558,18 +558,20 @@ export function updatePreview() {
         return;
     }
 
-    // Save content (debounced)
+    // ------------------------------------------------------------
+    //  SAVE CONTENT (DEBOUNCED)
+    // ------------------------------------------------------------
     file.content = content;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => saveState(), 300);
 
     // ------------------------------------------------------------
-    //  PUML FILE PREVIEW
+    //  PUML FILE PREVIEW (.puml files)
     // ------------------------------------------------------------
     if (file.name.endsWith(".puml")) {
         logger.debug("ui: updatePreview", "Rendering PUML file:", file.name);
 
-        // 1. Resolve includes
+        // 1. Resolve !include app://file/... inside the PUML file
         const resolved = resolvePumlIncludes(content, tree);
         logger.debug("ui: updatePreview", "Resolved PUML content:\n" + resolved);
 
@@ -579,7 +581,7 @@ export function updatePreview() {
             return;
         }
 
-        // 2. Encode PUML → URL
+        // 2. Encode PUML → PlantUML server URL
         let url = "";
         try {
             url = getPumlRenderUrl(resolved);
@@ -591,7 +593,7 @@ export function updatePreview() {
 
         logger.debug("ui: updatePreview", "PUML render URL:", url);
 
-        // 3. Render preview
+        // 3. Render the diagram + external link
         preview.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center;">
                 <img src="${url}" alt="PlantUML Diagram" />
@@ -599,7 +601,7 @@ export function updatePreview() {
             </div>
         `;
 
-        // External link
+        // 4. External link (for "open in browser" style behaviour)
         try {
             link.href = getPumlHref(resolved);
         } catch (e) {
@@ -614,12 +616,42 @@ export function updatePreview() {
     // ------------------------------------------------------------
     logger.debug("ui: updatePreview", "Rendering Markdown file:", file.name);
 
+    // Matches inline PUML blocks anywhere in the Markdown
     const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
 
-    const processed = content.replace(pumlRegex, (match, blockContent) => {
+    // Matches any fenced code block: ``` ... ```
+    // We treat everything inside as literal code and must NOT touch it.
+    const fenceRegex = /```[\s\S]*?```/g;
+
+    // ------------------------------------------------------------
+    //  STEP 1: EXTRACT FENCED CODE BLOCKS
+    //
+    // We replace each ```...``` block with a placeholder so that:
+    // - inline PUML detection does NOT see @startuml inside code fences
+    // - includes are NOT resolved inside code fences
+    // - the user can show PUML syntax as code without rendering it
+    // ------------------------------------------------------------
+    const fencedBlocks = [];
+    let fencedIndex = 0;
+
+    const contentWithPlaceholders = content.replace(fenceRegex, (match) => {
+        const placeholder = `@@FENCE_${fencedIndex}@@`;
+        fencedBlocks.push(match);   // store the full fenced block
+        fencedIndex += 1;
+        return placeholder;         // replace it with a marker
+    });
+
+    // ------------------------------------------------------------
+    //  STEP 2: PROCESS INLINE PUML ONLY IN NON-FENCED TEXT
+    //
+    // At this point, all ```...``` blocks have been replaced by placeholders,
+    // so pumlRegex will only see @startuml blocks that are truly "inline"
+    // in the Markdown, not inside code fences.
+    // ------------------------------------------------------------
+    const processed = contentWithPlaceholders.replace(pumlRegex, (match, blockContent) => {
         logger.debug("ui: updatePreview", "Found inline PUML block:\n" + blockContent);
 
-        // 1. Resolve includes inside the block
+        // 2.1 Resolve !include app://file/... inside this PUML block
         const resolvedBlock = resolvePumlIncludes(blockContent, tree);
         logger.debug("ui: updatePreview", "Resolved inline PUML block:\n" + resolvedBlock);
 
@@ -628,7 +660,7 @@ export function updatePreview() {
             return `<pre style="color:red;">Empty PUML block.</pre>`;
         }
 
-        // 2. Encode block
+        // 2.2 Encode the resolved PUML block → PlantUML URL
         let url = "";
         try {
             url = getPumlRenderUrl(resolvedBlock);
@@ -639,14 +671,27 @@ export function updatePreview() {
 
         logger.debug("ui: updatePreview", "Inline PUML render URL:", url);
 
+        // 2.3 Replace the @startuml...@enduml block with a Markdown image
+        // This will later be turned into an <img> by the Markdown renderer.
         return `\n![PlantUML](${url})\n`;
     });
 
     // ------------------------------------------------------------
-    //  FINAL MARKDOWN RENDER
+    //  STEP 3: RESTORE FENCED CODE BLOCKS UNTOUCHED
+    //
+    // Now we put back each ```...``` block exactly where it was.
+    // Any PUML inside these blocks remains literal code and is NOT rendered.
+    // ------------------------------------------------------------
+    const restored = processed.replace(/@@FENCE_(\d+)@@/g, (match, idxStr) => {
+        const idx = Number(idxStr);
+        return fencedBlocks[idx] ?? match;
+    });
+
+    // ------------------------------------------------------------
+    //  STEP 4: FINAL MARKDOWN RENDER
     // ------------------------------------------------------------
     try {
-        preview.innerHTML = `<div class="prose">${marked.parse(processed)}</div>`;
+        preview.innerHTML = `<div class="prose">${marked.parse(restored)}</div>`;
     } catch (e) {
         logger.error("ui: updatePreview", "Markdown rendering failed:", e);
         preview.innerHTML = `<pre style="color:red;">Markdown rendering error:\n${e}</pre>`;
