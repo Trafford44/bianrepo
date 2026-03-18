@@ -10,6 +10,7 @@ let notificationTimeout = null;
 let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
+let currentFileId = null;
 let currentContextTarget = null;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
@@ -448,6 +449,9 @@ export function loadFile(fileId) {
         console.warn("loadFile: file not found", fileId);
         return;
     }
+
+    // set module variable, used for link click
+    currentFileId = file.id;
 
     activeFileId = file.id;
 
