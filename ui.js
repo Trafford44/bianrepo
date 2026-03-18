@@ -707,22 +707,25 @@ export function updatePreview() {
         // ------------------------------------------------------------
         const internalLinks = preview.querySelectorAll('a[href^="app://file/"]');
 
-        internalLinks.forEach(a => {
-            a.addEventListener("click", (e) => {
-                e.preventDefault();
+        a.addEventListener("click", (e) => {
+            e.preventDefault();
 
-                const href = e.currentTarget.getAttribute("href");
-                const id = href.replace("app://file/", "");
+            const href = e.currentTarget.getAttribute("href");
+            const id = href.replace("app://file/", "");
 
-                logger.debug("ui: updatePreview", "Internal link clicked:", id);
+            logger.debug("ui: updatePreview", "Internal link clicked:", id);
 
-                // Add this page to browser history
-                history.pushState({ fileId: id }, "", `#${id}`);
+            // Push the page we are leaving
+            if (currentFileId && currentFileId !== id) {
+                history.pushState({ fileId: currentFileId }, "", `#${currentFileId}`);
+            }
 
-                // Load the file in the editor
-                loadFile(id);
-            });
+            // Push the page we are going to
+            history.pushState({ fileId: id }, "", `#${id}`);
+
+            loadFile(id);
         });
+
 
     } catch (e) {
         logger.error("ui: updatePreview", "Markdown rendering failed:", e);
