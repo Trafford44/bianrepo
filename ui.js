@@ -716,6 +716,9 @@ export function updatePreview() {
 
                 logger.debug("ui: updatePreview", "Internal link clicked:", id);
 
+                // Add this page to browser history
+                history.pushState({ fileId: id }, "", `#${id}`);
+
                 // Load the file in the editor
                 loadFile(id);
             });
