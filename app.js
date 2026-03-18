@@ -84,6 +84,7 @@ async function init() {
         // ------------------------------------------------------------
         logger.debug("app: init()", "Adding popState listener");
         window.addEventListener("popstate", (event) => {
+            logger.debug("app: init()", "Inside adding popState listener");            
             if (event.state && event.state.fileId) {
                 logger.debug("app: popstate", "Navigating to fileId:", event.state.fileId);
                 loadFile(event.state.fileId);
