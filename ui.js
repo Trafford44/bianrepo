@@ -10,7 +10,6 @@ let notificationTimeout = null;
 let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
-let currentFileId = null;
 let currentContextTarget = null;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
@@ -450,9 +449,7 @@ export function loadFile(fileId) {
         return;
     }
 
-    // set module variable, used for link click
-    currentFileId = file.id;
-
+    // set module variable
     activeFileId = file.id;
 
     document.getElementById("empty-state").classList.add("hidden");
@@ -721,8 +718,8 @@ export function updatePreview() {
                 logger.debug("ui: updatePreview", "Internal link clicked:", id);
 
                 // Push the page we are leaving
-                if (currentFileId && currentFileId !== id) {
-                    history.pushState({ fileId: currentFileId }, "", `#${currentFileId}`);
+                if (activeileId && activeileId !== id) {
+                    history.pushState({ fileId: activeileId }, "", `#${activeileId}`);
                 }
 
                 // Push the page we are going to
