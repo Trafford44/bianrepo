@@ -86,6 +86,8 @@ async function init() {
             if (event.state && event.state.fileId) {
                 logger.debug("app: popstate", "Navigating to fileId:", event.state.fileId);
                 loadFile(event.state.fileId);
+            } else {
+                logger.debug("app: popstate", "event.state & event.state.fileId not found");
             }
         });
 
