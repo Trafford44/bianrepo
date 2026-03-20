@@ -742,7 +742,9 @@ export function updatePreview() {
 function getPumlRenderUrl(puml) {
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
-        return `https://www.plantuml.com/plantuml/svg/${encoded}`;
+        // return `https://www.plantuml.com/plantuml/svg/${encoded}`; // this is the latest beta release - flakey.  Chnaging away from this will change the rendering
+        return 'https://kroki.io/plantuml/svg/${encoded}'  // this is a commhnity based stable release 'Kroki is excellent because it is extremely stable and often uses the latest official releases rather than beta snapshots.'
+        // this is another one: https://plantuml.moesol.com/plantuml/svg/${encoded} These came from Gemini        
     } catch (e) {
         console.error("Encoding error:", e);
         return "";
@@ -752,7 +754,7 @@ function getPumlRenderUrl(puml) {
 function getPumlHref(puml) {
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
-        return `https://www.plantuml.com/plantuml/uml/${encoded}`;
+        return `https://www.plantuml.com/plantuml/uml/${encoded}`; 
     } catch (e) {
         console.error("Encoding error:", e);
         return "";
