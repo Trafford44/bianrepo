@@ -311,6 +311,131 @@ export function unflattenWorkspace(flat) {
     return root;
 }
 
+function buildLocalPathMap(tree, prefix = "") {
+    logger.debug("workspace", "buildLocalPathMap()");
+    const map = {};
+
+    for (const node of tree) {
+        const path = prefix ? `${prefix}___${node.name}` : node.name;
+
+        map[path] = node;
+
+        if (node.type === "folder") {
+            Object.assign(map, buildLocalPathMap(node.children, path));
+        }
+    }
+
+    return map;
+}
+
+function buildMetadataPathMap(metadata) {
+    logger.debug("workspace", "buildMetadataPathMap()");
+    const map = {};
+
+    function walk(nodes, prefix = "") {
+        for (const node of nodes) {
+            const path = prefix ? `${prefix}___${node.name}` : node.name;
+            map[path] = node;
+
+            if (node.type === "folder" && node.children) {
+                walk(node.children, path);
+            }
+        }
+    }
+
+    walk(metadata);
+    return map;
+}
+
+export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
+    logger.debug("workspace", "mergeWorkspace()");
+    const localMap = buildLocalPathMap(localTree);
+    const metaMap = buildMetadataPathMap(cloudMetadata);
+
+    const mergedMap = {};
+
+    // --- 1. Merge cloud files/folders ---
+    for (const flatKey in cloudFlat) {
+        const parts = flatKey.split("___");
+        const name = parts[parts.length - 1];
+        const isFile = name.endsWith(".md") || name.endsWith(".puml");
+
+        const meta = metaMap[flatKey];
+        const local = localMap[flatKey];
+
+        let id;
+
+        // Following a 'gist is the source of truth' approach
+        if (meta) {
+            // Cloud is canonical
+            id = meta.id;
+        } else if (local) {
+            // Local-only file (unsaved work)
+            id = local.id;
+        } else {
+            // Brand new file
+            id = crypto.randomUUID();
+        }
+
+        mergedMap[flatKey] = {
+            id,
+            type: isFile ? "file" : "folder",
+            name,
+            content: isFile ? cloudFlat[flatKey] : null,
+            children: []
+        };
+    }
+
+    // --- 2. Add local-only files/folders (unsaved work) ---
+    for (const path in localMap) {
+        if (!mergedMap[path]) {
+            const node = localMap[path];
+            mergedMap[path] = {
+                id: node.id,
+                type: node.type,
+                name: node.name,
+                content: node.type === "file" ? node.content : null,
+                children: []
+            };
+        }
+    }
+
+    // --- 3. Rebuild tree structure ---
+    const root = [];
+
+    for (const path in mergedMap) {
+        const parts = path.split("___");
+        let current = root;
+
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            const isFile = i === parts.length - 1 &&
+                (part.endsWith(".md") || part.endsWith(".puml"));
+
+            const fullPath = parts.slice(0, i + 1).join("___");
+            const node = mergedMap[fullPath];
+
+            let existing = current.find(n => n.name === part);
+
+            if (!existing) {
+                existing = {
+                    id: node.id,
+                    type: node.type,
+                    name: node.name,
+                    content: node.content,
+                    children: []
+                };
+                current.push(existing);
+            }
+
+            if (!isFile) {
+                current = existing.children;
+            }
+        }
+    }
+
+    return root;
+}
 
 
 // Detect old format: array of { title, files }
