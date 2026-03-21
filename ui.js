@@ -602,6 +602,17 @@ export function updatePreview() {
             </div>
         `;
 
+        //add logging to help with ID regeneration 
+        const img = preview.querySelector("img");
+
+        if (img) {
+            img.addEventListener("error", () => {
+                logger.error("ui: updatePreview", "PUML RENDER FAILED — PlantUML/Kroki returned an error for URL:", url);
+                logger.error("ui: updatePreview", "Resolved PUML content was:\n" + resolved);
+                logger.error("ui: updatePreview", "Preview aborted — saveState() will NOT run");
+            });
+        }      
+
         // 4. External link (for "open in browser" style behaviour)
         try {
             link.href = getPumlHref(resolved);
@@ -740,13 +751,14 @@ export function updatePreview() {
 
 
 function getPumlRenderUrl(puml) {
+    logger.debug("ui", "Running getPumlRenderUrl()");
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
         console.log("pre send to Plant: ",puml.trim());
         return `https://www.plantuml.com/plantuml/svg/${encoded}`; // this is the latest beta release - flakey.  Chnaging away from this will change the rendering
-        // return 'https://kroki.io/plantuml/svg/${encoded}'  // this is a commhnity based stable release 'Kroki is excellent because it is extremely stable and often uses the latest official releases rather than beta snapshots.'
+        //return `https://kroki.io/plantuml/svg/${encoded}`  // this is a commhnity based stable release 'Kroki is excellent because it is extremely stable and often uses the latest official releases rather than beta snapshots.'
         // this is another one: https://plantuml.moesol.com/plantuml/svg/${encoded} These came from Gemini   
-        //return `https://www.planttext.com/api/plantuml/svg/${encoded}`;
+        // return `https://www.planttext.com/api/plantuml/svg/${encoded}`; // this is a Stable PlantUML Proxy - reasonably old potentially    
     } catch (e) {
         console.error("Encoding error:", e);
         return "";
