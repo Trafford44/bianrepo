@@ -6,6 +6,7 @@ const STORAGE_KEY = "kb_data";
 logger.debug("workspace","workspace.js loaded from:", import.meta.url);
 
 export function getWorkspace() {
+    logger.debug("workspace", "getWorkspace()");
     // ensure workspace is always sorted
     sortTree(workspace); // root stays in user-defined order
     return workspace;
@@ -106,22 +107,26 @@ export function saveState() {
 export function loadState() {
     logger.debug("workspace", "loadState()");
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return;
+    if (!saved) {
+        logger.info("workspace: loadState", "Workspace not found: ", STORAGE_KEY);
+        return;
+    }
+    logger.debug("workspace: loadState", "Raw localStorage: ", saved);
 
     try {
         let tree = JSON.parse(saved);
+        logger.debug("workspace: loadState", "Parsed localStorage: ", tree);
 
         // Ensure root is ALWAYS an array
         if (!Array.isArray(tree)) {
             tree = [tree];
         }
-
+        
         migrateWorkspace(tree);  // Migrate to new model
-
         setWorkspace(tree);
         saveState(); // ensure new fields persist
     } catch (e) {
-        console.error("Failed to load workspace:", e);
+        logger.error("Failed to load workspace:", e);
     }
 }
 
@@ -246,6 +251,7 @@ export function flattenWorkspace(tree) {
 
 
 export function unflattenWorkspace(flat) {
+    logger.debug("workspace", "unflattenWorkspace()");
     const root = [];
 
     for (const flatKey in flat) {
@@ -370,6 +376,7 @@ path	❌	✔	Metadata	Full path used as metadata key
 */
 
 function migrateNode(node) {
+    logger.debug("workspace", "migrateNode()");
     // Internal linking
     if (!("pathCache" in node)) node.pathCache = null;
 
@@ -397,6 +404,7 @@ function migrateNode(node) {
 
 
 export function migrateWorkspace(workspace) {
+    logger.debug("workspace", "migrateWorkspace()");
     workspace.forEach(migrateNode);
 }
 
