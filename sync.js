@@ -554,7 +554,15 @@ export async function loadWorkspaceFromGist() {
 
         // 2. Parse cloud metadata
         const metadataFile = data.files["__workspace.json"];
-        const cloudMetadata = metadataFile ? JSON.parse(metadataFile.content) : [];
+        logger.debug("sync: loadWorkspaceFromGist", "Fetched gist, about to parse metadata");
+
+        let cloudMetadata = metadataFile ? JSON.parse(metadataFile.content) : [];
+
+        logger.debug("sync: loadWorkspaceFromGist", "Parsed metadata OK", {
+            isArray: Array.isArray(cloudMetadata),
+            type: typeof cloudMetadata
+        });
+
         //ensure passing an array
         if (!Array.isArray(cloudMetadata)) {
             cloudMetadata = [cloudMetadata];
@@ -564,6 +572,7 @@ export async function loadWorkspaceFromGist() {
         const localTree = getWorkspace();
 
         // 4. Merge cloud + local using metadata to preserve IDs
+        logger.debug("sync: loadWorkspaceFromGist", "Calling mergeWorkspace()");
         const merged = mergeWorkspace(localTree, cloudFlat, cloudMetadata);
 
         // 5. Save + render
@@ -575,7 +584,11 @@ export async function loadWorkspaceFromGist() {
         showNotification("success", "Data loaded from Cloud");
 
     } catch (error) {
-        logger.error("sync: loadWorkspaceFromGist", error);
+        logger.error("sync: loadWorkspaceFromGist", {
+            message: error.message,
+            stack: error.stack
+        });
+
         return;
     }    
 }
