@@ -555,6 +555,10 @@ export async function loadWorkspaceFromGist() {
         // 2. Parse cloud metadata
         const metadataFile = data.files["__workspace.json"];
         const cloudMetadata = metadataFile ? JSON.parse(metadataFile.content) : [];
+        //ensure passing an array
+        if (!Array.isArray(cloudMetadata)) {
+            cloudMetadata = [cloudMetadata];
+        }
 
         // 3. Load local workspace (unsaved work)
         const localTree = getWorkspace();
@@ -682,6 +686,10 @@ export async function restoreFromGistVersion(versionId) {
 
         // 2. Parse cloud metadata
         const cloudMetadata = metadata || [];
+        // ensure passing an array
+        if (!Array.isArray(cloudMetadata)) {
+            cloudMetadata = [cloudMetadata];
+        }
 
         // 3. Load local workspace (unsaved work)
         const localTree = getWorkspace();
