@@ -10,7 +10,7 @@ const LOG_LEVELS = {
 
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.NONE;
+let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
 function log(levelName, levelValue, source, message, details) {
   if (CURRENT_LEVEL === LOG_LEVELS.NONE) return;
