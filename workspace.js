@@ -348,7 +348,12 @@ function buildMetadataPathMap(metadata) {
 }
 
 export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
-    logger.debug("workspace", "mergeWorkspace()");
+    logger.debug("workspace", "mergeWorkspace() CALLED", {
+        localCount: Array.isArray(localTree) ? localTree.length : typeof localTree,
+        cloudFlatCount: Object.keys(cloudFlat || {}).length,
+        cloudMetaCount: Array.isArray(cloudMetadata) ? cloudMetadata.length : typeof cloudMetadata,
+    });
+    
     const localMap = buildLocalPathMap(localTree);
     const metaMap = buildMetadataPathMap(cloudMetadata);
 
