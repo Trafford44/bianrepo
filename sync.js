@@ -216,6 +216,7 @@ export async function runSyncCheck(reason) {
         return;
     }
     // If we have a gistId and the workspace is empty, load it now
+    // * this code triggers a workspace refresh
     if (gistId && workspaceIsEmpty()) {
         logger.info("sync: runSyncCheck", "Workspace empty — loading from cloud");
         await loadWorkspaceFromGist();
