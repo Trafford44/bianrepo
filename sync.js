@@ -544,17 +544,29 @@ export async function loadWorkspaceFromGist() {
             flat[filename] = data.files[filename].content;
         }
 
-        const tree = unflattenWorkspace(flat);
-
-        // Ensure root is ALWAYS an array
-        if (!Array.isArray(tree)) {
-            tree = [tree];
+        // 1. Extract cloud flat files (excluding metadata)
+        const cloudFlat = {};
+        for (const filename in data.files) {
+            if (filename !== "__workspace.json") {
+                cloudFlat[filename] = data.files[filename].content;
+            }
         }
 
-        migrateWorkspace(tree); // NEW: migrate to the latest model
-        setWorkspace(tree);
+        // 2. Parse cloud metadata
+        const metadataFile = data.files["__workspace.json"];
+        const cloudMetadata = metadataFile ? JSON.parse(metadataFile.content) : [];
+
+        // 3. Load local workspace (unsaved work)
+        const localTree = getWorkspace();
+
+        // 4. Merge cloud + local using metadata to preserve IDs
+        const merged = mergeWorkspace(localTree, cloudFlat, cloudMetadata);
+
+        // 5. Save + render
+        setWorkspace(merged);
         saveState();
         renderSidebar();
+
 
         showNotification("success", "Data loaded from Cloud");
 
@@ -660,17 +672,28 @@ export async function restoreFromGistVersion(versionId) {
             flat[filename] = data.files[filename].content;
         }
 
-        let tree = unflattenWorkspace(flat);
-
-        // ⭐ 3. Apply metadata to the reconstructed tree
-        if (metadata) {
-            applyMetadata(tree, metadata);
+        // 1. Extract cloud flat files (excluding metadata)
+        const cloudFlat = {};
+        for (const filename in data.files) {
+            if (filename !== "__workspace.json") {
+                cloudFlat[filename] = data.files[filename].content;
+            }
         }
 
-        // 4. Save into app state
-        setWorkspace(tree);
+        // 2. Parse cloud metadata
+        const cloudMetadata = metadata || [];
+
+        // 3. Load local workspace (unsaved work)
+        const localTree = getWorkspace();
+
+        // 4. Merge cloud + local using metadata to preserve IDs
+        const merged = mergeWorkspace(localTree, cloudFlat, cloudMetadata);
+
+        // 5. Save + render
+        setWorkspace(merged);
         saveState();
         renderSidebar();
+
 
         showNotification("success", "Workspace restored from previous version");
 
