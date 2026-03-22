@@ -219,7 +219,7 @@ export function sanitizeName(name) {
 
 
 export function flattenWorkspace(tree) {
-    logger.debug("workspace", "unning flattenWorkspace");
+    logger.debug("workspace", "Running flattenWorkspace");
     const output = [];
 
     function walk(nodes, pathParts) {
