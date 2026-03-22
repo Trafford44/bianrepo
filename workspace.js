@@ -219,24 +219,63 @@ export function sanitizeName(name) {
 
 
 export function flattenWorkspace(tree) {
+    logger.debug("workspace", "unning flattenWorkspace");
     const output = [];
 
     function walk(nodes, pathParts) {
-        for (const node of nodes) {
+
+        // ------------------------------------------------------------
+        // 1. Deterministically sort siblings before processing them.
+        //
+        //    Why?
+        //    - The original version relied on insertion order.
+        //    - That causes nondeterministic flattening across devices.
+        //    - Sorting ensures stable ordering → stable hashing.
+        //
+        //    Rules:
+        //    - Folders always come before files.
+        //    - Within each group, sort alphabetically by name.
+        // ------------------------------------------------------------
+        const sorted = [...nodes].sort((a, b) => {
+            if (a.type !== b.type) {
+                return a.type === "folder" ? -1 : 1;
+            }
+            return a.name.localeCompare(b.name);
+        });
+
+        for (const node of sorted) {
             const encoded = encodeName(node.name);
 
             if (node.type === "folder") {
-                walk(node.children, [...pathParts, encoded]);
-            } else if (node.type === "file") {
-                let fileName = encoded;
 
-                // anything without a file extension is saved as 'md' file type
+                // ------------------------------------------------------------
+                // Recurse into folder children.
+                // We push the encoded folder name into the path.
+                // ------------------------------------------------------------
+                walk(node.children, [...pathParts, encoded]);
+
+            } else if (node.type === "file") {
+
+                // ------------------------------------------------------------
+                // 2. Ensure file has a valid extension.
+                //
+                //    This preserves your existing behavior:
+                //    - .md and .puml are allowed
+                //    - everything else becomes .md
+                // ------------------------------------------------------------
+                let fileName = encoded;
                 if (!fileName.endsWith(".md") && !fileName.endsWith(".puml")) {
                     fileName += ".md";
                 }
 
+                // ------------------------------------------------------------
+                // 3. Construct the full encoded path using your "___" separator.
+                // ------------------------------------------------------------
                 const fullPath = [...pathParts, fileName].join("___");
 
+                // ------------------------------------------------------------
+                // 4. Push deterministic file entry.
+                // ------------------------------------------------------------
                 output.push({
                     path: fullPath,
                     content: node.content || ""
@@ -245,9 +284,22 @@ export function flattenWorkspace(tree) {
         }
     }
 
+    // Start walking from the root
     walk(tree, []);
+
+    // ------------------------------------------------------------
+    // 5. Sort final output list by path.
+    //
+    //    Why?
+    //    - Even with sorted siblings, recursion order can still
+    //      produce subtle differences.
+    //    - Sorting the final list guarantees a stable file order.
+    // ------------------------------------------------------------
+    output.sort((a, b) => a.path.localeCompare(b.path));
+
     return output;
 }
+
 
 
 export function unflattenWorkspace(flat) {
