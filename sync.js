@@ -438,8 +438,7 @@ export async function reconcileLocalAndCloud(local) {
         // Local exists, cloud doesn't → push local to cloud
         await saveWorkspaceToGist(local);
 
-        const localTree = getWorkspace();
-        const localHash = await computeWorkspaceHash(localTree);
+        const localHash = await computeWorkspaceHash(local);
         localStorage.setItem("lastSyncedHash", localHash);
         return;
     }
@@ -455,13 +454,11 @@ export async function reconcileLocalAndCloud(local) {
 
     const { flat: cloudFlat, metadata: cloudMetadata } = cloud;
 
-    // Compute structural hashes
-    const localTree = buildTree(local || [], localMetadata);
-    const cloudTree = buildTree(cloudFlat, cloudMetadata);
-
-    const localHash = await computeWorkspaceHash(localTree);
-    const cloudHash = await computeWorkspaceHash(cloudTree);
-
+    // ------------------------------------------------------------
+    // Compute structural hashes (FLAT MODEL)
+    // ------------------------------------------------------------
+    const localHash = await computeWorkspaceHash(local || []);
+    const cloudHash = await computeWorkspaceHash(cloudFlat);
 
     // ------------------------------------------------------------
     // CASE 3: Local and cloud match → nothing to do
@@ -498,6 +495,7 @@ export async function reconcileLocalAndCloud(local) {
     const newHash = await computeWorkspaceHash(migrated);
     localStorage.setItem("lastSyncedHash", newHash);
 }
+
 
 
 async function getLatestWorkspaceGistMeta() {
