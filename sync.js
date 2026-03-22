@@ -336,7 +336,17 @@ async function hashGistContent(files) {
 function buildCanonicalSnapshot(flat) {
     logger.debug("sync", "Running buildCanonicalSnapshot()");
 
-    // 1. Sort deterministically
+    // ------------------------------------------------------------
+    // Defensive guard: ensure we always receive an array.
+    // ------------------------------------------------------------
+    if (!Array.isArray(flat)) {
+        logger.error("sync", "buildCanonicalSnapshot received non-array:", flat);
+        return { version: 1, flat: [] };
+    }
+
+    // ------------------------------------------------------------
+    // 1. Deterministic ordering
+    // ------------------------------------------------------------
     const sorted = [...flat].sort((a, b) => {
         if (a.type !== b.type) {
             return a.type === "folder" ? -1 : 1;
@@ -344,7 +354,9 @@ function buildCanonicalSnapshot(flat) {
         return a.name.localeCompare(b.name);
     });
 
-    // 2. Build canonical entries
+    // ------------------------------------------------------------
+    // 2. Canonical entries
+    // ------------------------------------------------------------
     const entries = sorted.map(node => ({
         type: node.type,
         name: node.name,
@@ -357,6 +369,7 @@ function buildCanonicalSnapshot(flat) {
         flat: entries
     };
 }
+
 
 
 async function sha256(str) {
@@ -457,8 +470,12 @@ export async function reconcileLocalAndCloud(local) {
     // ------------------------------------------------------------
     // Compute structural hashes (FLAT MODEL)
     // ------------------------------------------------------------
-    const localHash = await computeWorkspaceHash(local || []);
-    const cloudHash = await computeWorkspaceHash(cloudFlat);
+    const safeLocal = Array.isArray(local) ? local : [];
+    const localHash = await computeWorkspaceHash(safeLocal);
+
+    const safeCloud = Array.isArray(cloudFlat) ? cloudFlat : [];
+    const cloudHash = await computeWorkspaceHash(safeCloud);
+
 
     // ------------------------------------------------------------
     // CASE 3: Local and cloud match → nothing to do
