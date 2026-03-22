@@ -2,7 +2,7 @@ import { handleOAuthRedirect, bindLoginButton, getToken, getGistId } from "./aut
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, loadFile } from "./ui.js";
 import { loadState } from "./workspace.js";
 import { setupMarked } from "./md-editor.js";
-import { startSyncLoop, bindVisibilityEvents, bindActivityEvents } from "./sync.js";
+import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud } from "./sync.js";
 import { logger } from "./logger.js";
 
 /* it's critical that the order remains as below
@@ -35,7 +35,11 @@ async function init() {
 
         // 3. Load workspace from localStorage (new model)
         logger.debug("app: init()", "Running workspace.loadState()");
-        loadState(); // loads kb_workspace into the recursive tree
+        const local = loadState(); // <-- capture the return value
+
+        // ⭐ NEW: Reconcile local vs cloud BEFORE starting sync loop
+        logger.debug("app: init()", "Running sync.reconcileLocalAndCloud()");
+        await reconcileLocalAndCloud(local);
 
         // 3.5 Re-check the token immediately after wake
         logger.debug("app: init()", "Running sync.bindVisibilityEvents()");
@@ -83,7 +87,7 @@ async function init() {
         // 9. Browser history: handle Back/Forward navigation
         // ------------------------------------------------------------
         logger.debug("app: init()", "Adding popState listener");
-        window.addEventListener("popstate", (event) => {        
+        window.addEventListener("popstate", (event) => {
             if (event.state && event.state.fileId) {
                 logger.debug("app: popstate", "Navigating to fileId:", event.state.fileId);
                 loadFile(event.state.fileId);
@@ -96,5 +100,6 @@ async function init() {
         logger.error("app: init()", "Unhandled error in init()", err);
     }
 }
+
 
 init();
