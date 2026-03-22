@@ -370,6 +370,57 @@ export async function reconcileLocalAndCloud(local) {
     saveState(migrated);
 }
 
+async function getLatestWorkspaceGistMeta() {
+    const gistId = getGistId();
+    const token = getToken();
+
+    if (!gistId || !token) {
+        logger.info("sync: getLatestWorkspaceGistMeta", "No gistId or token found.");
+        return null;
+    }
+
+    try {
+        const res = await fetch(`${GIST_API}/${gistId}`, {
+            headers: { "Authorization": `token ${token}` }
+        });
+
+        if (res.status === 401) {
+            logger.error("sync: getLatestWorkspaceGistMeta", "Token invalid or expired.");
+            disconnectFromGitHub("Cloud token expired.");
+            return null;
+        }
+
+        if (!res.ok) {
+            const text = await res.text();
+            logger.error("sync: getLatestWorkspaceGistMeta", `Failed to fetch gist metadata: ${res.status}`, text);
+            return null;
+        }
+
+        const data = await res.json();
+
+        // Extract hash from __workspace.json if present
+        let cloudHash = null;
+        if (data.files["__workspace.json"]) {
+            try {
+                const parsed = JSON.parse(data.files["__workspace.json"].content);
+                cloudHash = parsed.hash || null;
+            } catch (err) {
+                logger.error("sync: getLatestWorkspaceGistMeta", "Failed to parse __workspace.json", err);
+            }
+        }
+
+        return {
+            id: data.id,
+            updatedAt: data.updated_at,
+            hash: cloudHash,
+            files: Object.keys(data.files)
+        };
+
+    } catch (err) {
+        logger.error("sync: getLatestWorkspaceGistMeta", "Network or fetch error", err);
+        return null;
+    }
+}
 
 
 async function maybeAutoSave() {
