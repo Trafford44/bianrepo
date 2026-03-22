@@ -481,8 +481,12 @@ export async function reconcileLocalAndCloud(local) {
     const { flat: cloudFlat, metadata: cloudMetadata } = cloud;
 
     // Compute structural hashes
-    const localHash = await computeWorkspaceHash(local || []);
-    const cloudHash = await computeWorkspaceHash(cloudFlat);
+    const localTree = buildTree(local || [], localMetadata);
+    const cloudTree = buildTree(cloudFlat, cloudMetadata);
+
+    const localHash = await computeWorkspaceHash(localTree);
+    const cloudHash = await computeWorkspaceHash(cloudTree);
+
 
     // ------------------------------------------------------------
     // CASE 3: Local and cloud match → nothing to do
