@@ -356,17 +356,24 @@ export async function reconcileLocalAndCloud(local) {
 
     // Cloud is newer OR local is empty → cloud wins
     if (!local || local.length === 0 || cloudHash !== localHash) {
-        const cloud = await loadWorkspaceFromGist();
+        // Load cloud workspace (flat + metadata)
+        const { flat: cloudFlat, metadata: cloudMetadata } = await loadWorkspaceFromGist();
 
+        // Ensure local is always an array
         const safeLocal = Array.isArray(local) ? local : [];
-        const merged = mergeWorkspace(safeLocal, cloud);
 
+        // Merge local + cloud
+        const merged = mergeWorkspace(safeLocal, cloudFlat, cloudMetadata);
+
+        // Run migration on the merged result
         const migrated = migrateWorkspace(merged);
 
+        // Save everywhere
         saveState(migrated);
         await saveWorkspaceToGist(migrated);
         return;
     }
+
 
 
     // Hashes match → local is up to date
