@@ -333,59 +333,193 @@ async function hashGistContent(files) {
     }         
 }
 
+function buildCanonicalSnapshot(tree) {
+    logger.debug("sync", "Running buildCanonicalSnapshot()");
+    // ------------------------------------------------------------
+    // The canonical snapshot is a pure structural representation
+    // of the workspace. It excludes:
+    // - UI fields (isOpen, selection, scroll)
+    // - timestamps (updatedAt, publicAt)
+    // - publishing fields (isPublic, publicId)
+    // - anything that doesn't affect structure or content
+    //
+    // It includes:
+    // - folder/file hierarchy
+    // - names
+    // - types
+    // - children ordering (already deterministic)
+    // - file content
+    //
+    // This is what will be hashed.
+    // ------------------------------------------------------------
+
+    function walk(nodes) {
+        // Deterministic sibling ordering (already enforced in Step 1 & 2)
+        const sorted = [...nodes].sort((a, b) => {
+            if (a.type !== b.type) {
+                return a.type === "folder" ? -1 : 1;
+            }
+            return a.name.localeCompare(b.name);
+        });
+
+        return sorted.map(node => {
+            if (node.type === "folder") {
+                return {
+                    type: "folder",
+                    name: node.name,
+                    children: walk(node.children)
+                };
+            } else {
+                return {
+                    type: "file",
+                    name: node.name,
+                    content: node.content || ""
+                };
+            }
+        });
+    }
+
+    return {
+        version: 1,
+        tree: walk(tree)
+    };
+}
+
+async function sha256(str) {
+    // Encode string as UTF-8
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+
+    // Hash the data
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+
+    // Convert ArrayBuffer → hex string
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+
+    return hashHex;
+}
+
+export async function computeWorkspaceHash(tree) {
+    // ------------------------------------------------------------
+    // 1. Build the canonical structural snapshot.
+    //
+    //    This snapshot:
+    //    - excludes UI state
+    //    - excludes timestamps
+    //    - excludes public/private flags
+    //    - excludes IDs
+    //    - includes only structure + content
+    //
+    //    This ensures two devices with the same workspace
+    //    produce the same snapshot.
+    // ------------------------------------------------------------
+    const snapshot = buildCanonicalSnapshot(tree);
+
+    // ------------------------------------------------------------
+    // 2. Convert to JSON in a deterministic way.
+    //
+    //    JSON.stringify is deterministic as long as:
+    //    - object keys are stable (they are)
+    //    - arrays are sorted (they are)
+    //    - snapshot structure is stable (it is)
+    //
+    //    This gives us a stable byte sequence to hash.
+    // ------------------------------------------------------------
+    const json = JSON.stringify(snapshot);
+
+    // ------------------------------------------------------------
+    // 3. Hash the JSON using SHA-256.
+    //
+    //    This produces a 64-character hex string.
+    //    This is the workspace version number.
+    // ------------------------------------------------------------
+    const hash = await sha256(json);
+
+    return hash;
+}
+
 export async function reconcileLocalAndCloud(local) {
     logger.debug("sync", "Running reconcileLocalAndCloud()");
-    const cloudMeta = await getLatestWorkspaceGistMeta();
 
-    // No cloud gist exists yet
+    const cloudMeta = await getLatestWorkspaceGistMeta();
+    const lastSyncedHash = localStorage.getItem("lastSyncedHash");
+
+    // ------------------------------------------------------------
+    // CASE 1: No cloud gist exists yet
+    // ------------------------------------------------------------
     if (!cloudMeta) {
         if (!local || local.length === 0) {
             const fresh = createEmptyWorkspace();
             saveState(fresh);
             await saveWorkspaceToGist(fresh);
+
+            const freshHash = await computeWorkspaceHash(fresh);
+            localStorage.setItem("lastSyncedHash", freshHash);
             return;
         }
 
         // Local exists, cloud doesn't → push local to cloud
         await saveWorkspaceToGist(local);
+
+        const localHash = await computeWorkspaceHash(local);
+        localStorage.setItem("lastSyncedHash", localHash);
         return;
     }
 
-    const cloudHash = cloudMeta.hash;
-    const localHash = local?.hash;
+    // ------------------------------------------------------------
+    // CASE 2: Cloud exists → load cloud workspace
+    // ------------------------------------------------------------
+    const cloud = await loadWorkspaceFromGist();
+    if (!cloud || !cloud.flat || !cloud.metadata) {
+        logger.error("sync: reconcileLocalAndCloud", "Cloud load failed or returned invalid structure");
+        return;
+    }
 
-    // Cloud is newer OR local is empty → cloud wins
-    if (!local || local.length === 0 || cloudHash !== localHash) {
-        // Load cloud workspace (flat + metadata)
-        const cloud = await loadWorkspaceFromGist();
-        if (!cloud || !cloud.flat || !cloud.metadata) {
-            logger.error("sync: reconcileLocalAndCloud", "Cloud load failed or returned invalid structure");
-            return; // or fallback to local-only behavior
-        }
-        const { flat: cloudFlat, metadata: cloudMetadata } = cloud;
+    const { flat: cloudFlat, metadata: cloudMetadata } = cloud;
 
+    // Compute structural hashes
+    const localHash = await computeWorkspaceHash(local || []);
+    const cloudHash = await computeWorkspaceHash(cloudFlat);
 
-        // Ensure local is always an array
-        const safeLocal = Array.isArray(local) ? local : [];
+    // ------------------------------------------------------------
+    // CASE 3: Local and cloud match → nothing to do
+    // ------------------------------------------------------------
+    if (localHash === cloudHash) {
+        localStorage.setItem("lastSyncedHash", localHash);
 
-        // Merge local + cloud
-        const merged = mergeWorkspace(safeLocal, cloudFlat, cloudMetadata);
+        const migrated = migrateWorkspace(local);
+        saveState(migrated);
+        return;
+    }
 
-        // Run migration on the merged result
+    // ------------------------------------------------------------
+    // CASE 4: Cloud changed since last sync → cloud wins
+    // ------------------------------------------------------------
+    if (cloudHash !== lastSyncedHash) {
+        const merged = mergeWorkspace(local || [], cloudFlat, cloudMetadata);
         const migrated = migrateWorkspace(merged);
 
-        // Save everywhere
         saveState(migrated);
-        await saveWorkspaceToGist(migrated);
+        localStorage.setItem("lastSyncedHash", cloudHash);
         return;
     }
 
+    // ------------------------------------------------------------
+    // CASE 5: Local changed, cloud didn’t → local wins
+    // ------------------------------------------------------------
+    const merged = mergeWorkspace(local || [], cloudFlat, cloudMetadata);
+    const migrated = migrateWorkspace(merged);
 
-
-    // Hashes match → local is up to date
-    const migrated = migrateWorkspace(local);
     saveState(migrated);
+    await saveWorkspaceToGist(migrated);
+
+    const newHash = await computeWorkspaceHash(migrated);
+    localStorage.setItem("lastSyncedHash", newHash);
 }
+
 
 async function getLatestWorkspaceGistMeta() {
     const gistId = getGistId();
