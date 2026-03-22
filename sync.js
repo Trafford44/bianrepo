@@ -336,6 +336,11 @@ async function hashGistContent(files) {
 function buildCanonicalSnapshot(flat) {
     logger.debug("sync", "Running buildCanonicalSnapshot()");
 
+    if (!Array.isArray(flat)) {
+        logger.error("sync", "buildCanonicalSnapshot received non-array:", flat);
+        return { version: 1, flat: [] };
+    }
+
     // ------------------------------------------------------------
     // Defensive guard: ensure we always receive an array.
     // ------------------------------------------------------------
@@ -483,7 +488,7 @@ export async function reconcileLocalAndCloud(local) {
     if (localHash === cloudHash) {
         localStorage.setItem("lastSyncedHash", localHash);
 
-        const migrated = migrateWorkspace(local);
+        const migrated = migrateWorkspace(safeLocal);
         saveState(migrated);
         return;
     }
@@ -492,7 +497,7 @@ export async function reconcileLocalAndCloud(local) {
     // CASE 4: Cloud changed since last sync → cloud wins
     // ------------------------------------------------------------
     if (cloudHash !== lastSyncedHash) {
-        const merged = mergeWorkspace(local || [], cloudFlat, cloudMetadata);
+        const merged = mergeWorkspace(safeLocal, cloudFlat, cloudMetadata);
         const migrated = migrateWorkspace(merged);
 
         saveState(migrated);
@@ -503,7 +508,7 @@ export async function reconcileLocalAndCloud(local) {
     // ------------------------------------------------------------
     // CASE 5: Local changed, cloud didn’t → local wins
     // ------------------------------------------------------------
-    const merged = mergeWorkspace(local || [], cloudFlat, cloudMetadata);
+    const merged = mergeWorkspace(safeLocal, cloudFlat, cloudMetadata);
     const migrated = migrateWorkspace(merged);
 
     saveState(migrated);
