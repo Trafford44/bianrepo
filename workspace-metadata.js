@@ -4,12 +4,42 @@ import { logger } from "./logger.js";
 logger.debug("workspace-metadata","workspace-metadata.js loaded from:", import.meta.url);
 
 export function extractMetadata(nodes) {
+    logger.debug("workspace-metadata", "Running extractMetadata");
     const meta = [];
 
     function walk(list, parentPath = "") {
-        for (const node of list) {
+
+        // ------------------------------------------------------------
+        // 1. Deterministically sort siblings.
+        //
+        //    Why?
+        //    - Metadata must be stable across devices.
+        //    - Sorting ensures the same traversal order everywhere.
+        // ------------------------------------------------------------
+        const sorted = [...list].sort((a, b) => {
+            if (a.type !== b.type) {
+                return a.type === "folder" ? -1 : 1;
+            }
+            return a.name.localeCompare(b.name);
+        });
+
+        for (const node of sorted) {
+
+            // ------------------------------------------------------------
+            // 2. Build a canonical metadata path.
+            //
+            //    Important:
+            //    - We use the *raw* name here (not encoded).
+            //    - This preserves your existing metadata format.
+            // ------------------------------------------------------------
             const path = parentPath ? `${parentPath}___${node.name}` : node.name;
 
+            // ------------------------------------------------------------
+            // 3. Base metadata entry (structural fields).
+            //
+            //    These fields define the workspace structure.
+            //    They WILL be used later for hashing.
+            // ------------------------------------------------------------
             const entry = {
                 id: node.id,
                 type: node.type,
@@ -18,15 +48,37 @@ export function extractMetadata(nodes) {
             };
 
             if (node.type === "folder") {
+
+                // ------------------------------------------------------------
+                // 4. Folder-specific metadata.
+                //
+                //    children:
+                //      - Sorted for determinism.
+                //      - UI fields (isOpen) preserved for saving.
+                // ------------------------------------------------------------
                 entry.isOpen = !!node.isOpen;
-                entry.children = node.children.map(c => c.id);
+                entry.children = node.children
+                    .map(c => c.id)
+                    .sort(); // deterministic ordering
+
                 meta.push(entry);
+
+                // Recurse into children
                 walk(node.children, path);
+
             } else {
+
+                // ------------------------------------------------------------
+                // 5. File-specific metadata.
+                //
+                //    UI fields preserved for saving.
+                //    These WILL NOT be included in the structural hash later.
+                // ------------------------------------------------------------
                 entry.isPublic = !!node.isPublic;
                 entry.publicId = node.publicId || null;
                 entry.publicAt = node.publicAt || null;
                 entry.updatedAt = node.updatedAt || null;
+
                 meta.push(entry);
             }
         }
@@ -34,15 +86,26 @@ export function extractMetadata(nodes) {
 
     walk(nodes);
 
+    // ------------------------------------------------------------
+    // 6. Sort final metadata list by path.
+    //
+    //    Why?
+    //    - Ensures stable ordering in __workspace.json.
+    //    - Prevents churn when saving from different devices.
+    // ------------------------------------------------------------
+    meta.sort((a, b) => a.path.localeCompare(b.path));
+
     return {
         version: 1,
         nodes: meta
     };
 }
 
+
 // workspace-metadata.js
 
 export function applyMetadata(tree, metadata) {
+    logger.debug("workspace-metadata", "Running extractMetadata");
     const map = new Map();
     metadata.nodes.forEach(n => map.set(n.path, n));
 
