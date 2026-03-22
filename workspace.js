@@ -420,6 +420,12 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
             const fullPath = parts.slice(0, i + 1).join("___");
             const node = mergedMap[fullPath];
 
+            // If the node doesn't exist, skip this path safely
+            if (!node) {
+                logger.error("mergeWorkspace", "Missing node for path", fullPath);
+                continue;
+            }
+
             let existing = current.find(n => n.name === part);
 
             if (!existing) {
@@ -433,9 +439,6 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
                 current.push(existing);
             }
 
-            if (!isFile) {
-                current = existing.children;
-            }
         }
     }
 
