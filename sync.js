@@ -333,6 +333,43 @@ async function hashGistContent(files) {
     }         
 }
 
+export async function reconcileLocalAndCloud(local) {
+    logger.debug("sync", "Running reconcileLocalAndCloud()");
+    const cloudMeta = await getLatestWorkspaceGistMeta();
+
+    // No cloud gist exists yet
+    if (!cloudMeta) {
+        if (!local || local.length === 0) {
+            const fresh = createEmptyWorkspace();
+            saveState(fresh);
+            await saveWorkspaceToGist(fresh);
+            return;
+        }
+
+        // Local exists, cloud doesn't → push local to cloud
+        await saveWorkspaceToGist(local);
+        return;
+    }
+
+    const cloudHash = cloudMeta.hash;
+    const localHash = local?.hash;
+
+    // Cloud is newer OR local is empty → cloud wins
+    if (!local || local.length === 0 || cloudHash !== localHash) {
+        const cloud = await loadWorkspaceFromGist();
+        const merged = mergeWorkspace(local, cloud);
+        const migrated = migrateWorkspace(merged);
+
+        saveState(migrated);
+        await saveWorkspaceToGist(migrated);
+        return;
+    }
+
+    // Hashes match → local is up to date
+    const migrated = migrateWorkspace(local);
+    saveState(migrated);
+}
+
 
 
 async function maybeAutoSave() {
