@@ -357,7 +357,13 @@ export async function reconcileLocalAndCloud(local) {
     // Cloud is newer OR local is empty → cloud wins
     if (!local || local.length === 0 || cloudHash !== localHash) {
         // Load cloud workspace (flat + metadata)
-        const { flat: cloudFlat, metadata: cloudMetadata } = await loadWorkspaceFromGist();
+        const cloud = await loadWorkspaceFromGist();
+        if (!cloud || !cloud.flat || !cloud.metadata) {
+            logger.error("sync: reconcileLocalAndCloud", "Cloud load failed or returned invalid structure");
+            return; // or fallback to local-only behavior
+        }
+        const { flat: cloudFlat, metadata: cloudMetadata } = cloud;
+
 
         // Ensure local is always an array
         const safeLocal = Array.isArray(local) ? local : [];
@@ -617,17 +623,20 @@ function showSyncState(state) {
 
 export async function loadWorkspaceFromGist() {
     logger.debug("sync", "Running loadWorkspaceFromGist()");
+
+    // Must be logged in
     if (!requireLogin()) {
-        logger.info("sync: loadWorkspaceFromGist", "Login not required")
-        return;
+        logger.info("sync: loadWorkspaceFromGist", "Login not required");
+        return null;
     }
+
     const gistId = getGistId();
     const githubToken = getToken();
 
-    if (!gistId) {        
+    if (!gistId) {
         showNotification("info", "No cloud backup found. Save to Cloud first.");
-        logger.info("sync: loadWorkspaceFromGist", "No cloud backup found. Instructed user to save to Cloud first")
-        return;
+        logger.info("sync: loadWorkspaceFromGist", "No cloud backup found. Instructed user to save to Cloud first");
+        return null;
     }
 
     try {
@@ -635,15 +644,14 @@ export async function loadWorkspaceFromGist() {
             headers: { "Authorization": `token ${githubToken}` }
         });
 
-        const data = await res.json();
-
-        // Convert flat gist files → recursive workspace tree
-        const flat = {};
-        for (const filename in data.files) {
-            flat[filename] = data.files[filename].content;
+        if (!res.ok) {
+            logger.error("sync: loadWorkspaceFromGist", `GitHub returned ${res.status}`);
+            return null;
         }
 
-        // 1. Extract cloud flat files (excluding metadata)
+        const data = await res.json();
+
+        // --- 1. Extract cloud flat files (excluding metadata) ---
         const cloudFlat = {};
         for (const filename in data.files) {
             if (filename !== "__workspace.json") {
@@ -651,7 +659,7 @@ export async function loadWorkspaceFromGist() {
             }
         }
 
-        // 2. Parse cloud metadata
+        // --- 2. Parse cloud metadata ---
         const metadataFile = data.files["__workspace.json"];
         logger.debug("sync: loadWorkspaceFromGist", "Fetched gist, about to parse metadata");
 
@@ -662,25 +670,16 @@ export async function loadWorkspaceFromGist() {
             type: typeof cloudMetadata
         });
 
-        //ensure passing an array
+        // Ensure metadata is always an array
         if (!Array.isArray(cloudMetadata)) {
             cloudMetadata = [cloudMetadata];
         }
 
-        // 3. Load local workspace (unsaved work)
-        const localTree = getWorkspace();
-
-        // 4. Merge cloud + local using metadata to preserve IDs
-        logger.debug("sync: loadWorkspaceFromGist", "Calling mergeWorkspace()");
-        const merged = mergeWorkspace(localTree, cloudFlat, cloudMetadata);
-
-        // 5. Save + render
-        setWorkspace(merged);
-        saveState();
-        renderSidebar();
-
-
-        showNotification("success", "Data loaded from Cloud");
+        // --- 3. Return structured data for reconciliation ---
+        return {
+            flat: cloudFlat,
+            metadata: cloudMetadata
+        };
 
     } catch (error) {
         logger.error("sync: loadWorkspaceFromGist", {
@@ -688,9 +687,10 @@ export async function loadWorkspaceFromGist() {
             stack: error.stack
         });
 
-        return;
-    }    
+        return null;
+    }
 }
+
 
 
 async function getNewestGistAcrossAccount() {
