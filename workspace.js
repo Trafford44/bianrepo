@@ -353,24 +353,58 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
         cloudFlatCount: Object.keys(cloudFlat || {}).length,
         cloudMetaCount: Array.isArray(cloudMetadata) ? cloudMetadata.length : typeof cloudMetadata,
     });
-    
+
     const localMap = buildLocalPathMap(localTree);
-    const metaMap = buildMetadataPathMap(cloudMetadata);
+    const metaMap = buildMetadataPathMap(cloudMetadata || []);
 
     const mergedMap = {};
 
-    // --- 1. Merge cloud files/folders ---
-    for (const flatKey in cloudFlat) {
+    function ensureFolderPath(path) {
+        if (!path) return;
+        if (mergedMap[path]) return;
+
+        const parts = path.split("___");
+        const name = parts[parts.length - 1];
+
+        const meta = metaMap[path];
+        const local = localMap[path];
+
+        let id;
+        if (meta) {
+            id = meta.id;
+        } else if (local) {
+            id = local.id;
+        } else {
+            id = crypto.randomUUID();
+        }
+
+        mergedMap[path] = {
+            id,
+            type: "folder",
+            name,
+            content: null,
+            children: []
+        };
+    }
+
+    // --- 1. Merge cloud files/folders (gist is source of truth) ---
+    const cloudPaths = Object.keys(cloudFlat || {}).sort();
+
+    for (const flatKey of cloudPaths) {
         const parts = flatKey.split("___");
         const name = parts[parts.length - 1];
         const isFile = name.endsWith(".md") || name.endsWith(".puml");
+
+        // Ensure all parent folders exist
+        for (let i = 1; i < parts.length; i++) {
+            const parentPath = parts.slice(0, i).join("___");
+            ensureFolderPath(parentPath);
+        }
 
         const meta = metaMap[flatKey];
         const local = localMap[flatKey];
 
         let id;
-
-        // Following a 'gist is the source of truth' approach
         if (meta) {
             // Cloud is canonical
             id = meta.id;
@@ -392,23 +426,34 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
     }
 
     // --- 2. Add local-only files/folders (unsaved work) ---
-    for (const path in localMap) {
-        if (!mergedMap[path]) {
-            const node = localMap[path];
-            mergedMap[path] = {
-                id: node.id,
-                type: node.type,
-                name: node.name,
-                content: node.type === "file" ? node.content : null,
-                children: []
-            };
+    const localPaths = Object.keys(localMap || {}).sort();
+
+    for (const path of localPaths) {
+        if (mergedMap[path]) continue;
+
+        const node = localMap[path];
+        const parts = path.split("___");
+
+        // Ensure parents exist
+        for (let i = 1; i < parts.length; i++) {
+            const parentPath = parts.slice(0, i).join("___");
+            ensureFolderPath(parentPath);
         }
+
+        mergedMap[path] = {
+            id: node.id,
+            type: node.type,
+            name: node.name,
+            content: node.type === "file" ? node.content : null,
+            children: []
+        };
     }
 
-    // --- 3. Rebuild tree structure ---
+    // --- 3. Rebuild tree structure deterministically ---
     const root = [];
+    const mergedPaths = Object.keys(mergedMap).sort();
 
-    for (const path in mergedMap) {
+    for (const path of mergedPaths) {
         const parts = path.split("___");
         let current = root;
 
@@ -420,10 +465,9 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
             const fullPath = parts.slice(0, i + 1).join("___");
             const node = mergedMap[fullPath];
 
-            // If the node doesn't exist, skip this path safely
             if (!node) {
                 logger.error("mergeWorkspace", "Missing node for path", fullPath);
-                continue;
+                break;
             }
 
             let existing = current.find(n => n.name === part);
@@ -439,8 +483,28 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
                 current.push(existing);
             }
 
+            if (!isFile) {
+                current = existing.children;
+            }
         }
     }
+
+    // --- 4. Sort children: folders first, then files, by name ---
+    function sortTree(nodes) {
+        nodes.sort((a, b) => {
+            if (a.type !== b.type) {
+                return a.type === "folder" ? -1 : 1;
+            }
+            return a.name.localeCompare(b.name);
+        });
+        for (const n of nodes) {
+            if (n.children && n.children.length > 0) {
+                sortTree(n.children);
+            }
+        }
+    }
+
+    sortTree(root);
 
     return root;
 }
