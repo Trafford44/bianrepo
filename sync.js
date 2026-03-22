@@ -333,57 +333,31 @@ async function hashGistContent(files) {
     }         
 }
 
-function buildCanonicalSnapshot(tree) {
+function buildCanonicalSnapshot(flat) {
     logger.debug("sync", "Running buildCanonicalSnapshot()");
-    // ------------------------------------------------------------
-    // The canonical snapshot is a pure structural representation
-    // of the workspace. It excludes:
-    // - UI fields (isOpen, selection, scroll)
-    // - timestamps (updatedAt, publicAt)
-    // - publishing fields (isPublic, publicId)
-    // - anything that doesn't affect structure or content
-    //
-    // It includes:
-    // - folder/file hierarchy
-    // - names
-    // - types
-    // - children ordering (already deterministic)
-    // - file content
-    //
-    // This is what will be hashed.
-    // ------------------------------------------------------------
 
-    function walk(nodes) {
-        // Deterministic sibling ordering (already enforced in Step 1 & 2)
-        const sorted = [...nodes].sort((a, b) => {
-            if (a.type !== b.type) {
-                return a.type === "folder" ? -1 : 1;
-            }
-            return a.name.localeCompare(b.name);
-        });
+    // 1. Sort deterministically
+    const sorted = [...flat].sort((a, b) => {
+        if (a.type !== b.type) {
+            return a.type === "folder" ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+    });
 
-        return sorted.map(node => {
-            if (node.type === "folder") {
-                return {
-                    type: "folder",
-                    name: node.name,
-                    children: walk(node.children)
-                };
-            } else {
-                return {
-                    type: "file",
-                    name: node.name,
-                    content: node.content || ""
-                };
-            }
-        });
-    }
+    // 2. Build canonical entries
+    const entries = sorted.map(node => ({
+        type: node.type,
+        name: node.name,
+        parentId: node.parentId || null,
+        content: node.type === "file" ? (node.content || "") : undefined
+    }));
 
     return {
         version: 1,
-        tree: walk(tree)
+        flat: entries
     };
 }
+
 
 async function sha256(str) {
     // Encode string as UTF-8
@@ -464,7 +438,8 @@ export async function reconcileLocalAndCloud(local) {
         // Local exists, cloud doesn't → push local to cloud
         await saveWorkspaceToGist(local);
 
-        const localHash = await computeWorkspaceHash(local);
+        const localTree = getWorkspace();
+        const localHash = await computeWorkspaceHash(localTree);
         localStorage.setItem("lastSyncedHash", localHash);
         return;
     }
