@@ -664,6 +664,7 @@ export async function saveWorkspaceToGist() {
     }
 
     isSaving = true;
+
     try {
         const githubToken = getToken();
         let gistId = getGistId();
@@ -674,7 +675,7 @@ export async function saveWorkspaceToGist() {
             `Starting save process. Current gistId: ${gistId || "(none)"}`
         );
 
-        // --- Build flat file list ---
+        // --- 1. Build flat file list from workspace ---
         const workspace = getWorkspace();
         const files = flattenWorkspace(workspace);
         const gistFiles = {};
@@ -683,7 +684,7 @@ export async function saveWorkspaceToGist() {
             gistFiles[f.path] = { content: f.content || "" };
         });
 
-        // --- Save metadata file ---
+        // --- 2. Save metadata file ---
         const metadata = extractMetadata(workspace);
         gistFiles["__workspace.json"] = {
             content: JSON.stringify(metadata, null, 2)
@@ -693,7 +694,7 @@ export async function saveWorkspaceToGist() {
             `Prepared ${Object.keys(gistFiles).length} files for saving: ${Object.keys(gistFiles).join(", ")}`
         );
 
-        // --- Prepare request body ---
+        // --- 3. Prepare request body ---
         const body = {
             description: "BIAN Workspace Backup",
             public: false,
@@ -703,7 +704,7 @@ export async function saveWorkspaceToGist() {
         let method = "POST";
         let url = GIST_API;
 
-        // --- Update existing gist ---
+        // --- 4. Update existing gist ---
         if (gistId) {
             method = "PATCH";
             url = `${GIST_API}/${gistId}`;
@@ -745,7 +746,7 @@ export async function saveWorkspaceToGist() {
             `Final file list being sent: ${Object.keys(body.files).join(", ")}`
         );
 
-        // --- Send request ---
+        // --- 5. Send request ---
         const res = await fetch(url, {
             method,
             headers: {
@@ -762,12 +763,12 @@ export async function saveWorkspaceToGist() {
                 `Gist save error: ${data.message || "Unknown error"}`
             );
             showSyncState("error");
-            showNotification("error", "Failed to load workspace");
+            showNotification("error", "Failed to save workspace");
             logger.info("sync: saveWorkspaceToGist", "--- SAVE FAILED ---");
             return;
         }
 
-        // --- Store gistId if new ---
+        // --- 6. Store gistId if new ---
         if (!gistId && data.id) {
             logger.info("sync: saveWorkspaceToGist",
                 `New gist created with ID: ${data.id}`
@@ -776,11 +777,11 @@ export async function saveWorkspaceToGist() {
             gistId = data.id;
         }
 
-        // --- Compute new cloud hash using flat model ---
-        const cloudWorkspace = await loadWorkspaceFromGist();
-        const safeCloud = Array.isArray(cloudWorkspace?.flat) ? cloudWorkspace.flat : [];
+        // --- 7. Compute new cloud hash using corrected loader ---
+        const cloud = await loadWorkspaceFromGist();
+        const safeFlat = cloud?.flat || {};
 
-        lastSyncedHash = await computeWorkspaceHash(safeCloud);
+        lastSyncedHash = await computeWorkspaceHash(safeFlat);
         localStorage.setItem("lastSyncedHash", lastSyncedHash);
         lastSuccessfulSyncTime = Date.now();
 
@@ -802,6 +803,7 @@ export async function saveWorkspaceToGist() {
 }
 
 
+
 export function markLocalEdit() {
     lastLocalEditTime = Date.now();
     //logger.debug("sync: markLocalEdit", `Local edit detected at ${new Date(lastLocalEditTime).toISOString()}`);
@@ -820,7 +822,6 @@ function showSyncState(state) {
 export async function loadWorkspaceFromGist() {
     logger.debug("sync", "Running loadWorkspaceFromGist()");
 
-    // Must be logged in
     if (!requireLogin()) {
         logger.info("sync: loadWorkspaceFromGist", "Login not required");
         return null;
@@ -831,7 +832,7 @@ export async function loadWorkspaceFromGist() {
 
     if (!gistId) {
         showNotification("info", "No cloud backup found. Save to Cloud first.");
-        logger.info("sync: loadWorkspaceFromGist", "No cloud backup found. Instructed user to save to Cloud first");
+        logger.info("sync: loadWorkspaceFromGist", "No cloud backup found.");
         return null;
     }
 
@@ -846,35 +847,34 @@ export async function loadWorkspaceFromGist() {
         }
 
         const data = await res.json();
+        const files = data.files || {};
 
-        // --- 1. Extract cloud flat files (excluding metadata) ---
-        const cloudFlat = {};
-        for (const filename in data.files) {
-            if (filename !== "__workspace.json") {
-                cloudFlat[filename] = data.files[filename].content;
+        // --- 1. Build flat model from all real content files ---
+        const flat = {};
+        for (const filename in files) {
+            if (filename === "__workspace.json") continue; // metadata only
+            flat[filename] = files[filename].content || "";
+        }
+
+        // --- 2. Parse metadata ---
+        let metadata = [];
+        if (files["__workspace.json"]) {
+            try {
+                metadata = JSON.parse(files["__workspace.json"].content);
+            } catch (err) {
+                logger.error("sync: loadWorkspaceFromGist", "Failed to parse metadata", err);
+                metadata = [];
             }
         }
 
-        // --- 2. Parse cloud metadata ---
-        const metadataFile = data.files["__workspace.json"];
-        logger.debug("sync: loadWorkspaceFromGist", "Fetched gist, about to parse metadata");
-
-        let cloudMetadata = metadataFile ? JSON.parse(metadataFile.content) : [];
-
-        logger.debug("sync: loadWorkspaceFromGist", "Parsed metadata OK", {
-            isArray: Array.isArray(cloudMetadata),
-            type: typeof cloudMetadata
-        });
-
-        // Ensure metadata is always an array
-        if (!Array.isArray(cloudMetadata)) {
-            cloudMetadata = [cloudMetadata];
+        if (!Array.isArray(metadata)) {
+            metadata = [metadata];
         }
 
-        // --- 3. Return structured data for reconciliation ---
+        // --- 3. Return structured cloud data for merge engine ---
         return {
-            flat: cloudFlat,
-            metadata: cloudMetadata
+            flat,
+            metadata
         };
 
     } catch (error) {
@@ -882,10 +882,10 @@ export async function loadWorkspaceFromGist() {
             message: error.message,
             stack: error.stack
         });
-
         return null;
     }
 }
+
 
 
 
