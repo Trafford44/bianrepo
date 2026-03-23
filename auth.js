@@ -77,10 +77,9 @@ function tokenKey() {
 }
 
 export function getGistId() {
-    const deviceId = getDeviceId();
 
     // Preferred new key
-    const scoped = localStorage.getItem("gist_id_" + deviceId);
+    const scoped = localStorage.getItem("gist_id_" + String(deviceId));
     if (scoped && scoped !== "undefined" && scoped !== "null") {
         return scoped;
     }
@@ -98,11 +97,9 @@ export function getGistId() {
 export function setGistId(id) {
     logger.debug("auth", "Running setGistId()");
 
-    const deviceId = getDeviceId();
-
     try {
         // Preferred new key (device-scoped)
-        localStorage.setItem("gist_id_" + deviceId, id);
+        localStorage.setItem("gist_id_" + String(deviceId), id);
 
         // Legacy key for backward compatibility
         localStorage.setItem("gist_id", id);
