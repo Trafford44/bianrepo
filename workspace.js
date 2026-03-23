@@ -102,36 +102,51 @@ function normalizeNode(node) {
 
 export function saveState() {
     logger.debug("workspace", "saveState()");
-    const tree = getWorkspace();
-    if (!Array.isArray(tree)) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tree));
+    const flat = getWorkspace();
+
+    // Ensure we are saving an object
+    if (typeof flat !== "object" || flat === null || Array.isArray(flat)) {
+        logger.error("workspace", "saveState received non-object workspace:", flat);
+        return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(flat));
 }
+
 
 export function loadState() {
     logger.debug("workspace", "loadState()");
     const saved = localStorage.getItem(STORAGE_KEY);
+
     if (!saved) {
-        logger.info("workspace: loadState", "Workspace not found: ", STORAGE_KEY);
-        return;
+        logger.info("workspace: loadState", "Workspace not found:", STORAGE_KEY);
+        return {};
     }
-    logger.debug("workspace: loadState", "Raw localStorage: ", saved);
+
+    logger.debug("workspace: loadState", "Raw localStorage:", saved);
 
     try {
-        let tree = JSON.parse(saved);
-        logger.debug("workspace: loadState", "Parsed localStorage: ", tree);
+        let flat = JSON.parse(saved);
+        logger.debug("workspace: loadState", "Parsed localStorage:", flat);
 
-        // Ensure root is ALWAYS an array
-        if (!Array.isArray(tree)) {
-            tree = [tree];
+        // Ensure we always return an object
+        if (typeof flat !== "object" || flat === null || Array.isArray(flat)) {
+            logger.error("workspace: loadState", "Invalid workspace format, resetting:", flat);
+            flat = {};
         }
-        
-        migrateWorkspace(tree);  // Migrate to new model
-        setWorkspace(tree);
-        saveState(); // ensure new fields persist
+
+        migrateWorkspace(flat);   // optional, depending on your metadata model
+        setWorkspace(flat);
+        saveState();              // persist normalized version
+
+        return flat;
+
     } catch (e) {
-        logger.error("Failed to load workspace:", e);
+        logger.error("workspace: loadState", "Failed to load workspace:", e);
+        return {};
     }
 }
+
 
 
 export function findNodeById(nodeList, id) {
