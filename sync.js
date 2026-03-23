@@ -429,7 +429,7 @@ export async function computeWorkspaceHash(tree) {
     //    This is the workspace version number.
     // ------------------------------------------------------------
     const hash = await sha256(json);
-
+    logger.debug("sync", "computeWorkspaceHash →", hash);
     return hash;
 }
 
@@ -480,6 +480,10 @@ export async function reconcileLocalAndCloud(local) {
 
     const safeCloud = Array.isArray(cloudFlat) ? cloudFlat : [];
     const cloudHash = await computeWorkspaceHash(safeCloud);
+
+    logger.debug("sync: reconcileLocalAndCloud", "localHash:", localHash);
+    logger.debug("sync: reconcileLocalAndCloud", "cloudHash:", cloudHash);
+    logger.debug("sync: reconcileLocalAndCloud", "lastSyncedHash:", lastSyncedHash);
 
 
     // ------------------------------------------------------------
