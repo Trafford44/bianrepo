@@ -83,15 +83,17 @@ export function getGistId() {
         // Preferred new key
         const scoped = localStorage.getItem("gist_id_" + String(deviceId));
         if (scoped && scoped !== "undefined" && scoped !== "null") {
+            logger.debug("auth: getGistId", "Preferred new key found: ", scoped);
             return scoped;
         }
 
         // Legacy fallback
         const legacy = localStorage.getItem("gist_id");
         if (legacy && legacy !== "undefined" && legacy !== "null") {
+            logger.debug("auth: getGistId", "Legacy fallback key found: ", legacy);
             return legacy;
         }
-
+        logger.debug("auth: getGistId", "No key found");
         return null;
 
     } catch (error) {
