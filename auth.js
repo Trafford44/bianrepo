@@ -36,7 +36,7 @@
  * and easy to maintain without mixing UI, sync, or editor concerns.
  */
 import { updateLoginIndicator, showNotification } from "./ui.js";
-import { runSyncCheck } from "./sync.js";
+import { runSyncCheck, stopSyncLoop } from "./sync.js";
 import { deviceId } from "./device.js";
 import { logger } from "./logger.js";
 
@@ -48,9 +48,8 @@ const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 export function getToken() {
     logger.debug("auth", "Running getToken()");
     try {
-        // const t = localStorage.getItem("github_token");  // changeme
-        logger.debug("auth", "getToken() reading key:", `github_token_${String(deviceId)}`);
-        const t = localStorage.getItem(`github_token_${String(deviceId)}`);
+        logger.debug("auth", "getToken() reading key:", tokenKey());
+        const t = localStorage.getItem(tokenKey());
         
         if (!t || t === "undefined" || t === "null") return null;
         return t;
@@ -59,6 +58,22 @@ export function getToken() {
         logger.error("auth: getToken", error);
         return null;        
     }
+}
+
+export function clearToken() {
+    try {
+        localStorage.removeItem(`github_token_${String(deviceId)}`);
+        localStorage.removeItem("gist_id");
+        updateLoginIndicator();
+        showNotification("info", "Signed out of Cloud");
+        stopSyncLoop();
+    } catch (error) {
+        logger.error("auth: clearToken", error);
+    }
+}
+
+function tokenKey() {
+    return `github_token_${String(deviceId)}`;
 }
 
 export function getGistId() {
@@ -99,18 +114,20 @@ export function requireLogin() {
         return false;
     }          
 }
-
+// an alternative background sync logic that checks login state, without notifying teh user of outcome
+export function isLoggedIn() {
+    return !!getToken();
+}
 
 export function bindLoginButton() {
-    logger.debug("auth", "Running bindLoginButton()");
+    logger.debug("auth: bindLoginButton", "Running bindLoginButton()");
     const btn = document.getElementById("github-login");
     if (!btn) {
         logger.info("auth: bindLoginButton", "Login button not found");
         return;
     }
     console.log("Bind-time button:", btn);
-    btn.addEventListener("click", () => {
-
+    btn.addEventListener("click", (event) => {
         // 1. Check for ?redirect=... in the URL (dev override)
         const redirectOverride = new URLSearchParams(window.location.search).get("redirect");
 
@@ -144,8 +161,11 @@ export async function handleOAuthRedirect() {
     try {      
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
-        if (!code) return;
-
+        window.history.replaceState({}, "", window.location.pathname);  // clean URL immediately
+        if (!code) {
+            logger.info("auth: handleOAuthRedirect", "No code found in URL Params");
+            return;
+        }
         const res = await fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -159,11 +179,9 @@ export async function handleOAuthRedirect() {
         const data = await res.json();
 
         if (data.access_token) {
-            // localStorage.setItem("github_token", data.access_token); // changeme
-            logger.debug("auth", "Saving token under key:", "github_token_" + String(deviceId));
+            logger.debug("auth: handleOAuthRedirect", "Saving token under key:", "github_token_" + String(deviceId));
             localStorage.setItem("github_token_" + String(deviceId), data.access_token);
-            logger.debug("auth", "After save, reading back token:", localStorage.getItem(`github_token_${String(deviceId)}`));
-            window.history.replaceState({}, "", window.location.pathname);
+            logger.debug("auth: handleOAuthRedirect", "After save, reading back token:", localStorage.getItem(tokenKey()));
             logger.info("auth: handleOAuthRedirect", "GitHub login successful");
             updateLoginIndicator();
             await runSyncCheck("login");
