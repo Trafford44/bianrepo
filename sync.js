@@ -231,7 +231,7 @@ export async function runSyncCheck(reason) {
 
     // --- Load cloud workspace using the flat model ---
     const cloudWorkspace = await loadWorkspaceFromGist();
-    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
+    if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
         logger.error("sync: runSyncCheck", "Cloud workspace invalid");
         return;
     }
