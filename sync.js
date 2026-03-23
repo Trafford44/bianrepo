@@ -821,6 +821,8 @@ function showSyncState(state) {
 
 export async function loadWorkspaceFromGist() {
     logger.debug("sync", "Running loadWorkspaceFromGist()");
+    logger.debug("sync", "loadWorkspaceFromGist gistId:", getGistId());
+
 
     if (!requireLogin()) {
         logger.info("sync: loadWorkspaceFromGist", "Login not required");
