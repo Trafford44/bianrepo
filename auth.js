@@ -77,20 +77,27 @@ function tokenKey() {
 }
 
 export function getGistId() {
+    logger.debug("auth", "Running getGistId()");
 
-    // Preferred new key
-    const scoped = localStorage.getItem("gist_id_" + String(deviceId));
-    if (scoped && scoped !== "undefined" && scoped !== "null") {
-        return scoped;
+    try {    
+        // Preferred new key
+        const scoped = localStorage.getItem("gist_id_" + String(deviceId));
+        if (scoped && scoped !== "undefined" && scoped !== "null") {
+            return scoped;
+        }
+
+        // Legacy fallback
+        const legacy = localStorage.getItem("gist_id");
+        if (legacy && legacy !== "undefined" && legacy !== "null") {
+            return legacy;
+        }
+
+        return null;
+
+    } catch (error) {
+        logger.error("auth: getGistId", "Failed to get gist id", { error });
+        return null;
     }
-
-    // Legacy fallback
-    const legacy = localStorage.getItem("gist_id");
-    if (legacy && legacy !== "undefined" && legacy !== "null") {
-        return legacy;
-    }
-
-    return null;
 }
 
 
