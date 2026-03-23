@@ -97,12 +97,20 @@ export function getGistId() {
 
 export function setGistId(id) {
     logger.debug("auth", "Running setGistId()");
-    try {      
+
+    const deviceId = getDeviceId();
+
+    try {
+        // Preferred new key (device-scoped)
+        localStorage.setItem("gist_id_" + deviceId, id);
+
+        // Legacy key for backward compatibility
         localStorage.setItem("gist_id", id);
+
     } catch (error) {
         logger.error("auth: setGistId", "Failed to store gist id", { id, error });
         return;
-    }         
+    }
 }
 
 
