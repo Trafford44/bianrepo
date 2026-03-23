@@ -215,8 +215,8 @@ export async function runSyncCheck(reason) {
         disconnectFromGitHub("Cloud connection lost.");
         return;
     }
-    // If we have a gistId and the workspace is empty, load it now
-    // * this code triggers a workspace refresh
+
+    // If workspace is empty, load from cloud
     if (gistId && workspaceIsEmpty()) {
         logger.info("sync: runSyncCheck", "Workspace empty — loading from cloud");
         await loadWorkspaceFromGist();
@@ -225,51 +225,70 @@ export async function runSyncCheck(reason) {
     const now = Date.now();
     const idleReturn = now - lastSuccessfulSyncTime > idleReturnThreshold;
 
-    logger.info("sync: runSyncCheck", `Idle return: ${idleReturn} (last successful sync was at ${new Date(lastSuccessfulSyncTime).toISOString()})`);   
+    logger.info("sync: runSyncCheck",
+        `Idle return: ${idleReturn} (last successful sync was at ${new Date(lastSuccessfulSyncTime).toISOString()})`
+    );
 
-    const latest = await getCurrentWorkspaceGist();
-    if (!latest) {
-        logger.info("sync: runSyncCheck", "No current workspace gist found. Aborting sync check.");
+    // --- Load cloud workspace using the flat model ---
+    const cloudWorkspace = await loadWorkspaceFromGist();
+    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
+        logger.error("sync: runSyncCheck", "Cloud workspace invalid");
         return;
     }
 
-    logger.info("sync: runSyncCheck", `Fetched latest gist (ID: ${latest.id}, Cloud updated_at: ${formatDateNZ(latest.updated_at)}`, `Cloud files: ${Object.keys(latest.files).join(", ")}`);
+    const safeCloud = cloudWorkspace.flat;
+    const cloudHash = await computeWorkspaceHash(safeCloud);
 
-    const cloudHash = await hashGistContent(latest.files);
-    logger.info("sync: runSyncCheck", `Computed cloudHash: ${cloudHash}, lastSyncedHash: ${lastSyncedHash}`);
+    logger.info("sync: runSyncCheck",
+        `Computed cloudHash: ${cloudHash}, lastSyncedHash: ${lastSyncedHash}`
+    );
 
-    // First-time sync: adopt cloud hash
+    // --- Load local workspace using the flat model ---
+    const local = loadState();
+    const safeLocal = Array.isArray(local) ? local : [];
+    const localHash = await computeWorkspaceHash(safeLocal);
+
+    // --- First-time sync: adopt cloud hash ---
     if (lastSyncedHash === null) {
-        logger.info("sync: runSyncCheck", "No lastSyncedHash found. Adopting cloud hash as baseline."); 
+        logger.info("sync: runSyncCheck", "No lastSyncedHash found. Adopting cloud hash as baseline.");
         lastSyncedHash = cloudHash;
         localStorage.setItem("lastSyncedHash", cloudHash);
-        await loadWorkspaceFromGist();  // Load workspace from cloud on first sync
         updateSyncState();
         return;
     }
 
-    // On resume, only sync if cloud changed OR local edits exist
+    // --- Resume logic: only sync if something changed ---
     if (reason === "resume") {
-        const now = Date.now();
-        const hasLocalChanges = (now - lastLocalEditTime) < syncInterval;
+        const nothingChanged =
+            localHash === lastSyncedHash &&
+            cloudHash === lastSyncedHash;
 
-        if (!hasLocalChanges && cloudHash === lastSyncedHash) {
-            logger.info("sync: runSyncCheck", "Resume detected but no cloud changes or local edits — skipping sync.");
+        if (nothingChanged) {
+            logger.info("sync: runSyncCheck",
+                "Resume detected but no cloud changes or local edits — skipping sync."
+            );
             updateSyncState();
             return;
         }
     }
 
-    // Cloud is newer
+    // --- Cloud is newer ---
     if (cloudHash !== lastSyncedHash) {
-        logger.info("sync: runSyncCheck", "Cloud hash differs from lastSyncedHash. Cloud is newer. Triggering cloud-change handler.");
-        return handleCloudChange(latest, idleReturn);
+        logger.info("sync: runSyncCheck",
+            "Cloud hash differs from lastSyncedHash. Cloud is newer. Triggering cloud-change handler."
+        );
+        return handleCloudChange(cloudWorkspace, idleReturn);
     }
 
-    logger.info("sync: runSyncCheck", "Cloud hash matches lastSyncedHash. Updating sync timestamp and checking for auto-save.");
+    // --- Everything matches ---
+    logger.info("sync: runSyncCheck",
+        "Cloud hash matches lastSyncedHash. Updating sync timestamp and checking for auto-save."
+    );
+
     updateSyncState();
     maybeAutoSave();
 }
+
 
 function workspaceIsEmpty() {
     const ws = getWorkspace();   // you already have this
@@ -282,7 +301,6 @@ function updateSyncState() {
     lastSuccessfulSyncTime = Date.now();
 }
 
-
 async function handleCloudChange(latest, idleReturn) {
     logger.debug("sync", "Running handleCloudChange()");
     const now = Date.now();
@@ -294,11 +312,24 @@ async function handleCloudChange(latest, idleReturn) {
         countdown,
         onConfirm: async () => {
             setGistId(latest.id);
-            await loadWorkspaceFromGist();
 
-            lastSyncedHash = await hashGistContent(latest.files);
+            // Load cloud workspace using the flat model
+            const cloudWorkspace = await loadWorkspaceFromGist();
+            if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
+                logger.error("sync: handleCloudChange", "Cloud workspace invalid");
+                return;
+            }
+
+            const safeCloud = cloudWorkspace.flat;
+
+            // Compute new cloud hash using the flat model
+            lastSyncedHash = await computeWorkspaceHash(safeCloud);
             localStorage.setItem("lastSyncedHash", lastSyncedHash);
             lastSuccessfulSyncTime = Date.now();
+
+            logger.info("sync: handleCloudChange",
+                `Cloud accepted. Updated lastSyncedHash: ${lastSyncedHash}`
+            );
         },
         onCancel: () => {
             showNotification("warning",
@@ -306,40 +337,11 @@ async function handleCloudChange(latest, idleReturn) {
             );
         }
     });
-
 }
 
-async function hashGistContent(files) {
-    logger.debug("sync", "Running hashGistContent()");
-    try {
-        const entries = Object.entries(files)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([name, f]) => name + "\n" + (f.content || ""));
-
-        const content = entries.join("\n---\n");
-
-        const buffer = await crypto.subtle.digest(
-            "SHA-256",
-            new TextEncoder().encode(content)
-        );
-
-        return Array.from(new Uint8Array(buffer))
-            .map(x => x.toString(16).padStart(2, "0"))
-            .join("");
-
-    } catch (error) {
-        logger.error("sync: hashGistContent", error);
-        return null;
-    }         
-}
 
 function buildCanonicalSnapshot(flat) {
     logger.debug("sync", "Running buildCanonicalSnapshot()");
-
-    if (!Array.isArray(flat)) {
-        logger.error("sync", "buildCanonicalSnapshot received non-array:", flat);
-        return { version: 1, flat: [] };
-    }
 
     // ------------------------------------------------------------
     // Defensive guard: ensure we always receive an array.
@@ -446,7 +448,7 @@ export async function reconcileLocalAndCloud(local) {
         if (!local || local.length === 0) {
             const fresh = createEmptyWorkspace();
             saveState(fresh);
-            await saveWorkspaceToGist(fresh);
+            await saveWorkspaceToGist();
 
             const freshHash = await computeWorkspaceHash(fresh);
             localStorage.setItem("lastSyncedHash", freshHash);
@@ -454,7 +456,7 @@ export async function reconcileLocalAndCloud(local) {
         }
 
         // Local exists, cloud doesn't → push local to cloud
-        await saveWorkspaceToGist(local);
+        await saveWorkspaceToGist();
 
         const localHash = await computeWorkspaceHash(local);
         localStorage.setItem("lastSyncedHash", localHash);
@@ -516,7 +518,7 @@ export async function reconcileLocalAndCloud(local) {
     const migrated = migrateWorkspace(merged);
 
     saveState(migrated);
-    await saveWorkspaceToGist(migrated);
+    await saveWorkspaceToGist();
 
     const newHash = await computeWorkspaceHash(migrated);
     localStorage.setItem("lastSyncedHash", newHash);
@@ -579,48 +581,78 @@ async function getLatestWorkspaceGistMeta() {
 
 async function maybeAutoSave() {
     logger.debug("sync", "Running maybeAutoSave()");
-    const now = Date.now();
 
-    // Only auto-save if user typed since last sync
-    const hasLocalChanges = (now - lastLocalEditTime) < syncInterval;
+    // --- Compute local hash using the flat model ---
+    const local = loadState();
+    const safeLocal = Array.isArray(local) ? local : [];
+    const localHash = await computeWorkspaceHash(safeLocal);
 
-    if (!hasLocalChanges) {
-        logger.info("sync: maybeAutoSave", "No local changes found")
+    // --- No local changes since last sync ---
+    if (localHash === lastSyncedHash) {
+        logger.info("sync: maybeAutoSave", "No local changes found");
         return;
     }
 
-    // Do not auto-save if cloud is newer
-    if (await cloudHashChanged()) return;
+    // --- Do not auto-save if cloud is newer ---
+    if (await cloudHashChanged()) {
+        logger.info("sync: maybeAutoSave", "Cloud is newer — auto-save skipped");
+        return;
+    }
 
+    // --- Safe to auto-save ---
+    logger.info("sync: maybeAutoSave", "Local changes detected — auto-saving");
     await saveWorkspaceToGist();
 }
 
+
 async function cloudHashChanged() {
     logger.debug("sync", "Running cloudHashChanged()");
+
     const latest = await getCurrentWorkspaceGist();
     if (!latest) {
-        logger.info("sync: cloudHashChanged", "Latest Gist workspace notfound")
+        logger.info("sync: cloudHashChanged", "Latest Gist workspace not found");
         return false;
     }
 
-    const cloudHash = await hashGistContent(latest.files);
+    // Load cloud workspace using the flat model
+    const cloudWorkspace = await loadWorkspaceFromGist();
+    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
+        logger.error("sync: cloudHashChanged", "Cloud workspace invalid");
+        return false;
+    }
+
+    const cloudHash = await computeWorkspaceHash(cloudWorkspace.flat);
+    logger.debug("sync", "cloudHashChanged → cloudHash:", cloudHash, "lastSyncedHash:", lastSyncedHash);
+
     return cloudHash !== lastSyncedHash;
 }
 
+
 window.debugCloud = async () => {
     logger.debug("sync", "Assigning window.debugCloud");
-    const latest = await getNewestGistAcrossAccount();
 
+    const latest = await getNewestGistAcrossAccount();
     if (!latest) {
-        logger.info("sync: debugCloud", "No gist found when fetching newest gist across account. Possible causes: Not logged in, token expired, no gists exist for this account or GitHub API error.");
+        logger.info("sync: debugCloud", "No gist found when fetching newest gist across account.");
         return;
     }
 
-    logger.info("sync: debugCloud", `Fetched newest gist across account (ID: ${latest.id}, updated_at: ${formatDateNZ(latest.updated_at)}, files: ${Object.keys(latest.files).join(", ")})`);
+    logger.info(
+        "sync: debugCloud",
+        `Fetched newest gist across account (ID: ${latest.id}, updated_at: ${formatDateNZ(latest.updated_at)}, files: ${Object.keys(latest.files).join(", ")})`
+    );
 
-    const hash = await hashGistContent(latest.files);
-    logger.info("sync: debugCloud", `Computed cloudHash for newest gist: ${hash}`);
+    // Load the workspace using the flat model
+    const cloudWorkspace = await loadWorkspaceFromGist();
+    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
+        logger.error("sync: debugCloud", "Cloud workspace invalid");
+        return;
+    }
+
+    const cloudHash = await computeWorkspaceHash(cloudWorkspace.flat);
+    logger.info("sync: debugCloud", `Computed cloudHash for newest gist: ${cloudHash}`);
 };
+
 
 export async function saveWorkspaceToGist() {
     logger.debug("sync", "Running saveWorkspaceToGist()");
@@ -638,23 +670,30 @@ export async function saveWorkspaceToGist() {
 
         showSyncState("saving");
 
-        logger.info("sync: saveWorkspaceToGist", `Starting save process. Current gistId: ${gistId || "(none)"}`);
+        logger.info("sync: saveWorkspaceToGist",
+            `Starting save process. Current gistId: ${gistId || "(none)"}`
+        );
 
-        const files = flattenWorkspace(getWorkspace());
+        // --- Build flat file list ---
+        const workspace = getWorkspace();
+        const files = flattenWorkspace(workspace);
         const gistFiles = {};
 
         files.forEach(f => {
             gistFiles[f.path] = { content: f.content || "" };
         });
 
-        // save metadata as a special file in the gist
-        const metadata = extractMetadata(getWorkspace());
+        // --- Save metadata file ---
+        const metadata = extractMetadata(workspace);
         gistFiles["__workspace.json"] = {
             content: JSON.stringify(metadata, null, 2)
         };
 
-        logger.info("sync: saveWorkspaceToGist", `Prepared ${Object.keys(gistFiles).length} files for saving: ${Object.keys(gistFiles).join(", ")}`);
+        logger.info("sync: saveWorkspaceToGist",
+            `Prepared ${Object.keys(gistFiles).length} files for saving: ${Object.keys(gistFiles).join(", ")}`
+        );
 
+        // --- Prepare request body ---
         const body = {
             description: "BIAN Workspace Backup",
             public: false,
@@ -664,10 +703,13 @@ export async function saveWorkspaceToGist() {
         let method = "POST";
         let url = GIST_API;
 
+        // --- Update existing gist ---
         if (gistId) {
             method = "PATCH";
             url = `${GIST_API}/${gistId}`;
-            logger.info("sync: saveWorkspaceToGist", `Updating existing gist with ID: ${gistId} using PATCH method.`);
+            logger.info("sync: saveWorkspaceToGist",
+                `Updating existing gist with ID: ${gistId} using PATCH method.`
+            );
 
             const existing = await fetch(`${GIST_API}/${gistId}`, {
                 headers: { "Authorization": `token ${githubToken}` }
@@ -675,30 +717,35 @@ export async function saveWorkspaceToGist() {
 
             if (existing && existing.files) {
                 const existingNames = Object.keys(existing.files);
-                logger.info("sync: saveWorkspaceToGist", `Existing cloud files before update: ${existingNames.join(", ")}`);
+                logger.info("sync: saveWorkspaceToGist",
+                    `Existing cloud files before update: ${existingNames.join(", ")}`
+                );
 
                 for (const existingName of existingNames) {
-
-                    // DO NOT DELETE METADATA FILE
-                    if (existingName === "__workspace.json") continue;     
+                    if (existingName === "__workspace.json") continue;
 
                     const stillExistsLocally = files.some(f => f.path === existingName);
                     if (!stillExistsLocally) {
-                        logger.info("sync: saveWorkspaceToGist", `Marking file for deletion: ${existingName}`);
+                        logger.info("sync: saveWorkspaceToGist",
+                            `Marking file for deletion: ${existingName}`
+                        );
                         body.files[existingName] = null;
                     }
                 }
             }
         } else {
-            method = "POST";
-            url = GIST_API;
-            logger.info("sync: saveWorkspaceToGist", "No gistId found — creating new gist via POST");
+            logger.info("sync: saveWorkspaceToGist",
+                "No gistId found — creating new gist via POST"
+            );
         }
 
         logger.info("sync: saveWorkspaceToGist", `Final request method: ${method}`);
         logger.info("sync: saveWorkspaceToGist", `Final request URL: ${url}`);
-        logger.info("sync: saveWorkspaceToGist", `Final file list being sent: ${Object.keys(body.files).join(", ")}`);
+        logger.info("sync: saveWorkspaceToGist",
+            `Final file list being sent: ${Object.keys(body.files).join(", ")}`
+        );
 
+        // --- Send request ---
         const res = await fetch(url, {
             method,
             headers: {
@@ -711,24 +758,36 @@ export async function saveWorkspaceToGist() {
         const data = await res.json();
 
         if (!res.ok) {
-            logger.error("sync: saveWorkspaceToGist", `Gist save error: ${data.message || "Unknown error"}`);
+            logger.error("sync: saveWorkspaceToGist",
+                `Gist save error: ${data.message || "Unknown error"}`
+            );
             showSyncState("error");
             showNotification("error", "Failed to load workspace");
             logger.info("sync: saveWorkspaceToGist", "--- SAVE FAILED ---");
             return;
         }
 
+        // --- Store gistId if new ---
         if (!gistId && data.id) {
-            logger.info("sync: saveWorkspaceToGist", `New gist created with ID: ${data.id}`);
+            logger.info("sync: saveWorkspaceToGist",
+                `New gist created with ID: ${data.id}`
+            );
             setGistId(data.id);
+            gistId = data.id;
         }
 
-        lastSyncedHash = await hashGistContent(data.files);
+        // --- Compute new cloud hash using flat model ---
+        const cloudWorkspace = await loadWorkspaceFromGist();
+        const safeCloud = Array.isArray(cloudWorkspace?.flat) ? cloudWorkspace.flat : [];
+
+        lastSyncedHash = await computeWorkspaceHash(safeCloud);
         localStorage.setItem("lastSyncedHash", lastSyncedHash);
         lastSuccessfulSyncTime = Date.now();
 
         logger.info("sync: saveWorkspaceToGist", "Save successful.");
-        logger.info("sync: saveWorkspaceToGist", `Updated lastSyncedHash: ${lastSyncedHash}`);
+        logger.info("sync: saveWorkspaceToGist",
+            `Updated lastSyncedHash: ${lastSyncedHash}`
+        );
         logger.info("sync: saveWorkspaceToGist", "--- SAVE END ---");
 
         showSyncState("synced");
@@ -737,11 +796,11 @@ export async function saveWorkspaceToGist() {
     } catch (error) {
         logger.error("sync: saveWorkspaceToGist", error);
         return false;
-    }   
-    finally {
+    } finally {
         isSaving = false;
     }
 }
+
 
 export function markLocalEdit() {
     lastLocalEditTime = Date.now();
