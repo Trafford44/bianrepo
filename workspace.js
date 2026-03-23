@@ -12,6 +12,9 @@ export function getWorkspace() {
     return workspace;
 }
 
+export function createEmptyWorkspace() {
+    return [];
+}
 
 // Main entry point
 export function setWorkspace(data) {
