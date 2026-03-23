@@ -315,7 +315,7 @@ async function handleCloudChange(latest, idleReturn) {
 
             // Load cloud workspace using the flat model
             const cloudWorkspace = await loadWorkspaceFromGist();
-            if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
+            if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
                 logger.error("sync: handleCloudChange", "Cloud workspace invalid");
                 return;
             }
@@ -340,36 +340,23 @@ async function handleCloudChange(latest, idleReturn) {
 }
 
 
-function buildCanonicalSnapshot(flat) {
+export function buildCanonicalSnapshot(flat) {
     logger.debug("sync", "Running buildCanonicalSnapshot()");
 
-    // ------------------------------------------------------------
-    // Defensive guard: ensure we always receive an array.
-    // ------------------------------------------------------------
-    if (!Array.isArray(flat)) {
-        logger.error("sync", "buildCanonicalSnapshot received non-array:", flat);
+    // Defensive: ensure flat is an object
+    if (typeof flat !== "object" || flat === null || Array.isArray(flat)) {
+        logger.error("sync", "buildCanonicalSnapshot received non-object:", flat);
         return { version: 1, flat: [] };
     }
 
-    // ------------------------------------------------------------
-    // 1. Deterministic ordering
-    // ------------------------------------------------------------
-    const sorted = [...flat].sort((a, b) => {
-        if (a.type !== b.type) {
-            return a.type === "folder" ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-    });
-
-    // ------------------------------------------------------------
-    // 2. Canonical entries
-    // ------------------------------------------------------------
-    const entries = sorted.map(node => ({
-        type: node.type,
-        name: node.name,
-        parentId: node.parentId || null,
-        content: node.type === "file" ? (node.content || "") : undefined
+    // Convert object → array of entries
+    const entries = Object.keys(flat).map(name => ({
+        name,
+        content: flat[name] || ""
     }));
+
+    // Deterministic ordering by filename
+    entries.sort((a, b) => a.name.localeCompare(b.name));
 
     return {
         version: 1,
@@ -616,7 +603,7 @@ async function cloudHashChanged() {
 
     // Load cloud workspace using the flat model
     const cloudWorkspace = await loadWorkspaceFromGist();
-    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
+    if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
         logger.error("sync: cloudHashChanged", "Cloud workspace invalid");
         return false;
     }
@@ -644,7 +631,7 @@ window.debugCloud = async () => {
 
     // Load the workspace using the flat model
     const cloudWorkspace = await loadWorkspaceFromGist();
-    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
+    if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
         logger.error("sync: debugCloud", "Cloud workspace invalid");
         return;
     }
