@@ -1,5 +1,6 @@
 // logger.js
 
+
 const LOG_LEVELS = {
   NONE: 0,
   ERROR: 1,
@@ -19,24 +20,24 @@ function log(levelName, levelValue, source, message, details) {
   const timestamp = formatDateNZ();
 
   const colours = {
-    INFO:  "color: #4da3ff",   // blue
-    DEBUG: "color: #337e36",   // green
-    WARN:  "color: #e6a700",   // amber
-    ERROR: "color: #ff4d4d"    // red
+    INFO:  "color: #4da3ff",
+    DEBUG: "color: #337e36",
+    WARN:  "color: #e6a700",
+    ERROR: "color: #ff4d4d"
   };
 
   const style = colours[levelName] || "color: inherit";
 
   const header = `[${timestamp}] [${levelName}] [${source}] ${message}`;
 
-  if (details) {
-    console.groupCollapsed("%c" + header, style);
-    console.log(details);
-    console.groupEnd();
+  if (details !== undefined) {
+    // Print header + details on the SAME line
+    console.log("%c" + header, style, details);
   } else {
     console.log("%c" + header, style);
   }
 }
+
 
 
 
