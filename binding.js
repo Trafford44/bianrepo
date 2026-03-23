@@ -2,6 +2,7 @@ import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportFile, deleteFile, addFolder} from "./ui.js";
 import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog} from "./sync.js";
 import { logger } from "./logger.js";
+import { clearToken } from "./auth.js";
 
 logger.debug("binding","binding.js loaded from:", import.meta.url);
 
@@ -156,6 +157,7 @@ export function bindToolbarEvents(textarea) {
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
     document.getElementById("export-btn")?.addEventListener("click", () => exportFile());
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
+    document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
 
     // Zoom Buttons
     document.getElementById("zoom-editor-in")?.addEventListener("click", () => {
