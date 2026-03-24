@@ -306,22 +306,23 @@ async function handleCloudChange(latest, idleReturn) {
     const now = Date.now();
     const recentlyTyped = (now - lastLocalEditTime) < 30_000;
 
-    let countdown = recentlyTyped ? 30 : 10;
+    const countdown = recentlyTyped ? 30 : 10;
 
     showCountdownNotification({
         countdown,
         onConfirm: async () => {
 
-            // 🔥 SAFETY GUARD — prevents wiping gistId
+            // --- SAFETY GUARD: ensure we have a valid gist reference ---
             if (!latest || !latest.id) {
                 logger.error("sync: handleCloudChange", "Invalid latest gist object:", latest);
                 showNotification("error", "Cloud sync failed — invalid gist reference");
                 return;
             }
 
+            // Ensure local gistId is correct
             setGistId(latest.id);
 
-            // Load cloud workspace using the flat model
+            // --- Load cloud workspace ---
             const cloudWorkspace = await loadWorkspaceFromGist();
             if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
                 logger.error("sync: handleCloudChange", "Cloud workspace invalid");
@@ -329,34 +330,42 @@ async function handleCloudChange(latest, idleReturn) {
             }
 
             const safeCloud = cloudWorkspace.flat;
+
+            // --- Normalize old array format into new flat object format ---
             let normalized = safeCloud;
             if (Array.isArray(safeCloud)) {
                 normalized = {};
                 for (const f of safeCloud) {
-                    normalized[f.path] = f.content || "";
+                    if (f && f.path) {
+                        normalized[f.path] = f.content || "";
+                    }
                 }
             }
-            // Apply cloud workspace locally
+
+            // --- Apply cloud workspace locally ---
             setWorkspace(normalized);
             saveState();
 
-
-            // Compute new cloud hash using the flat model
-            lastSyncedHash = await computeWorkspaceHash(safeCloud);
+            // --- Compute new cloud hash using the normalized flat model ---
+            lastSyncedHash = await computeWorkspaceHash(normalized);
             localStorage.setItem("lastSyncedHash", lastSyncedHash);
             lastSuccessfulSyncTime = Date.now();
 
-            logger.info("sync: handleCloudChange",
+            logger.info(
+                "sync: handleCloudChange",
                 `Cloud accepted. Updated lastSyncedHash: ${lastSyncedHash}`
             );
         },
+
         onCancel: () => {
-            showNotification("warning",
+            showNotification(
+                "warning",
                 "Cloud version is newer. Saving now will overwrite it."
             );
         }
     });
 }
+
 
 
 
