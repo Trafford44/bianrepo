@@ -810,7 +810,6 @@ export async function loadWorkspaceFromGist() {
     logger.debug("sync", "Running loadWorkspaceFromGist()");
     logger.debug("sync", "loadWorkspaceFromGist gistId:", getGistId());
 
-
     if (!requireLogin()) {
         logger.info("sync: loadWorkspaceFromGist", "Login not required");
         return null;
@@ -838,14 +837,19 @@ export async function loadWorkspaceFromGist() {
         const data = await res.json();
         const files = data.files || {};
 
-        // --- 1. Build flat model from all real content files ---
-        const flat = {};
+        // --- 1. Build flat ARRAY model from all real content files ---
+        const flat = [];
+
         for (const filename in files) {
-            if (filename === "__workspace.json") continue; // metadata only
-            flat[filename] = files[filename].content || "";
+            if (filename === "__workspace.json") continue; // skip metadata
+
+            flat.push({
+                path: filename,                 // raw encoded filename
+                content: files[filename].content || ""
+            });
         }
 
-        // --- 2. Parse metadata ---
+        // --- 2. Parse metadata (optional) ---
         let metadata = [];
         if (files["__workspace.json"]) {
             try {
@@ -860,9 +864,9 @@ export async function loadWorkspaceFromGist() {
             metadata = [metadata];
         }
 
-        // --- 3. Return structured cloud data for merge engine ---
+        // --- 3. Return structured cloud data ---
         return {
-            flat,
+            flat,       // <-- now an ARRAY
             metadata
         };
 
@@ -874,6 +878,7 @@ export async function loadWorkspaceFromGist() {
         return null;
     }
 }
+
 
 
 
