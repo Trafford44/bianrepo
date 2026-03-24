@@ -679,35 +679,39 @@ export async function updatePreview() {
     // so pumlRegex will only see @startuml blocks that are truly "inline"
     // in the Markdown, not inside code fences.
     // ------------------------------------------------------------
-    const processed = contentWithPlaceholders.replace(pumlRegex, (match, blockContent) => {
-        logger.debug("ui: updatePreview", "Found inline PUML block:\n" + blockContent);
+    // ------------------------------------------------------------
+    //  STEP 2: PROCESS INLINE PUML ONLY IN NON-FENCED TEXT (ASYNC)
+    // ------------------------------------------------------------
+    const pumlBlocks = [];
+    let pumlIndex = 0;
 
-        // 2.1 Resolve !include app://file/... inside this PUML block
-        const resolvedBlock = resolvePumlIncludes(blockContent, tree);
-        logger.debug("ui: updatePreview", "Resolved inline PUML block:\n" + resolvedBlock);
-
-        if (!resolvedBlock.trim()) {
-            logger.warn("ui: updatePreview", "Resolved inline PUML block is empty");
-            return `<pre style="color:red;">Empty PUML block.</pre>`;
-        }
-
-        // 2.2 Encode the resolved PUML block → PlantUML URL
-        let url = "";
-        try {
-            url = getPumlRenderUrl(resolvedBlock);
-        } catch (e) {
-            logger.error("ui: updatePreview", "Inline PUML encoding failed:", e);
-            return `<pre style="color:red;">PUML encoding error:\n${e}\n\n${resolvedBlock}</pre>`;
-        }
-
-        logger.debug("ui: updatePreview", "Inline PUML render URL:", url);
-
-        // 2.3 Replace the @startuml...@enduml block with a Markdown image
-        // This will later be turned into an <img> by the Markdown renderer.
-        const rendered = await renderPuml(resolvedBlock);
-        return `\n${rendered}\n`;
-
+    const contentWithPumlPlaceholders = contentWithPlaceholders.replace(pumlRegex, (match, blockContent) => {
+        const placeholder = `@@PUML_${pumlIndex}@@`;
+        pumlBlocks.push(blockContent);
+        pumlIndex += 1;
+        return placeholder;
     });
+
+    // Now render each PUML block asynchronously
+    const renderedPumlBlocks = [];
+    for (let i = 0; i < pumlBlocks.length; i++) {
+        const block = pumlBlocks[i];
+        const resolvedBlock = resolvePumlIncludes(block, tree);
+
+        try {
+            const rendered = await renderPuml(resolvedBlock);
+            renderedPumlBlocks[i] = rendered;
+        } catch (e) {
+            renderedPumlBlocks[i] = `<pre style="color:red;">PUML render error:\n${e}\n\n${resolvedBlock}</pre>`;
+        }
+    }
+
+    // Put rendered PUML back into the content
+    let processed = contentWithPumlPlaceholders;
+    for (let i = 0; i < renderedPumlBlocks.length; i++) {
+        processed = processed.replace(`@@PUML_${i}@@`, renderedPumlBlocks[i]);
+    }
+
 
     // ------------------------------------------------------------
     //  STEP 3: RESTORE FENCED CODE BLOCKS UNTOUCHED
