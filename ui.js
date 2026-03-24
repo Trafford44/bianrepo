@@ -11,7 +11,7 @@ let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
-const USE_KROKI = true;
+const USE_KROKI = false;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
 
