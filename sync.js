@@ -329,8 +329,15 @@ async function handleCloudChange(latest, idleReturn) {
             }
 
             const safeCloud = cloudWorkspace.flat;
+            let normalized = safeCloud;
+            if (Array.isArray(safeCloud)) {
+                normalized = {};
+                for (const f of safeCloud) {
+                    normalized[f.path] = f.content || "";
+                }
+            }
             // Apply cloud workspace locally
-            setWorkspace(safeCloud);
+            setWorkspace(normalized);
             saveState();
 
 
