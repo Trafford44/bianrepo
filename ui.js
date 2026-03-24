@@ -11,6 +11,7 @@ let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
+const USE_KROKI = true;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
 
@@ -45,6 +46,23 @@ document.addEventListener("click", e => {
     }
 });
 
+
+async function renderPuml(resolvedPuml) {
+    if (USE_KROKI) {
+        // Returns raw SVG markup
+        return await renderPumlViaKroki(resolvedPuml);
+    } else {
+        // Returns HTML containing <img> and <a>
+        const url = getPumlRenderUrl(resolvedPuml);
+        return `
+            <img src="${url}" alt="PlantUML Diagram" />
+            <a href="${url}" target="_blank"
+               style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">
+               Open SVG link
+            </a>
+        `;
+    }
+}
 
 export function initResizers() {
     logger.debug("ui", "initResizers()");
@@ -595,12 +613,13 @@ export function updatePreview() {
         logger.debug("ui: updatePreview", "PUML render URL:", url);
 
         // 3. Render the diagram + external link
+        const rendered = await renderPuml(resolved);
         preview.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center;">
-                <img src="${url}" alt="PlantUML Diagram" />
-                <a href="${url}" target="_blank" style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">Open SVG link</a>
+                ${rendered}
             </div>
         `;
+
 
         //add logging to help with ID regeneration 
         const img = preview.querySelector("img");
@@ -685,7 +704,9 @@ export function updatePreview() {
 
         // 2.3 Replace the @startuml...@enduml block with a Markdown image
         // This will later be turned into an <img> by the Markdown renderer.
-        return `\n![PlantUML](${url})\n`;
+        const rendered = await renderPuml(resolvedBlock);
+        return `\n${rendered}\n`;
+
     });
 
     // ------------------------------------------------------------
@@ -764,6 +785,21 @@ function getPumlRenderUrl(puml) {
         return "";
     }
 }
+
+async function renderPumlViaKroki(puml) {
+    const res = await fetch("https://kroki.io/plantuml/svg", {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: puml.trim()
+    });
+
+    if (!res.ok) {
+        throw new Error("Kroki render failed");
+    }
+
+    return await res.text(); // SVG markup
+}
+
 
 function getPumlHref(puml) {
     try {
