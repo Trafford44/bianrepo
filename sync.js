@@ -311,6 +311,14 @@ async function handleCloudChange(latest, idleReturn) {
     showCountdownNotification({
         countdown,
         onConfirm: async () => {
+
+            // 🔥 SAFETY GUARD — prevents wiping gistId
+            if (!latest || !latest.id) {
+                logger.error("sync: handleCloudChange", "Invalid latest gist object:", latest);
+                showNotification("error", "Cloud sync failed — invalid gist reference");
+                return;
+            }
+
             setGistId(latest.id);
 
             // Load cloud workspace using the flat model
@@ -338,6 +346,7 @@ async function handleCloudChange(latest, idleReturn) {
         }
     });
 }
+
 
 
 export function buildCanonicalSnapshot(flat) {
