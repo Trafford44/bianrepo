@@ -17,21 +17,18 @@ export function createEmptyWorkspace() {
 }
 
 // Main entry point
-export function setWorkspace(flat) {
+export function setWorkspace(tree) {
     logger.debug("workspace", "setWorkspace()");
 
-    // Ensure we always store an object
-    if (typeof flat !== "object" || flat === null || Array.isArray(flat)) {
-        logger.error("workspace", "setWorkspace received non-object:", flat);
-        flat = {};
+    if (!Array.isArray(tree)) {
+        logger.error("workspace", "setWorkspace received non-array:", tree);
+        tree = [];
     }
 
-    // No normalization needed — flat model is already canonical
-    workspace = flat;
-
-    // Persist
+    workspace = tree;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
 }
+
 
 function sortTree(nodes) {
     nodes.sort((a, b) =>
@@ -92,16 +89,16 @@ function normalizeNode(node) {
 
 export function saveState() {
     logger.debug("workspace", "saveState()");
-    const flat = getWorkspace();
+    const tree = getWorkspace();
 
-    // Ensure we are saving an object
-    if (typeof flat !== "object" || flat === null || Array.isArray(flat)) {
-        logger.error("workspace", "saveState received non-object workspace:", flat);
+    if (!Array.isArray(tree)) {
+        logger.error("workspace", "saveState received non-array workspace:", tree);
         return;
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(flat));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tree));
 }
+
 
 
 export function loadState() {
@@ -110,33 +107,31 @@ export function loadState() {
 
     if (!saved) {
         logger.info("workspace: loadState", "Workspace not found:", STORAGE_KEY);
-        return {};
+        return [];   // ← FIX
     }
 
     logger.debug("workspace: loadState", "Raw localStorage:", saved);
 
     try {
-        let flat = JSON.parse(saved);
-        logger.debug("workspace: loadState", "Parsed localStorage:", flat);
+        let tree = JSON.parse(saved);
+        logger.debug("workspace: loadState", "Parsed localStorage:", tree);
 
-        // Ensure we always return an object
-        if (typeof flat !== "object" || flat === null || Array.isArray(flat)) {
-            logger.error("workspace: loadState", "Invalid workspace format, resetting:", flat);
-            flat = {};
+        if (!Array.isArray(tree)) {
+            logger.error("workspace: loadState", "Invalid workspace format, resetting:", tree);
+            tree = [];   // ← FIX
         }
 
-        migrateWorkspace(flat);   // optional, depending on your metadata model
-        setWorkspace(flat);
-        saveState();              // persist normalized version
+        migrateWorkspace(tree);
+        setWorkspace(tree);
+        saveState();
 
-        return flat;
+        return tree;
 
     } catch (e) {
         logger.error("workspace: loadState", "Failed to load workspace:", e);
-        return {};
+        return [];   // ← FIX
     }
 }
-
 
 
 export function findNodeById(nodeList, id) {
@@ -308,28 +303,32 @@ export function flattenWorkspace(tree) {
     return output;
 }
 
-
-
-export function unflattenWorkspace(flat) {
-    logger.debug("workspace", "unflattenWorkspace()");
+export function inflateWorkspace(flatList) {
+    logger.debug("workspace", "Running inflateWorkspace()");
     const root = [];
 
-    for (const flatKey in flat) {
-        const parts = flatKey.split("___").map(decodeName);
-        const content = flat[flatKey];
+    if (!Array.isArray(flatList)) {
+        logger.error("workspace", "inflateWorkspace received non-array:", flatList);
+        return root;
+    }
+
+    for (const entry of flatList) {
+        if (!entry || !entry.path) continue;
+
+        const parts = entry.path.split("___").map(decodeName);
+        const content = entry.content || "";
 
         let current = root;
 
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
 
-            // this line results in anthign that's no 'md or 'puml' being treated as a folder e.g. 'json'
             const isFile =
                 i === parts.length - 1 &&
                 (part.endsWith(".md") || part.endsWith(".puml"));
 
             if (isFile) {
-                // Prevent duplicate files
+                // File node
                 let existing = current.find(
                     n => n.type === "file" && n.name === part
                 );
@@ -343,12 +342,11 @@ export function unflattenWorkspace(flat) {
                     };
                     current.push(existing);
                 } else {
-                    // Overwrite content if duplicate
                     existing.content = content;
                 }
 
             } else {
-                // Folder
+                // Folder node
                 let folder = current.find(
                     n => n.type === "folder" && n.name === part
                 );
@@ -410,7 +408,7 @@ function buildMetadataPathMap(metadata) {
 export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
     logger.debug("workspace", "mergeWorkspace() CALLED", {
         localCount: Array.isArray(localTree) ? localTree.length : typeof localTree,
-        cloudFlatCount: Object.keys(cloudFlat || {}).length,
+        cloudFlatCount: Array.isArray(cloudFlat) ? cloudFlat.length : typeof cloudFlat,
         cloudMetaCount: Array.isArray(cloudMetadata) ? cloudMetadata.length : typeof cloudMetadata,
     });
 
@@ -448,7 +446,9 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
     }
 
     // --- 1. Merge cloud files/folders (gist is source of truth) ---
-    const cloudPaths = Object.keys(cloudFlat || {}).sort();
+    const cloudPaths = Array.isArray(cloudFlat)
+        ? cloudFlat.map(f => f.path).sort()
+        : [];
 
     for (const flatKey of cloudPaths) {
         const parts = flatKey.split("___");
@@ -466,21 +466,20 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
         let id;
         if (meta) {
-            // Cloud is canonical
             id = meta.id;
         } else if (local) {
-            // Local-only file (unsaved work)
             id = local.id;
         } else {
-            // Brand new file
             id = crypto.randomUUID();
         }
+
+        const cloudEntry = cloudFlat.find(f => f.path === flatKey);
 
         mergedMap[flatKey] = {
             id,
             type: isFile ? "file" : "folder",
             name,
-            content: isFile ? cloudFlat[flatKey] : null,
+            content: isFile ? (cloudEntry?.content || "") : null,
             children: []
         };
     }
@@ -519,7 +518,8 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
-            const isFile = i === parts.length - 1 &&
+            const isFile =
+                i === parts.length - 1 &&
                 (part.endsWith(".md") || part.endsWith(".puml"));
 
             const fullPath = parts.slice(0, i + 1).join("___");
@@ -568,7 +568,6 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
     return root;
 }
-
 
 // Detect old format: array of { title, files }
 function looksLikeOldFormat(data) {
