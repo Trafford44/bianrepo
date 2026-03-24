@@ -562,7 +562,7 @@ export function deleteFolder(folderId) {
 }
 
 
-export function updatePreview() {
+export async function updatePreview() {
     logger.debug("ui", "Running updatePreview()");
 
     const textarea = document.getElementById("editor-textarea");
