@@ -430,8 +430,15 @@ export async function computeWorkspaceHash(flat) {
     logger.debug("sync", `computeWorkspaceHash → ${hash}`);
     return hash;
 }
+
+
 export async function reconcileLocalAndCloud(localTree) {
     logger.debug("sync", "Running reconcileLocalAndCloud()");
+
+    // Always normalize localTree to a valid tree array
+    if (!Array.isArray(localTree)) {
+        localTree = [];
+    }
 
     const cloudMeta = await getLatestWorkspaceGistMeta();
     const lastSyncedHash = localStorage.getItem("lastSyncedHash");
@@ -440,17 +447,15 @@ export async function reconcileLocalAndCloud(localTree) {
     // CASE 1: No cloud gist exists yet
     // ------------------------------------------------------------
     if (!cloudMeta) {
-        if (!localTree || localTree.length === 0) {
+        if (localTree.length === 0) {
+            // No local, no cloud → create empty workspace
             const fresh = createEmptyWorkspace();
             saveState(fresh);
 
-            // Save empty workspace to cloud
             await saveWorkspaceToGist();
 
-            // Hash the flat version of the fresh workspace
             const freshFlat = flattenWorkspace(fresh);
             const freshHash = await computeWorkspaceHash(freshFlat);
-
             localStorage.setItem("lastSyncedHash", freshHash);
             return;
         }
@@ -460,7 +465,6 @@ export async function reconcileLocalAndCloud(localTree) {
 
         const localFlat = flattenWorkspace(localTree);
         const localHash = await computeWorkspaceHash(localFlat);
-
         localStorage.setItem("lastSyncedHash", localHash);
         return;
     }
@@ -483,7 +487,6 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     const localFlat = flattenWorkspace(localTree);
     const localHash = await computeWorkspaceHash(localFlat);
-
     const cloudHash = await computeWorkspaceHash(cloudFlat);
 
     logger.debug("sync: reconcileLocalAndCloud", "localHash:", localHash);
@@ -494,10 +497,9 @@ export async function reconcileLocalAndCloud(localTree) {
     // CASE 3: Local and cloud match → nothing to do
     // ------------------------------------------------------------
     if (localHash === cloudHash) {
-        localStorage.setItem("lastSyncedHash", localHash);
-
         const migrated = migrateWorkspace(localTree);
         saveState(migrated);
+        localStorage.setItem("lastSyncedHash", localHash);
         return;
     }
 
@@ -524,9 +526,9 @@ export async function reconcileLocalAndCloud(localTree) {
 
     const newFlat = flattenWorkspace(migrated);
     const newHash = await computeWorkspaceHash(newFlat);
-
     localStorage.setItem("lastSyncedHash", newHash);
 }
+
 
 async function getLatestWorkspaceGistMeta() {
     const gistId = getGistId();
@@ -625,10 +627,17 @@ async function cloudHashChanged() {
     }
 
     const cloudHash = await computeWorkspaceHash(cloudWorkspace.flat);
-    logger.debug("sync", "cloudHashChanged → cloudHash:", cloudHash, "lastSyncedHash:", lastSyncedHash);
+    logger.debug(
+        "sync",
+        "cloudHashChanged → cloudHash:",
+        cloudHash,
+        "lastSyncedHash:",
+        lastSyncedHash
+    );
 
     return cloudHash !== lastSyncedHash;
 }
+
 
 
 window.debugCloud = async () => {
@@ -647,7 +656,7 @@ window.debugCloud = async () => {
 
     // Load the workspace using the flat model
     const cloudWorkspace = await loadWorkspaceFromGist();
-    if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
+    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
         logger.error("sync: debugCloud", "Cloud workspace invalid");
         return;
     }
@@ -860,7 +869,7 @@ export async function loadWorkspaceFromGist() {
             if (filename === "__workspace.json") continue; // skip metadata
 
             flat.push({
-                path: filename,                 // raw encoded filename
+                path: filename,
                 content: files[filename].content || ""
             });
         }
@@ -882,8 +891,8 @@ export async function loadWorkspaceFromGist() {
 
         // --- 3. Return structured cloud data ---
         return {
-            flat,       // <-- now an ARRAY
-            metadata
+            flat,       // ARRAY of { path, content }
+            metadata    // ARRAY of metadata entries
         };
 
     } catch (error) {
@@ -894,6 +903,7 @@ export async function loadWorkspaceFromGist() {
         return null;
     }
 }
+
 
 
 
