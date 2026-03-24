@@ -559,7 +559,7 @@ async function getLatestWorkspaceGistMeta() {
             updatedAt: data.updated_at,
             hash: cloudHash,
             files: Object.keys(data.files)
-        };
+        };localStorage.clear();
 
     } catch (err) {
         logger.error("sync: getLatestWorkspaceGistMeta", "Network or fetch error", err);
@@ -606,7 +606,7 @@ async function cloudHashChanged() {
 
     // Load cloud workspace using the flat model
     const cloudWorkspace = await loadWorkspaceFromGist();
-    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat))
+    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
         logger.error("sync: cloudHashChanged", "Cloud workspace invalid");
         return false;
     }
