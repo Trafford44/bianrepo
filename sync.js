@@ -392,44 +392,25 @@ async function sha256(str) {
     return hashHex;
 }
 
-export async function computeWorkspaceHash(tree) {
-    // ------------------------------------------------------------
-    // 1. Build the canonical structural snapshot.
-    //
-    //    This snapshot:
-    //    - excludes UI state
-    //    - excludes timestamps
-    //    - excludes public/private flags
-    //    - excludes IDs
-    //    - includes only structure + content
-    //
-    //    This ensures two devices with the same workspace
-    //    produce the same snapshot.
-    // ------------------------------------------------------------
-    const snapshot = buildCanonicalSnapshot(tree);
+export async function computeWorkspaceHash(flatOrWorkspace) {
+    logger.debug("sync", "Running computeWorkspaceHash()");
 
-    // ------------------------------------------------------------
-    // 2. Convert to JSON in a deterministic way.
-    //
-    //    JSON.stringify is deterministic as long as:
-    //    - object keys are stable (they are)
-    //    - arrays are sorted (they are)
-    //    - snapshot structure is stable (it is)
-    //
-    //    This gives us a stable byte sequence to hash.
-    // ------------------------------------------------------------
+    let flat = flatOrWorkspace;
+
+    // Normalize: treat non-object or array as empty flat map
+    if (flat === null || typeof flat !== "object" || Array.isArray(flat)) {
+        logger.debug("sync", "computeWorkspaceHash received non-object/array, normalizing to {}:", flat);
+        flat = {};
+    }
+
+    const snapshot = buildCanonicalSnapshot(flat);
     const json = JSON.stringify(snapshot);
-
-    // ------------------------------------------------------------
-    // 3. Hash the JSON using SHA-256.
-    //
-    //    This produces a 64-character hex string.
-    //    This is the workspace version number.
-    // ------------------------------------------------------------
     const hash = await sha256(json);
-    logger.debug("sync", "computeWorkspaceHash →", hash);
+
+    logger.debug("sync", `computeWorkspaceHash → ${hash}`);
     return hash;
 }
+
 
 export async function reconcileLocalAndCloud(local) {
     logger.debug("sync", "Running reconcileLocalAndCloud()");
