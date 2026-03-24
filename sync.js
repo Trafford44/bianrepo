@@ -244,9 +244,10 @@ export async function runSyncCheck(reason) {
     );
 
     // --- Load local workspace using the flat model ---
-    const local = loadState();
-    const safeLocal = Array.isArray(local) ? local : [];
-    const localHash = await computeWorkspaceHash(safeLocal);
+    const localTree = loadState();
+    const localFlat = flattenWorkspace(localTree);
+    const localHash = await computeWorkspaceHash(localFlat);
+
 
     // --- First-time sync: adopt cloud hash ---
     if (lastSyncedHash === null) {
@@ -363,15 +364,16 @@ export function buildCanonicalSnapshot(flat) {
     logger.debug("sync", "Running buildCanonicalSnapshot()");
 
     // Defensive: ensure flat is an object
-    if (typeof flat !== "object" || flat === null || Array.isArray(flat)) {
-        logger.error("sync", "buildCanonicalSnapshot received non-object:", flat);
+    if (!Array.isArray(flat)) {
+        logger.error("sync", "buildCanonicalSnapshot expected flat array:", flat);
         return { version: 1, flat: [] };
     }
 
+
     // Convert object → array of entries
-    const entries = Object.keys(flat).map(name => ({
-        name,
-        content: flat[name] || ""
+    const entries = flat.map(f => ({
+        name: f.path,
+        content: f.content || ""
     }));
 
     // Deterministic ordering by filename
@@ -464,8 +466,8 @@ export async function reconcileLocalAndCloud(local) {
     // ------------------------------------------------------------
     // Compute structural hashes (FLAT MODEL)
     // ------------------------------------------------------------
-    const safeLocal = Array.isArray(local) ? local : [];
-    const localHash = await computeWorkspaceHash(safeLocal);
+    const localFlat = flattenWorkspace(local);
+    const localHash = await computeWorkspaceHash(localFlat);
 
     const safeCloud = Array.isArray(cloudFlat) ? cloudFlat : [];
     const cloudHash = await computeWorkspaceHash(safeCloud);
@@ -570,9 +572,10 @@ async function maybeAutoSave() {
     logger.debug("sync", "Running maybeAutoSave()");
 
     // --- Compute local hash using the flat model ---
-    const local = loadState();
-    const safeLocal = Array.isArray(local) ? local : [];
-    const localHash = await computeWorkspaceHash(safeLocal);
+    const localTree = loadState();
+    const localFlat = flattenWorkspace(localTree);
+    const localHash = await computeWorkspaceHash(localFlat);
+
 
     // --- No local changes since last sync ---
     if (localHash === lastSyncedHash) {
@@ -603,7 +606,7 @@ async function cloudHashChanged() {
 
     // Load cloud workspace using the flat model
     const cloudWorkspace = await loadWorkspaceFromGist();
-    if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
+    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat))
         logger.error("sync: cloudHashChanged", "Cloud workspace invalid");
         return false;
     }
@@ -766,9 +769,9 @@ export async function saveWorkspaceToGist() {
 
         // --- 7. Compute new cloud hash using corrected loader ---
         const cloud = await loadWorkspaceFromGist();
-        const safeFlat = cloud?.flat || {};
-
+        const safeFlat = Array.isArray(cloud?.flat) ? cloud.flat : [];
         lastSyncedHash = await computeWorkspaceHash(safeFlat);
+
         localStorage.setItem("lastSyncedHash", lastSyncedHash);
         lastSuccessfulSyncTime = Date.now();
 
