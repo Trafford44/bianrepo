@@ -231,7 +231,7 @@ export async function runSyncCheck(reason) {
 
     // --- Load cloud workspace using the flat model ---
     const cloudWorkspace = await loadWorkspaceFromGist();
-    if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
+    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat))
         logger.error("sync: runSyncCheck", "Cloud workspace invalid");
         return;
     }
@@ -322,32 +322,24 @@ async function handleCloudChange(latest, idleReturn) {
             // Ensure local gistId is correct
             setGistId(latest.id);
 
-            // --- Load cloud workspace ---
+            // --- Load cloud workspace (flat list) ---
             const cloudWorkspace = await loadWorkspaceFromGist();
-            if (!cloudWorkspace || typeof cloudWorkspace.flat !== "object" || cloudWorkspace.flat === null) {
+            if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
                 logger.error("sync: handleCloudChange", "Cloud workspace invalid");
                 return;
             }
 
-            const safeCloud = cloudWorkspace.flat;
+            const flatList = cloudWorkspace.flat;
 
-            // --- Normalize old array format into new flat object format ---
-            let normalized = safeCloud;
-            if (Array.isArray(safeCloud)) {
-                normalized = {};
-                for (const f of safeCloud) {
-                    if (f && f.path) {
-                        normalized[f.path] = f.content || "";
-                    }
-                }
-            }
+            // --- Inflate flat list → hierarchical tree ---
+            const tree = inflateWorkspace(flatList);
 
             // --- Apply cloud workspace locally ---
-            setWorkspace(normalized);
+            setWorkspace(tree);
             saveState();
 
-            // --- Compute new cloud hash using the normalized flat model ---
-            lastSyncedHash = await computeWorkspaceHash(normalized);
+            // --- Compute new cloud hash using the flat list ---
+            lastSyncedHash = await computeWorkspaceHash(flatList);
             localStorage.setItem("lastSyncedHash", lastSyncedHash);
             lastSuccessfulSyncTime = Date.now();
 
@@ -365,9 +357,6 @@ async function handleCloudChange(latest, idleReturn) {
         }
     });
 }
-
-
-
 
 export function buildCanonicalSnapshot(flat) {
     logger.debug("sync", "Running buildCanonicalSnapshot()");
