@@ -404,25 +404,32 @@ async function sha256(str) {
     return hashHex;
 }
 
-export async function computeWorkspaceHash(flatOrWorkspace) {
+export async function computeWorkspaceHash(flat) {
     logger.debug("sync", "Running computeWorkspaceHash()");
 
-    let flat = flatOrWorkspace;
-
-    // Normalize: treat non-object or array as empty flat map
-    if (flat === null || typeof flat !== "object" || Array.isArray(flat)) {
-        logger.debug("sync", "computeWorkspaceHash received non-object/array, normalizing to {}:", flat);
-        flat = {};
+    // Must be a flat ARRAY of { path, content }
+    if (!Array.isArray(flat)) {
+        logger.error("sync", "computeWorkspaceHash expected flat array, received:", flat);
+        flat = [];
     }
 
-    const snapshot = buildCanonicalSnapshot(flat);
+    // Build canonical snapshot from flat array
+    const snapshot = {
+        version: 1,
+        files: flat
+            .map(f => ({
+                path: f.path,
+                content: f.content || ""
+            }))
+            .sort((a, b) => a.path.localeCompare(b.path))
+    };
+
     const json = JSON.stringify(snapshot);
     const hash = await sha256(json);
 
     logger.debug("sync", `computeWorkspaceHash → ${hash}`);
     return hash;
 }
-
 
 export async function reconcileLocalAndCloud(local) {
     logger.debug("sync", "Running reconcileLocalAndCloud()");
