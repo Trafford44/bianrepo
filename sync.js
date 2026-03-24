@@ -277,7 +277,7 @@ export async function runSyncCheck(reason) {
         logger.info("sync: runSyncCheck",
             "Cloud hash differs from lastSyncedHash. Cloud is newer. Triggering cloud-change handler."
         );
-        return handleCloudChange(cloudWorkspace, idleReturn);
+        return handleCloudChange({ id: gistId }, idleReturn);
     }
 
     // --- Everything matches ---
