@@ -329,6 +329,10 @@ async function handleCloudChange(latest, idleReturn) {
             }
 
             const safeCloud = cloudWorkspace.flat;
+            // Apply cloud workspace locally
+            setWorkspace(safeCloud);
+            saveState();
+
 
             // Compute new cloud hash using the flat model
             lastSyncedHash = await computeWorkspaceHash(safeCloud);
