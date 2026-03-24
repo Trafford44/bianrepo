@@ -17,31 +17,21 @@ export function createEmptyWorkspace() {
 }
 
 // Main entry point
-export function setWorkspace(data) {
+export function setWorkspace(flat) {
     logger.debug("workspace", "setWorkspace()");
-    // If nothing provided, initialize empty array
-    if (!data) {
-        workspace = [];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
-        return;
+
+    // Ensure we always store an object
+    if (typeof flat !== "object" || flat === null || Array.isArray(flat)) {
+        logger.error("workspace", "setWorkspace received non-object:", flat);
+        flat = {};
     }
 
-    // If data is a single object, wrap it
-    if (!Array.isArray(data)) {
-        data = [data];
-    }
+    // No normalization needed — flat model is already canonical
+    workspace = flat;
 
-    // Normalize every node
-    workspace = data.map(normalizeNode);
-
-    // ensure all nodes have required fields - this allows adding a new field easily
-    migrateWorkspace(workspace);
-
-    // Save normalized version
+    // Persist
     localStorage.setItem(STORAGE_KEY, JSON.stringify(workspace));
 }
-
-
 
 function sortTree(nodes) {
     nodes.sort((a, b) =>
