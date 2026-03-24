@@ -231,13 +231,13 @@ export async function runSyncCheck(reason) {
 
     // --- Load cloud workspace using the flat model ---
     const cloudWorkspace = await loadWorkspaceFromGist();
-    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat))
+    if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
         logger.error("sync: runSyncCheck", "Cloud workspace invalid");
         return;
     }
 
-    const safeCloud = cloudWorkspace.flat;
-    const cloudHash = await computeWorkspaceHash(safeCloud);
+    const flatList = cloudWorkspace.flat;
+    const cloudHash = await computeWorkspaceHash(flatList);
 
     logger.info("sync: runSyncCheck",
         `Computed cloudHash: ${cloudHash}, lastSyncedHash: ${lastSyncedHash}`
@@ -357,6 +357,7 @@ async function handleCloudChange(latest, idleReturn) {
         }
     });
 }
+
 
 export function buildCanonicalSnapshot(flat) {
     logger.debug("sync", "Running buildCanonicalSnapshot()");
