@@ -685,12 +685,24 @@ export async function updatePreview() {
     const pumlBlocks = [];
     let pumlIndex = 0;
 
-    const contentWithPumlPlaceholders = contentWithPlaceholders.replace(pumlRegex, (match, blockContent) => {
-        const placeholder = `@@PUML_${pumlIndex}@@`;
-        pumlBlocks.push(blockContent);
-        pumlIndex += 1;
-        return placeholder;
-    });
+    let contentWithPumlPlaceholders = contentWithPlaceholders;
+
+    try {
+        contentWithPumlPlaceholders = contentWithPlaceholders.replace(
+            pumlRegex,
+            (match, blockContent) => {
+                const placeholder = `@@PUML_${pumlIndex}@@`;
+                pumlBlocks.push(blockContent);
+                pumlIndex += 1;
+                return placeholder;
+            }
+        );
+    } catch (e) {
+        logger.error("ui: updatePreview", "INLINE PUML EXTRACTION FAILED:", e);
+        // Fallback: leave content unchanged so Markdown still renders
+        contentWithPumlPlaceholders = contentWithPlaceholders;
+    }
+
 
     // Now render each PUML block asynchronously
     const renderedPumlBlocks = [];
