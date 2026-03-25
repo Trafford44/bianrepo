@@ -871,51 +871,18 @@ function getPumlRenderUrl(puml) {
 }
 
 async function renderPumlViaKroki(puml) {
-    let res;
-
-    try {
-        res = await fetch("https://kroki.io/plantuml/svg", {
-            method: "POST",
-            headers: { "Content-Type": "text/plain" },
-            body: puml.trim()
-        });
-    } catch (networkErr) {
-        throw new Error("Network error contacting Kroki: " + networkErr.message);
-    }
+    const res = await fetch("https://kroki.io/plantuml/svg", {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: puml.trim()
+    });
 
     if (!res.ok) {
-        const errText = await res.text().catch(() => "(no error body)");
-        throw new Error(`Kroki render failed (${res.status}): ${errText}`);
+        throw new Error("Kroki render failed");
     }
 
-    const text = await res.text();
-    if (!text || !text.trim()) {
-        throw new Error("Kroki returned an empty response.");
-    }
-
-    const trimmed = text.trim();
-
-    // JSON error?
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-        throw new Error("Kroki returned JSON instead of SVG:\n" + trimmed);
-    }
-
-    // HTML error?
-    if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
-        throw new Error("Kroki returned HTML instead of SVG:\n" + trimmed);
-    }
-
-    // Find <svg> even if XML header exists
-    const svgIndex = trimmed.indexOf("<svg");
-    if (svgIndex === -1) {
-        throw new Error("Kroki returned non-SVG output:\n" + trimmed);
-    }
-
-    // Strip XML header
-    return trimmed.slice(svgIndex);
+    return await res.text(); // SVG markup
 }
-
-
 
 
 function getPumlHref(puml) {
