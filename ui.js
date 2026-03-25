@@ -883,38 +883,38 @@ async function renderPumlViaKroki(puml) {
         throw new Error("Network error contacting Kroki: " + networkErr.message);
     }
 
-    // If Kroki returns HTTP 400/500, include the error body
     if (!res.ok) {
         const errText = await res.text().catch(() => "(no error body)");
         throw new Error(`Kroki render failed (${res.status}): ${errText}`);
     }
 
     const text = await res.text();
-
-    // Empty response → treat as failure
     if (!text || !text.trim()) {
         throw new Error("Kroki returned an empty response.");
     }
 
     const trimmed = text.trim();
 
-    // Kroki sometimes returns JSON error bodies
+    // JSON error?
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
         throw new Error("Kroki returned JSON instead of SVG:\n" + trimmed);
     }
 
-    // Kroki sometimes returns HTML error pages
+    // HTML error?
     if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
         throw new Error("Kroki returned HTML instead of SVG:\n" + trimmed);
     }
 
-    // Basic sanity check: must be SVG
-    if (!trimmed.startsWith("<svg")) {
+    // Find <svg> even if XML header exists
+    const svgIndex = trimmed.indexOf("<svg");
+    if (svgIndex === -1) {
         throw new Error("Kroki returned non-SVG output:\n" + trimmed);
     }
 
-    return trimmed; // Valid SVG markup
+    // Strip XML header
+    return trimmed.slice(svgIndex);
 }
+
 
 
 
