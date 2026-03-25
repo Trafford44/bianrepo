@@ -585,6 +585,10 @@ export function deleteFolder(folderId) {
 
 export async function updatePreview() {
     logger.debug("ui", "Running updatePreview()");
+
+    const tree = getWorkspace();
+    const file = findNodeById(tree, activeFileId);
+
     logger.debug("ui: updatePreview() starting for file:", file?.name);
 
     try {
@@ -593,8 +597,6 @@ export async function updatePreview() {
         const link = document.getElementById("puml-external-link");
         const content = textarea.value;
 
-        const tree = getWorkspace();
-        const file = findNodeById(tree, activeFileId);
         if (!file || file.type !== "file") {
             logger.warn("ui: updatePreview", "Active file not found or not a file");
             return;
