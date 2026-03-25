@@ -647,9 +647,6 @@ export async function updatePreview() {
     // ------------------------------------------------------------
     logger.debug("ui: updatePreview", "Rendering Markdown file:", file.name);
 
-    // Matches inline PUML blocks anywhere in the Markdown
-    const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
-
     // Matches any fenced code block: ``` ... ```
     // We treat everything inside as literal code and must NOT touch it.
     const fenceRegex = /```[\s\S]*?```/g;
@@ -682,9 +679,6 @@ export async function updatePreview() {
     // ------------------------------------------------------------
     //  STEP 2: PROCESS INLINE PUML ONLY IN NON-FENCED TEXT (ASYNC)
     // ------------------------------------------------------------
-    const pumlBlocks = [];
-    let pumlIndex = 0;
-
     const { blocks: pumlBlocksInfo, placeholders } =
         extractInlinePumlBlocks(contentWithPlaceholders);
 
