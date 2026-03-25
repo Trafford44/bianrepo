@@ -685,23 +685,17 @@ export async function updatePreview() {
     const pumlBlocks = [];
     let pumlIndex = 0;
 
-    let contentWithPumlPlaceholders = contentWithPlaceholders;
+    const { blocks: pumlBlocksInfo, placeholders } =
+        extractInlinePumlBlocks(contentWithPlaceholders);
 
-    try {
-        contentWithPumlPlaceholders = contentWithPlaceholders.replace(
-            pumlRegex,
-            (match, blockContent) => {
-                const placeholder = `@@PUML_${pumlIndex}@@`;
-                pumlBlocks.push(blockContent);
-                pumlIndex += 1;
-                return placeholder;
-            }
-        );
-    } catch (e) {
-        logger.error("ui: updatePreview", "INLINE PUML EXTRACTION FAILED:", e);
-        // Fallback: leave content unchanged so Markdown still renders
-        contentWithPumlPlaceholders = contentWithPlaceholders;
+    let contentWithPumlPlaceholders = contentWithPlaceholders;
+    for (let i = 0; i < pumlBlocksInfo.length; i++) {
+        contentWithPumlPlaceholders =
+            contentWithPumlPlaceholders.replace(pumlBlocksInfo[i].original, placeholders[i]);
     }
+
+    // For the async render loop, you just need the inner content:
+    const pumlBlocks = pumlBlocksInfo.map(b => b.content);
 
 
     // Now render each PUML block asynchronously
@@ -785,6 +779,54 @@ export async function updatePreview() {
 
 }
 
+function extractInlinePumlBlocks(text) {
+    const lines = text.split(/\r?\n/);
+    const blocks = [];
+    const placeholders = [];
+
+    let inside = false;
+    let current = [];
+    let original = [];
+    let index = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (!inside) {
+            if (line.includes("@startuml")) {
+                inside = true;
+                current = [];
+                original = [];
+
+                original.push(line);
+
+                const after = line.split("@startuml")[1];
+                if (after.trim()) current.push(after);
+
+                placeholders.push(`@@PUML_${index}@@`);
+                index++;
+            }
+        } else {
+            original.push(line);
+
+            if (line.includes("@enduml")) {
+                const before = line.split("@enduml")[0];
+                if (before.trim()) current.push(before);
+
+                blocks.push({
+                    content: current.join("\n"),
+                    original: original.join("\n")
+                });
+
+                inside = false;
+            } else {
+                current.push(line);
+            }
+        }
+    }
+
+    return { blocks, placeholders };
+}
 
 
 function getPumlRenderUrl(puml) {
