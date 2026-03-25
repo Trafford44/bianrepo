@@ -49,11 +49,31 @@ document.addEventListener("click", e => {
 
 async function renderPuml(resolvedPuml) {
     if (USE_KROKI) {
-        // Returns raw SVG markup
-        return await renderPumlViaKroki(resolvedPuml);
+        // --- Kroki POST mode (inline SVG) ---
+        try {
+            const svg = await renderPumlViaKroki(resolvedPuml);
+
+            // If Kroki returned nothing or whitespace, treat as error
+            if (!svg || !svg.trim()) {
+                throw new Error("Kroki returned empty SVG output.");
+            }
+
+            // Basic sanity check: SVG must start with <svg
+            if (!svg.trim().startsWith("<svg")) {
+                throw new Error("Kroki returned non-SVG output:\n" + svg);
+            }
+
+            return svg;
+
+        } catch (err) {
+            // Ensure all Kroki failures bubble up to updatePreview()
+            throw new Error("Kroki render failed: " + err.message);
+        }
+
     } else {
-        // Returns HTML containing <img> and <a>
+        // --- PlantUML URL mode (IMG + link) ---
         const url = getPumlRenderUrl(resolvedPuml);
+
         return `
             <img src="${url}" alt="PlantUML Diagram" />
             <a href="${url}" target="_blank"
@@ -63,6 +83,7 @@ async function renderPuml(resolvedPuml) {
         `;
     }
 }
+
 
 export function initResizers() {
     logger.debug("ui", "initResizers()");
@@ -590,6 +611,13 @@ export async function updatePreview() {
     if (file.name.endsWith(".puml")) {
         logger.debug("ui: updatePreview", "Rendering PUML file:", file.name);
 
+        // 0. CLEAR PREVIEW IMMEDIATELY so stale diagrams never remain
+        preview.innerHTML = `
+            <div style="color:#9ca3af; font-size:0.9rem; padding:1rem;">
+                Rendering diagram…
+            </div>
+        `;
+
         // 1. Resolve !include app://file/... inside the PUML file
         const resolved = resolvePumlIncludes(content, tree);
         logger.debug("ui: updatePreview", "Resolved PUML content:\n" + resolved);
@@ -600,7 +628,7 @@ export async function updatePreview() {
             return;
         }
 
-        // 2. Encode PUML → PlantUML server URL
+        // 2. Encode PUML → PlantUML server URL (still used for external link)
         let url = "";
         try {
             url = getPumlRenderUrl(resolved);
@@ -612,27 +640,30 @@ export async function updatePreview() {
 
         logger.debug("ui: updatePreview", "PUML render URL:", url);
 
-        // 3. Render the diagram + external link
-        const rendered = await renderPuml(resolved);
+        // 3. Render the diagram (Kroki/PlantUML)
+        let rendered;
+        try {
+            rendered = await renderPuml(resolved);
+        } catch (e) {
+            logger.error("ui: updatePreview", "PUML render failed:", e);
+            preview.innerHTML = `
+                <pre style="color:red;">
+    PUML render error:
+    ${e}
+
+    ${resolved}
+                </pre>`;
+            return;
+        }
+
+        // 4. Replace preview with the new diagram
         preview.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center;">
                 ${rendered}
             </div>
         `;
 
-
-        //add logging to help with ID regeneration 
-        const img = preview.querySelector("img");
-
-        if (img) {
-            img.addEventListener("error", () => {
-                logger.error("ui: updatePreview", "PUML RENDER FAILED — PlantUML/Kroki returned an error for URL:", url);
-                logger.error("ui: updatePreview", "Resolved PUML content was:\n" + resolved);
-                logger.error("ui: updatePreview", "Preview aborted — saveState() will NOT run");
-            });
-        }      
-
-        // 4. External link (for "open in browser" style behaviour)
+        // 5. External link (for "open in browser")
         try {
             link.href = getPumlHref(resolved);
         } catch (e) {
@@ -641,6 +672,7 @@ export async function updatePreview() {
 
         return;
     }
+
 
     // ------------------------------------------------------------
     //  MARKDOWN PREVIEW (INLINE @startuml BLOCKS)
@@ -839,18 +871,51 @@ function getPumlRenderUrl(puml) {
 }
 
 async function renderPumlViaKroki(puml) {
-    const res = await fetch("https://kroki.io/plantuml/svg", {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: puml.trim()
-    });
+    let res;
 
-    if (!res.ok) {
-        throw new Error("Kroki render failed");
+    try {
+        res = await fetch("https://kroki.io/plantuml/svg", {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: puml.trim()
+        });
+    } catch (networkErr) {
+        throw new Error("Network error contacting Kroki: " + networkErr.message);
     }
 
-    return await res.text(); // SVG markup
+    // If Kroki returns HTTP 400/500, include the error body
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "(no error body)");
+        throw new Error(`Kroki render failed (${res.status}): ${errText}`);
+    }
+
+    const text = await res.text();
+
+    // Empty response → treat as failure
+    if (!text || !text.trim()) {
+        throw new Error("Kroki returned an empty response.");
+    }
+
+    const trimmed = text.trim();
+
+    // Kroki sometimes returns JSON error bodies
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        throw new Error("Kroki returned JSON instead of SVG:\n" + trimmed);
+    }
+
+    // Kroki sometimes returns HTML error pages
+    if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
+        throw new Error("Kroki returned HTML instead of SVG:\n" + trimmed);
+    }
+
+    // Basic sanity check: must be SVG
+    if (!trimmed.startsWith("<svg")) {
+        throw new Error("Kroki returned non-SVG output:\n" + trimmed);
+    }
+
+    return trimmed; // Valid SVG markup
 }
+
 
 
 function getPumlHref(puml) {
