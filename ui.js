@@ -651,12 +651,20 @@ export async function updatePreview() {
             } catch (e) {
                 logger.error("ui: updatePreview", "PUML render failed:", e);
                 preview.innerHTML = `
-                    <pre style="color:red;">
-                        PUML render error:
-                        ${e}
-
-                        ${resolved}
-                    </pre>`;
+                    <div style="
+                        padding:1rem;
+                        color:#ef4444;
+                        background:#2b2b2b;
+                        border-left:4px solid #ef4444;
+                        font-size:0.9rem;
+                        white-space:pre-wrap;
+                    ">
+                        <strong>PUML render error</strong>
+                        <div style="margin-top:0.5rem; color:#fca5a5;">
+                            ${e.message}
+                        </div>
+                    </div>
+                `;
                 return;
             }
 
