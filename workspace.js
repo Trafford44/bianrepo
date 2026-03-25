@@ -412,6 +412,13 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
         cloudMetaCount: Array.isArray(cloudMetadata) ? cloudMetadata.length : typeof cloudMetadata,
     });
 
+    // 🔥 SAFETY FILTER: remove null, undefined, or missing-path entries
+    if (!Array.isArray(cloudFlat)) {
+        cloudFlat = [];
+    } else {
+        cloudFlat = cloudFlat.filter(f => f && typeof f.path === "string");
+    }
+
     const localMap = buildLocalPathMap(localTree);
     const metaMap = buildMetadataPathMap(cloudMetadata || []);
 
@@ -447,10 +454,17 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
     // --- 1. Merge cloud files/folders (gist is source of truth) ---
     const cloudPaths = Array.isArray(cloudFlat)
-        ? cloudFlat.map(f => f.path).sort()
+        ? cloudFlat
+            .filter(f => f && typeof f.path === "string" && f.path.length > 0)
+            .map(f => f.path)
+            .sort()
         : [];
 
     for (const flatKey of cloudPaths) {
+        if (!flatKey || typeof flatKey !== "string") {
+            logger.error("workspace: mergeWorkspace", "Invalid cloud path:", flatKey);
+            continue;
+        }        
         const parts = flatKey.split("___");
         const name = parts[parts.length - 1];
         const isFile = name.endsWith(".md") || name.endsWith(".puml");
@@ -471,7 +485,7 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
             id = local.id;
         } else {
             id = crypto.randomUUID();
-        }
+        }mergeWorkspace
 
         const cloudEntry = cloudFlat.find(f => f.path === flatKey);
 
