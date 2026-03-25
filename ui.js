@@ -11,7 +11,7 @@ let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
-const USE_KROKI = false;
+const USE_KROKI = true;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
 
@@ -740,6 +740,7 @@ export async function updatePreview() {
         // ------------------------------------------------------------
         const { blocks: pumlBlocksInfo, placeholders } =
             extractInlinePumlBlocks(contentWithPlaceholders);
+        logger.error("ui: updatePreview"," Inline PUML blocks found: ", pumlBlocksInfo.length);
 
         let contentWithPumlPlaceholders = contentWithPlaceholders;
         for (let i = 0; i < pumlBlocksInfo.length; i++) {
