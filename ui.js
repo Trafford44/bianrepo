@@ -604,7 +604,7 @@ export async function updatePreview() {
     const tree = getWorkspace();
     const file = findNodeById(tree, activeFileId);
 
-    logger.debug("ui: updatePreview() starting for file:", file?.name);
+    logger.debug("ui: updatePreview() starting for file:", "ACTIVE FILE:", activeFileId, "NAME:", file?.name);
 
     try {
         const textarea = document.getElementById("editor-textarea");
