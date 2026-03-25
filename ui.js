@@ -30,10 +30,25 @@ export function showContextMenu(target, items, x, y) {
         contextMenuList.appendChild(li);
     });
 
-    contextMenu.style.left = `${x}px`;
-    contextMenu.style.top = `${y}px`;
+    // Make menu visible *before* measuring height
     contextMenu.classList.remove("hidden");
+
+    // Measure menu height
+    const menuHeight = contextMenu.offsetHeight;
+    const viewportHeight = document.documentElement.clientHeight;
+
+    // Default: open downward
+    let top = y;
+
+    // If menu would overflow → open upward
+    if (y + menuHeight > viewportHeight) {
+        top = y - menuHeight;
+    }
+
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${top}px`;
 }
+
 
 export function hideContextMenu() {
     contextMenu.classList.add("hidden");
