@@ -4,12 +4,23 @@ If it changes UI → ui.js, likely starting applyMarkdownFormat()
 */
 
 // md-editor.js (top of file or near other exports)
+
 import { logger } from "./logger.js";
 
 logger.debug("md-editor","md-editor.js loaded from:", import.meta.url);
 
 export function setupMarked() {
     logger.debug("md-editor", "setupMarked()");
+
+    // Allow raw HTML so inline diagrams render correctly
+    marked.setOptions({
+        gfm: true,
+        breaks: true,
+        mangle: false,
+        headerIds: false,
+        sanitize: false   // ← REQUIRED for both PlantUML and Kroki
+    });
+
     const renderer = new marked.Renderer();
 
     // Keep lists tight but paragraphs spaced
@@ -29,6 +40,7 @@ export function setupMarked() {
 
     marked.use({ renderer });
 }
+
 
 export function applyMarkdownFormat(type, textarea) {
     logger.debug("md-editor", "applyMarkdownFormat()");
