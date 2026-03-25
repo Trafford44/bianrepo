@@ -8,7 +8,6 @@
  so for now I can just test the GitHub integration in Dev mode and then I'll need to deploy to prod to see the interactions with any code changes.
  Ask AI about a workaround to not being able to setup a 2nd aAuth in GitHub for teh dev env, to get around this limitation
  -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,6 +61,7 @@
 
             /* Zooming*/
             --preview-zoom-scale: 1;
+            --puml-zoom-scale: 1;            
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -748,6 +748,17 @@
                 font-size: 20px;        /* easier to hit */
             }
         }
+
+        #preview-pane svg {
+            transform: scale(var(--preview-zoom-scale));
+            transform-origin: top left;
+            width: 100%;
+            height: auto;
+            max-width: none; /* important: prevents shrinking */
+            display: block;
+        }
+
+
 
         /* 
         #reconnect-link {
