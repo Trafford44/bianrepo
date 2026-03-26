@@ -748,7 +748,7 @@ export async function updatePreview() {
         // ------------------------------------------------------------
         const { blocks: pumlBlocksInfo, placeholders } =
             extractInlinePumlBlocks(contentWithPlaceholders);
-        logger.error("ui: updatePreview"," Inline PUML blocks found: ", pumlBlocksInfo.length);
+        logger.info("ui: updatePreview"," Inline PUML blocks found: ", pumlBlocksInfo.length);
 
         let contentWithPumlPlaceholders = contentWithPlaceholders;
         for (let i = 0; i < pumlBlocksInfo.length; i++) {
@@ -804,6 +804,8 @@ export async function updatePreview() {
 
         // Auto-link bare internal IDs like: app://file/<id>
         const autoLinkRegex = /(?<!["(>])\bapp:\/\/file\/([A-Za-z0-9-]+)\b/g;
+
+        logger.info("ui: updatePreview", "RESTORED BEFORE AUTOLINK:", restored);
 
         const autoLinked = restored.replace(autoLinkRegex, (match, id) => {
             return `<a href="app://file/${id}">${match}</a>`;
