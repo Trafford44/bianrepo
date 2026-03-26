@@ -9,7 +9,7 @@ import { logger } from "./logger.js";
 
 logger.debug("md-editor","md-editor.js loaded from:", import.meta.url);
 
-export function setupMarked() {
+export function setupMarked_old() {
     logger.debug("md-editor", "setupMarked()");
 
     // Allow raw HTML so inline diagrams render correctly
@@ -41,6 +41,27 @@ export function setupMarked() {
     marked.use({ renderer });
 }
 
+export function setupMarked() {
+    logger.debug("md-editor", "setupMarked()");
+    const renderer = new marked.Renderer();
+
+    // Keep lists tight but paragraphs spaced
+    renderer.list = function (body, ordered) {
+        const type = ordered ? "ol" : "ul";
+        return `<${type}>\n${body}</${type}>\n\n`;
+    };
+
+    // Add heading IDs for TOC
+    renderer.heading = function (text, level) {
+        const id = text
+            .toLowerCase()
+            .replace(/[^\w]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        return `<h${level} id="${id}">${text}</h${level}>`;
+    };
+
+    marked.use({ renderer });
+}
 
 export function applyMarkdownFormat(type, textarea) {
     logger.debug("md-editor", "applyMarkdownFormat()");
