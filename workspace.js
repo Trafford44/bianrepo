@@ -472,7 +472,8 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
         if (!flatKey || typeof flatKey !== "string") {
             logger.error("workspace: mergeWorkspace", "Invalid cloud path:", flatKey);
             continue;
-        }        
+        }
+
         const parts = flatKey.split("___");
         const name = parts[parts.length - 1];
         const isFile = name.endsWith(".md") || name.endsWith(".puml");
@@ -485,10 +486,9 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
         const meta = metaMap[flatKey];
         const local = localMap[flatKey];
+        const cloudEntry = cloudFlat.find(f => f.path === flatKey);
 
         let id;
-        const cloudEntry = cloudFlat.find(f => f.path === path);
-
         if (cloudEntry && cloudEntry.id) {
             id = cloudEntry.id;                     // ✔ canonical
         } else if (meta && meta.id) {
@@ -496,10 +496,8 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
         } else if (local && local.id) {
             id = local.id;                          // ✔ fallback
         } else {
-            id = createNewID("mergeWorkspace: new file");  // ✔ only for brand-new nodes
+            id = createNewID("mergeWorkspace:new"); // ✔ only for brand-new nodes
         }
-
-        const cloudEntry = cloudFlat.find(f => f.path === flatKey);
 
         mergedMap[flatKey] = {
             id,
