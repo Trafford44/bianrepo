@@ -972,82 +972,79 @@ function openFileById(id) {
 }
 
 function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
-    logger.debug("ui", "Running resolvePumlIncludes()");
+    logger.debug("ui: resolvePumlIncludes", "Starting include resolution");
 
-    // Matches any fenced code block: ``` ... ```
-    const fenceRegex = /```[\s\S]*?```/g;
+    try {
+        // Matches any fenced code block: ``` ... ```
+        const fenceRegex = /```[\s\S]*?```/g;
 
-    // Matches your include syntax: !include app://file/<id>
-    const includeRegex = /!include\s+app:\/\/file\/([A-Za-z0-9-]+)/g;
+        // Matches your include syntax: !include app://file/<id>
+        const includeRegex = /!include\s+app:\/\/file\/([A-Za-z0-9-]+)/g;
 
-    let result = "";
-    let lastIndex = 0;
+        let result = "";
+        let lastIndex = 0;
 
-    // Iterate through all fenced blocks
-    for (const match of pumlText.matchAll(fenceRegex)) {
-        const start = match.index;
-        const end = start + match[0].length;
+        // ------------------------------------------------------------
+        // Helper: resolve a single include
+        // ------------------------------------------------------------
+        const resolveOne = (id) => {
+            try {
+                if (seenIds.has(id)) {
+                    logger.warn("ui: resolvePumlIncludes", `Cycle detected for id ${id}`);
+                    return `\n' ERROR: include cycle for ${id}\n`;
+                }
 
-        // Process the text BEFORE the fenced block
-        const outside = pumlText.slice(lastIndex, start);
-        result += outside.replace(includeRegex, (full, id) => {
-            // Prevent infinite loops
-            if (seenIds.has(id)) {
-                logger.warn("ui: resolvePumlIncludes", "PUML include cycle detected for id:", id);
-                return "";
+                const node = findNodeById(workspace, id);
+                if (!node || node.type !== "file") {
+                    logger.warn("ui: resolvePumlIncludes", `Include target not found: ${id}`);
+                    return `\n' ERROR: include target not found: ${id}\n`;
+                }
+
+                seenIds.add(id);
+
+                const includedContent = node.content || "";
+                logger.debug("ui: resolvePumlIncludes", `Resolving include ${id}, content length ${includedContent.length}`);
+
+                const resolved = resolvePumlIncludes(includedContent, workspace, seenIds);
+
+                seenIds.delete(id);
+
+                return `\n${resolved}\n`;
+
+            } catch (err) {
+                logger.error("ui: resolvePumlIncludes", `Error resolving include ${id}:`, err);
+                return `\n' ERROR: failed to resolve include ${id}\n`;
             }
+        };
 
-            const node = findNodeById(workspace, id);
-            if (!node || node.type !== "file") {
-                logger.warn("ui: resolvePumlIncludes", "PUML include target not found for id:", id);
-                return "";
-            }
+        // ------------------------------------------------------------
+        // Process text outside fenced blocks
+        // ------------------------------------------------------------
+        for (const match of pumlText.matchAll(fenceRegex)) {
+            const start = match.index;
+            const end = start + match[0].length;
 
-            seenIds.add(id);
-            const includedContent = node.content || "";
-            logger.debug("ui: resolvePumlIncludes", "includedContent:\n" + includedContent);
+            // Text before fenced block
+            const outside = pumlText.slice(lastIndex, start);
+            result += outside.replace(includeRegex, (full, id) => resolveOne(id));
 
-            const resolved = resolvePumlIncludes(includedContent, workspace, seenIds);
-            seenIds.delete(id);
+            // Add fenced block untouched
+            result += match[0];
 
-            // Preserve formatting by surrounding with newlines
-            return `\n${resolved}\n`;
-        });
+            lastIndex = end;
+        }
 
-        // Add the fenced block untouched
-        result += match[0];
+        // Tail after last fenced block
+        const tail = pumlText.slice(lastIndex);
+        result += tail.replace(includeRegex, (full, id) => resolveOne(id));
 
-        lastIndex = end;
+        return result;
+
+    } catch (err) {
+        logger.error("ui: resolvePumlIncludes", "Top-level failure:", err);
+        return `' ERROR: resolvePumlIncludes failed — see console\n${pumlText}`;
     }
-
-    // Process any remaining text after the last fenced block
-    const tail = pumlText.slice(lastIndex);
-    result += tail.replace(includeRegex, (full, id) => {
-        if (seenIds.has(id)) {
-            logger.warn("ui: resolvePumlIncludes", "PUML include cycle detected for id:", id);
-            return "";
-        }
-
-        const node = findNodeById(workspace, id);
-        if (!node || node.type !== "file") {
-            logger.warn("ui: resolvePumlIncludes", "PUML include target not found for id:", id);
-            return "";
-        }
-
-        seenIds.add(id);
-        const includedContent = node.content || "";
-        logger.debug("ui: resolvePumlIncludes", "includedContent:\n" + includedContent);
-
-        const resolved = resolvePumlIncludes(includedContent, workspace, seenIds);
-        seenIds.delete(id);
-
-        return `\n${resolved}\n`;
-    });
-
-    return result;
 }
-
-
 
 export function addFolder() {
     const name = prompt("New Folder Name:");
