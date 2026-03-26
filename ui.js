@@ -777,8 +777,14 @@ export async function updatePreview() {
         // Put rendered PUML back into the content
         let processed = contentWithPumlPlaceholders;
         for (let i = 0; i < renderedPumlBlocks.length; i++) {
-            processed = processed.replace(`@@PUML_${i}@@`, renderedPumlBlocks[i]);
+            const html = renderedPumlBlocks[i];
+
+            // ⭐ FIX: force block‑level HTML so Markdown won't escape it
+            const wrapped = `\n\n<div class="puml-diagram">\n${html}\n</div>\n\n`;
+
+            processed = processed.replace(`@@PUML_${i}@@`, wrapped);
         }
+
 
 
         // ------------------------------------------------------------
