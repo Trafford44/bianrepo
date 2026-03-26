@@ -161,8 +161,9 @@ export function findNodeAndParent(nodeList, id, parent = null) {
 }
 
 export function createFolder(name) {
+    logger.debug("workspace", "Running createFolder");
     return {
-        id: crypto.randomUUID(),
+        id: createNewID("Creating folder"),
         type: "folder",
         name: sanitizeName(name),
         children: [],
@@ -180,8 +181,9 @@ export function createFolder(name) {
 
 
 export function createFile(name, content = "") {
+    logger.debug("workspace", "Running createFile");
     return {
-        id: crypto.randomUUID(),
+        id: createNewID("Creating file"),
         type: "file",
         name: sanitizeName(name),
         content: typeof content === "string" ? content : "",
@@ -305,6 +307,8 @@ export function flattenWorkspace(tree) {
 
 export function inflateWorkspace(flatList) {
     logger.debug("workspace", "Running inflateWorkspace()");
+
+    // Root of the reconstructed tree
     const root = [];
 
     if (!Array.isArray(flatList)) {
@@ -312,62 +316,61 @@ export function inflateWorkspace(flatList) {
         return root;
     }
 
+    // Map from path → node for quick lookup
+    const pathMap = new Map();
+
     for (const entry of flatList) {
         if (!entry || !entry.path) continue;
 
         const parts = entry.path.split("___").map(decodeName);
-        const content = entry.content || "";
+        const isFile = parts[parts.length - 1].match(/\.(md|puml)$/i);
 
         let current = root;
+        let currentPath = "";
 
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
+            const isLast = i === parts.length - 1;
+            const isFileNode = isLast && isFile;
 
-            const isFile =
-                i === parts.length - 1 &&
-                (part.endsWith(".md") || part.endsWith(".puml"));
+            currentPath = currentPath ? `${currentPath}___${part}` : part;
 
-            if (isFile) {
-                // File node
-                let existing = current.find(
-                    n => n.type === "file" && n.name === part
-                );
+            // Check if we already created this node
+            let node = pathMap.get(currentPath);
 
-                if (!existing) {
-                    existing = {
-                        id: crypto.randomUUID(),
+            if (!node) {
+                if (isFileNode) {
+                    // FILE NODE — preserve ID from flatList
+                    node = {
+                        id: entry.id,              // ← CRITICAL: preserve ID
                         type: "file",
                         name: part,
-                        content
+                        content: entry.content || ""
                     };
-                    current.push(existing);
                 } else {
-                    existing.content = content;
-                }
-
-            } else {
-                // Folder node
-                let folder = current.find(
-                    n => n.type === "folder" && n.name === part
-                );
-
-                if (!folder) {
-                    folder = {
-                        id: crypto.randomUUID(),
+                    // FOLDER NODE — preserve ID from flatList
+                    node = {
+                        id: entry.id,              // ← CRITICAL: preserve ID
                         type: "folder",
                         name: part,
                         children: []
                     };
-                    current.push(folder);
                 }
 
-                current = folder.children;
+                current.push(node);
+                pathMap.set(currentPath, node);
+            }
+
+            // Descend into folder children
+            if (!isFileNode) {
+                current = node.children;
             }
         }
     }
 
     return root;
 }
+
 
 function buildLocalPathMap(tree, prefix = "") {
     logger.debug("workspace", "buildLocalPathMap()");
@@ -435,13 +438,18 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
         const local = localMap[path];
 
         let id;
-        if (meta) {
-            id = meta.id;
-        } else if (local) {
-            id = local.id;
+        const cloudEntry = cloudFlat.find(f => f.path === path);
+
+        if (cloudEntry && cloudEntry.id) {
+            id = cloudEntry.id;                     // ✔ canonical
+        } else if (meta && meta.id) {
+            id = meta.id;                           // ✔ fallback
+        } else if (local && local.id) {
+            id = local.id;                          // ✔ fallback
         } else {
-            id = crypto.randomUUID();
+            id = createNewID("mergeWorkspace: new folder");  // ✔ only for brand-new nodes
         }
+
 
         mergedMap[path] = {
             id,
@@ -479,13 +487,17 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
         const local = localMap[flatKey];
 
         let id;
-        if (meta) {
-            id = meta.id;
-        } else if (local) {
-            id = local.id;
+        const cloudEntry = cloudFlat.find(f => f.path === path);
+
+        if (cloudEntry && cloudEntry.id) {
+            id = cloudEntry.id;                     // ✔ canonical
+        } else if (meta && meta.id) {
+            id = meta.id;                           // ✔ fallback
+        } else if (local && local.id) {
+            id = local.id;                          // ✔ fallback
         } else {
-            id = crypto.randomUUID();
-        }mergeWorkspace
+            id = createNewID("mergeWorkspace: new file");  // ✔ only for brand-new nodes
+        }
 
         const cloudEntry = cloudFlat.find(f => f.path === flatKey);
 
@@ -591,35 +603,10 @@ function looksLikeOldFormat(data) {
            Array.isArray(data[0].files);
 }
 
-// Convert old → new
-function migrateOldFormat(oldSubjects) {
-    return oldSubjects.map(subject => {
-        const folder = createFolder(subject.title);
-
-        subject.files.forEach(file => {
-            const content = file.content || "";
-            let name = file.title.trim();
-
-            // If the old file already had an extension, keep it
-            if (name.endsWith(".md") || name.endsWith(".puml")) {
-                // keep as-is
-            } else {
-                // Detect PUML content
-                // md files can contain puml scripts - so that would suggest that potentially md files are being renamed as puml
-                const isPuml = /@startuml[\s\S]*?@enduml/.test(content);
-                name += isPuml ? ".puml" : ".md";
-            }
-
-            folder.children.push({
-                id: file.id || crypto.randomUUID(),
-                type: "file",
-                name,
-                content
-            });
-        });
-
-        return folder;
-    });
+export function createNewID(context = "unspecified") {
+    const id = crypto.randomUUID();
+    logger.warn("ID-GEN", `Generated new ID: ${id} (context: ${context})`);
+    return id;
 }
 
 
