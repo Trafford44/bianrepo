@@ -87,16 +87,21 @@ async function renderPuml(resolvedPuml) {
 
     } else {
         // --- PlantUML URL mode (IMG + link) ---
-        const url = getPumlRenderUrl(resolvedPuml);
+        try {
+            const url = getPumlRenderUrl(resolvedPuml);
 
-        return `
-            <img src="${url}" alt="PlantUML Diagram" />
-            <a href="${url}" target="_blank"
-               style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">
-               Open SVG link
-            </a>
-        `;
+            return `
+                <img src="${url}" alt="PlantUML Diagram" />
+                <a href="${url}" target="_blank"
+                style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">
+                Open SVG link
+                </a>
+            `;
+        } catch (err) {
+            throw new Error("PlantUML URL render failed: " + err.message);
+        }
     }
+
 }
 
 
