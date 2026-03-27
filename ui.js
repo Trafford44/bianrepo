@@ -754,7 +754,6 @@ export async function updatePreview() {
             logger.debug("ui: updatePreview"," pumlBlocksInfo[i].original: ", pumlBlocksInfo[i].original);
             contentWithPumlPlaceholders = contentWithPumlPlaceholders.replace(pumlBlocksInfo[i].original, placeholders[i]);
             logger.debug("ui: updatePreview"," pumlBlocksInfo[i].content: ", pumlBlocksInfo[i].content);
-
         }
         logger.debug("ui: updatePreview"," contentWithPumlPlaceholders: ", contentWithPumlPlaceholders);
 
@@ -786,7 +785,7 @@ export async function updatePreview() {
 
             processed = processed.replace(`@@PUML_${i}@@`, wrapped);
         }
-
+        logger.debug("ui: updatePreview"," processed: ", processed);
 
 
         // ------------------------------------------------------------
