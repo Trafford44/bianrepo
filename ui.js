@@ -746,33 +746,49 @@ export async function updatePreview() {
         // ------------------------------------------------------------
         //  STEP 2: PROCESS INLINE PUML ONLY IN NON-FENCED TEXT (ASYNC)
         // ------------------------------------------------------------
-    const processed = contentWithPlaceholders.replace(pumlRegex, (match, blockContent) => {
-        logger.debug("ui: updatePreview", "Found inline PUML block:\n" + blockContent);
+        const { blocks: pumlBlocksInfo, placeholders } = extractInlinePumlBlocks(contentWithPlaceholders);
+        logger.info("ui: updatePreview"," Inline PUML blocks found: ", pumlBlocksInfo.length);
 
-        // 2.1 Resolve !include app://file/... inside this PUML block
-        const resolvedBlock = resolvePumlIncludes(blockContent, tree);
-        logger.debug("ui: updatePreview", "Resolved inline PUML block:\n" + resolvedBlock);
+        let contentWithPumlPlaceholders = contentWithPlaceholders;
+        for (let i = 0; i < pumlBlocksInfo.length; i++) {
+            logger.debug("ui: updatePreview"," pumlBlocksInfo[i].original: ", pumlBlocksInfo[i].original);
+            contentWithPumlPlaceholders = contentWithPumlPlaceholders.replace(pumlBlocksInfo[i].original, placeholders[i]);
+            logger.debug("ui: updatePreview"," pumlBlocksInfo[i].content: ", pumlBlocksInfo[i].content);
 
-        if (!resolvedBlock.trim()) {
-            logger.warn("ui: updatePreview", "Resolved inline PUML block is empty");
-            return `<pre style="color:red;">Empty PUML block.</pre>`;
+        }
+        logger.debug("ui: updatePreview"," contentWithPumlPlaceholders: ", contentWithPumlPlaceholders);
+
+        // For the async render loop, you just need the inner content:
+        const pumlBlocks = pumlBlocksInfo.map(b => b.content);
+
+
+        // Now render each PUML block asynchronously
+        const renderedPumlBlocks = [];
+        for (let i = 0; i < pumlBlocks.length; i++) {
+            const block = pumlBlocks[i];
+            const resolvedBlock = resolvePumlIncludes(block, tree);
+
+            try {
+                const rendered = await renderPuml(resolvedBlock);
+                renderedPumlBlocks[i] = rendered;
+            } catch (e) {
+                renderedPumlBlocks[i] = `<pre style="color:red;">PUML render error:\n${e}\n\n${resolvedBlock}</pre>`;
+            }
         }
 
-        // 2.2 Encode the resolved PUML block → PlantUML URL
-        let url = "";
-        try {
-            url = getPumlRenderUrl(resolvedBlock);
-        } catch (e) {
-            logger.error("ui: updatePreview", "Inline PUML encoding failed:", e);
-            return `<pre style="color:red;">PUML encoding error:\n${e}\n\n${resolvedBlock}</pre>`;
+        // Put rendered PUML back into the content
+        let processed = contentWithPumlPlaceholders;
+        for (let i = 0; i < renderedPumlBlocks.length; i++) {
+            const html = renderedPumlBlocks[i];
+
+            // ⭐ FIX: force block‑level HTML so Markdown won't escape it
+            const wrapped = `\n\n<div class="puml-diagram">\n${html}\n</div>\n\n`;
+
+            processed = processed.replace(`@@PUML_${i}@@`, wrapped);
         }
 
-        logger.debug("ui: updatePreview", "Inline PUML render URL:", url);
 
-        // 2.3 Replace the @startuml...@enduml block with a Markdown image
-        // This will later be turned into an <img> by the Markdown renderer.
-        return `\n![PlantUML](${url})\n`;
-    });
+
         // ------------------------------------------------------------
         //  STEP 3: RESTORE FENCED CODE BLOCKS UNTOUCHED
         //
@@ -903,6 +919,7 @@ function getPumlRenderUrl(puml) {
 }
 
 async function renderPumlViaKroki(puml) {
+    logger.debug("ui", "Running renderPumlViaKroki()");
     let res;
 
     try {
