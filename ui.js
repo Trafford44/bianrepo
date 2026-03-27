@@ -11,7 +11,7 @@ let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
-const USE_KROKI = true;
+const USE_KROKI = false;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
 
@@ -88,7 +88,7 @@ async function renderPuml(resolvedPuml) {
         try {
             const url = getPumlRenderUrl(resolvedPuml);
 
-            // IMPORTANT: NO leading spaces, NO indentation
+            // IMPORTANT: NO leading spaces, NO indentation - ***********   DON'T INDENT - IT"LL BREAK THE DIAGRAM RENDERING!!!!!!!!   *************
             return `
 <img src="${url}" alt="PlantUML Diagram">
 <a href="${url}" target="_blank"
@@ -907,10 +907,9 @@ function getPumlRenderUrl(puml) {
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
         console.log("pre send to Plant: ",puml.trim());
-        //return `https://www.plantuml.com/plantuml/svg/${encoded}`; // this is the latest beta release - flakey.  Chnaging away from this will change the rendering
-        //return `https://kroki.io/plantuml/svg/${encoded}`  // this is a commhnity based stable release 'Kroki is excellent because it is extremely stable and often uses the latest official releases rather than beta snapshots.'
+        // return `https://www.plantuml.com/plantuml/svg/${encoded}`; // this is the latest beta release - flakey.  Changing away from this will change the rendering
         // this is another one: https://plantuml.moesol.com/plantuml/svg/${encoded} These came from Gemini   
-         return `https://www.planttext.com/api/plantuml/svg/${encoded}`; // this is a Stable PlantUML Proxy - reasonably old potentially    
+        return `https://www.planttext.com/api/plantuml/svg/${encoded}`; // this is a Stable PlantUML Proxy - reasonably old potentially    
     } catch (e) {
         console.error("Encoding error:", e);
         return "";
@@ -918,6 +917,8 @@ function getPumlRenderUrl(puml) {
 }
 
 async function renderPumlViaKroki(puml) {
+    // 'Kroki is excellent because it is extremely stable and often uses the latest official releases rather than beta snapshots.'
+    // renering is slower than PlantUML rendering
     logger.debug("ui", "Running renderPumlViaKroki()");
     let res;
 
