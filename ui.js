@@ -603,84 +603,111 @@ export function deleteFolder(folderId) {
 }
 
 
-export function updatePreview() {
+export async function updatePreview() {
     logger.debug("ui", "Running updatePreview()");
-
-    const textarea = document.getElementById("editor-textarea");
-    const preview = document.getElementById("preview-pane");
-    const link = document.getElementById("puml-external-link");
-    const content = textarea.value;
 
     const tree = getWorkspace();
     const file = findNodeById(tree, activeFileId);
-    if (!file || file.type !== "file") {
-        logger.warn("ui: updatePreview", "Active file not found or not a file");
-        return;
-    }
 
-    // ------------------------------------------------------------
-    //  SAVE CONTENT (DEBOUNCED)
-    // ------------------------------------------------------------
-    file.content = content;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => saveState(), 300);
+    logger.debug(
+        "ui: updatePreview",
+        `ACTIVE FILE: ${activeFileId || "null"} NAME: ${file?.name || "null"}`
+    );
 
-    // ------------------------------------------------------------
-    //  PUML FILE PREVIEW (.puml files)
-    // ------------------------------------------------------------
-    if (file.name.endsWith(".puml")) {
-        logger.debug("ui: updatePreview", "Rendering PUML file:", file.name);
+    try {
+        const textarea = document.getElementById("editor-textarea");
+        const preview = document.getElementById("preview-pane");
+        const link = document.getElementById("puml-external-link");
+        const content = textarea.value;
 
-        // 1. Resolve !include app://file/... inside the PUML file
-        const resolved = resolvePumlIncludes(content, tree);
-        logger.debug("ui: updatePreview", "Resolved PUML content:\n" + resolved);
-
-        if (!resolved.trim()) {
-            logger.warn("ui: updatePreview", "Resolved PUML is empty");
-            preview.innerHTML = `<pre style="color:red;">Resolved PUML is empty.</pre>`;
+        if (!file || file.type !== "file") {
+            logger.warn("ui: updatePreview", "Active file not found or not a file");
             return;
         }
 
-        // 2. Encode PUML → PlantUML server URL
-        let url = "";
-        try {
-            url = getPumlRenderUrl(resolved);
-        } catch (e) {
-            logger.error("ui: updatePreview", "PUML encoding failed:", e);
-            preview.innerHTML = `<pre style="color:red;">PUML encoding error:\n${e}\n\n${resolved}</pre>`;
+        // ------------------------------------------------------------
+        //  SAVE CONTENT (DEBOUNCED)
+        // ------------------------------------------------------------
+        file.content = content;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => saveState(), 300);
+
+        // ------------------------------------------------------------
+        //  PUML FILE PREVIEW (.puml files)
+        // ------------------------------------------------------------
+        if (file.name.endsWith(".puml")) {
+            logger.debug("ui: updatePreview", "Rendering PUML file:", file.name);
+
+            // 0. CLEAR PREVIEW IMMEDIATELY so stale diagrams never remain
+            preview.innerHTML = `
+                <div style="color:#9ca3af; font-size:0.9rem; padding:1rem;">
+                    Rendering diagram…
+                </div>
+            `;
+
+            // 1. Resolve !include app://file/... inside the PUML file
+            const resolved = resolvePumlIncludes(content, tree);
+            logger.debug("ui: updatePreview", "Resolved PUML content:\n" + resolved);
+
+            if (!resolved.trim()) {
+                logger.warn("ui: updatePreview", "Resolved PUML is empty");
+                preview.innerHTML = `<pre style="color:red;">Resolved PUML is empty.</pre>`;
+                return;
+            }
+
+            // 2. Encode PUML → PlantUML server URL (still used for external link)
+            let url = "";
+            try {
+                url = getPumlRenderUrl(resolved);
+            } catch (e) {
+                logger.error("ui: updatePreview", "PUML encoding failed:", e);
+                preview.innerHTML = `<pre style="color:red;">PUML encoding error:\n${e}\n\n${resolved}</pre>`;
+                return;
+            }
+
+            logger.debug("ui: updatePreview", "PUML render URL:", url);
+
+            // 3. Render the diagram (Kroki/PlantUML)
+            let rendered;
+            try {
+                rendered = await renderPuml(resolved);
+            } catch (e) {
+                logger.error("ui: updatePreview", "PUML render failed:", e);
+                preview.innerHTML = `
+                    <div style="
+                        padding:1rem;
+                        color:#ef4444;
+                        background:#2b2b2b;
+                        border-left:4px solid #ef4444;
+                        font-size:0.9rem;
+                        white-space:pre-wrap;
+                    ">
+                        <strong>PUML render error</strong>
+                        <div style="margin-top:0.5rem; color:#fca5a5;">
+                            ${e.message}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // 4. Replace preview with the new diagram
+            preview.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    ${rendered}
+                </div>
+            `;
+
+            // 5. External link (for "open in browser")
+            try {
+                link.href = getPumlHref(resolved);
+            } catch (e) {
+                logger.error("ui: updatePreview", "Failed to generate external PUML href:", e);
+            }
+
             return;
         }
 
-        logger.debug("ui: updatePreview", "PUML render URL:", url);
-
-        // 3. Render the diagram + external link
-        preview.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center;">
-                <img src="${url}" alt="PlantUML Diagram" />
-                <a href="${url}" target="_blank" style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">Open SVG link</a>
-            </div>
-        `;
-
-        //add logging to help with ID regeneration 
-        const img = preview.querySelector("img");
-
-        if (img) {
-            img.addEventListener("error", () => {
-                logger.error("ui: updatePreview", "PUML RENDER FAILED — PlantUML/Kroki returned an error for URL:", url);
-                logger.error("ui: updatePreview", "Resolved PUML content was:\n" + resolved);
-                logger.error("ui: updatePreview", "Preview aborted — saveState() will NOT run");
-            });
-        }      
-
-        // 4. External link (for "open in browser" style behaviour)
-        try {
-            link.href = getPumlHref(resolved);
-        } catch (e) {
-            logger.error("ui: updatePreview", "Failed to generate external PUML href:", e);
-        }
-
-        return;
-    }
 
     // ------------------------------------------------------------
     //  MARKDOWN PREVIEW (INLINE @startuml BLOCKS)
@@ -804,9 +831,7 @@ export function updatePreview() {
         logger.error("ui: updatePreview", "Markdown rendering failed:", e);
         preview.innerHTML = `<pre style="color:red;">Markdown rendering error:\n${e}</pre>`;
     }
-
 }
-
 
 function extractInlinePumlBlocks(text) {
     const lines = text.split(/\r?\n/);
