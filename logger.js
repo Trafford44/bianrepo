@@ -52,7 +52,7 @@ export const logger = {
     log("ERROR", LOG_LEVELS.ERROR, source, message, details);
   },
 
-  error(source, message, details) {
+  watch(source, message, details) {
     log("WATCH", LOG_LEVELS.WATCH, source, message, details);
   },
 
