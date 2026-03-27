@@ -68,20 +68,18 @@ async function renderPuml(resolvedPuml) {
         try {
             const svg = await renderPumlViaKroki(resolvedPuml);
 
-            // If Kroki returned nothing or whitespace, treat as error
             if (!svg || !svg.trim()) {
                 throw new Error("Kroki returned empty SVG output.");
             }
 
-            // Basic sanity check: SVG must start with <svg
             if (!svg.trim().startsWith("<svg")) {
                 throw new Error("Kroki returned non-SVG output:\n" + svg);
             }
 
-            return svg;
+            // IMPORTANT: return SVG with NO indentation
+            return svg.trim();
 
         } catch (err) {
-            // Ensure all Kroki failures bubble up to updatePreview()
             throw new Error("Kroki render failed: " + err.message);
         }
 
@@ -90,19 +88,21 @@ async function renderPuml(resolvedPuml) {
         try {
             const url = getPumlRenderUrl(resolvedPuml);
 
+            // IMPORTANT: NO leading spaces, NO indentation
             return `
-                <img src="${url}" alt="PlantUML Diagram" />
-                <a href="${url}" target="_blank"
-                style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">
-                Open SVG link
-                </a>
-            `;
+<img src="${url}" alt="PlantUML Diagram">
+<a href="${url}" target="_blank"
+   style="font-size: 0.75rem; color: #9ca3af; margin-top: 1rem; text-decoration: underline;">
+   Open SVG link
+</a>
+`.trim();
+
         } catch (err) {
             throw new Error("PlantUML URL render failed: " + err.message);
         }
     }
-
 }
+
 
 
 export function initResizers() {
