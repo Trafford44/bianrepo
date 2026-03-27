@@ -3,15 +3,16 @@
 
 const LOG_LEVELS = {
   NONE: 0,
-  ERROR: 1,
-  WARN: 2,
-  INFO: 3,
-  DEBUG: 4
+  WATCH: 1,  
+  ERROR: 2, 
+  WARN: 3,
+  INFO: 4,
+  DEBUG: 5
 };
 
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.NONE;
+let CURRENT_LEVEL = LOG_LEVELS.WATCH;
 
 function log(levelName, levelValue, source, message, details) {
   if (CURRENT_LEVEL === LOG_LEVELS.NONE) return;
@@ -23,7 +24,8 @@ function log(levelName, levelValue, source, message, details) {
     INFO:  "color: #4da3ff",
     DEBUG: "color: #337e36",
     WARN:  "color: #e6a700",
-    ERROR: "color: #ff4d4d"
+    ERROR: "color: #ff4d4d",
+    WATCH: "color: #ce13e7"
   };
 
   const style = colours[levelName] || "color: inherit";
@@ -48,6 +50,10 @@ export const logger = {
 
   error(source, message, details) {
     log("ERROR", LOG_LEVELS.ERROR, source, message, details);
+  },
+
+  error(source, message, details) {
+    log("WATCH", LOG_LEVELS.WATCH, source, message, details);
   },
 
   warn(source, message, details) {
