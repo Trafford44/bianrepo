@@ -906,7 +906,7 @@ function getPumlRenderUrl(puml) {
     logger.debug("ui", "Running getPumlRenderUrl()");
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
-        console.log("pre send to Plant: ",puml.trim());
+        logger.debug("ui: getPumlRenderUrl. Pre send to Plant: ",puml.trim());
         // return `https://www.plantuml.com/plantuml/svg/${encoded}`; // this is the latest beta release - flakey.  Changing away from this will change the rendering
         // this is another one: https://plantuml.moesol.com/plantuml/svg/${encoded} These came from Gemini   
         return `https://www.planttext.com/api/plantuml/svg/${encoded}`; // this is a Stable PlantUML Proxy - reasonably old potentially    
