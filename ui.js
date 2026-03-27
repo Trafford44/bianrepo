@@ -86,7 +86,7 @@ async function renderPuml(resolvedPuml) {
     } else {
         // --- PlantUML URL mode (IMG + link) ---
         try {
-            const url = renderPumlViaKPlantUMLWithRetry(resolvedPuml);
+            const url = getPumlRenderUrl(resolvedPuml);
 
             // IMPORTANT: NO leading spaces, NO indentation - ***********   DON'T INDENT - IT"LL BREAK THE DIAGRAM RENDERING!!!!!!!!   *************
             return `
@@ -658,7 +658,7 @@ export async function updatePreview() {
             // 2. Encode PUML → PlantUML server URL (still used for external link)
             let url = "";
             try {
-                url = renderPumlViaKPlantUMLWithRetry(resolved);
+                url = getPumlRenderUrl(resolved);
             } catch (e) {
                 logger.error("ui: updatePreview", "PUML encoding failed:", e);
                 preview.innerHTML = `<pre style="color:red;">PUML encoding error:\n${e}\n\n${resolved}</pre>`;
@@ -902,51 +902,17 @@ function extractInlinePumlBlocks(text) {
 }
 
 
-function renderPumlViaKPlantUML(puml) {
-    logger.debug("ui", "Running renderPumlViaKPlantUML()");
+function getPumlRenderUrl(puml) {
+    logger.debug("ui", "Running getPumlRenderUrl()");
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
-        logger.debug("ui: renderPumlViaKPlantUML. Pre send to Plant: ",puml.trim());
+        logger.debug("ui: getPumlRenderUrl. Pre send to Plant: ",puml.trim());
         // return `https://www.plantuml.com/plantuml/svg/${encoded}`; // this is the latest beta release - flakey.  Changing away from this will change the rendering
         // this is another one: https://plantuml.moesol.com/plantuml/svg/${encoded} These came from Gemini   
         return `https://www.planttext.com/api/plantuml/svg/${encoded}`; // this is a Stable PlantUML Proxy - reasonably old potentially    
     } catch (e) {
-        logger.error("ui: renderPumlViaKPlantUML", "Encoding error:", e);
+        logger.error("ui: getPumlRenderUrl", "Encoding error:", e);
         return "";
-    }
-}
-
-/**
- * Fetches the SVG from the proxy with a retry mechanism.
- * @param {string} puml - The raw PlantUML string.
- * @param {number} retries - How many times to retry (default 3).
- * @param {number} delay - Initial delay in ms (default 1000).
- */
-async function renderPumlViaKPlantUMLWithRetry(puml, retries = 3, delay = 1000) {
-    const url = renderPumlViaKPlantUML(puml);
-    if (!url) return null;
-
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await fetch(url);
-            
-            if (response.ok) {
-                return await response.text(); // Returns the SVG string
-            }
-
-            if (response.status === 429 || response.status >= 500) {
-                logger.warn("ui", `Server error ${response.status}. Retrying in ${delay}ms...`);
-            } else {
-                throw new Error(`Rendering failed with status: ${response.status}`);
-            }
-        } catch (err) {
-            if (i === retries - 1) throw err; // Final attempt failed
-            logger.error("ui", `Attempt ${i + 1} failed: ${err.message}`);
-        }
-
-        // Wait before retrying (Exponential Backoff: 1s, 2s, 4s...)
-        await new Promise(res => setTimeout(res, delay));
-        delay *= 2; 
     }
 }
 
