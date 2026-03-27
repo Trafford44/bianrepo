@@ -752,9 +752,9 @@
         #preview-pane svg {
             transform: scale(var(--preview-zoom-scale));
             transform-origin: top left;
-            width: 100%;
-            height: auto;
-            max-width: none; /* important: prevents shrinking */
+            width: 100% !important;
+            height: auto !important;
+            max-width: none !important; /* important: prevents shrinking */
             display: block;
         }
 
