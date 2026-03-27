@@ -11,7 +11,7 @@ let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
-const USE_KROKI = true;
+const USE_KROKI = false;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
 
@@ -709,43 +709,43 @@ export async function updatePreview() {
         }
 
 
-    // ------------------------------------------------------------
-    //  MARKDOWN PREVIEW (INLINE @startuml BLOCKS)
-    // ------------------------------------------------------------
-    logger.debug("ui: updatePreview", "Rendering Markdown file:", file.name);
+        // ------------------------------------------------------------
+        //  MARKDOWN PREVIEW (INLINE @startuml BLOCKS)
+        // ------------------------------------------------------------
+        logger.debug("ui: updatePreview", "Rendering Markdown file:", file.name);
 
-    // Matches inline PUML blocks anywhere in the Markdown
-    const pumlRegex = /@startuml([\s\S]*?)@enduml/g;
+        // Matches any fenced code block: ``` ... ```
+        // We treat everything inside as literal code and must NOT touch it.
+        const fenceRegex = /```[\s\S]*?```/g;
 
-    // Matches any fenced code block: ``` ... ```
-    // We treat everything inside as literal code and must NOT touch it.
-    const fenceRegex = /```[\s\S]*?```/g;
+        // ------------------------------------------------------------
+        //  STEP 1: EXTRACT FENCED CODE BLOCKS
+        //
+        // We replace each ```...``` block with a placeholder so that:
+        // - inline PUML detection does NOT see @startuml inside code fences
+        // - includes are NOT resolved inside code fences
+        // - the user can show PUML syntax as code without rendering it
+        // ------------------------------------------------------------
+        const fencedBlocks = [];
+        let fencedIndex = 0;
 
-    // ------------------------------------------------------------
-    //  STEP 1: EXTRACT FENCED CODE BLOCKS
-    //
-    // We replace each ```...``` block with a placeholder so that:
-    // - inline PUML detection does NOT see @startuml inside code fences
-    // - includes are NOT resolved inside code fences
-    // - the user can show PUML syntax as code without rendering it
-    // ------------------------------------------------------------
-    const fencedBlocks = [];
-    let fencedIndex = 0;
+        const contentWithPlaceholders = content.replace(fenceRegex, (match) => {
+            const placeholder = `@@FENCE_${fencedIndex}@@`;
+            fencedBlocks.push(match);   // store the full fenced block
+            fencedIndex += 1;
+            return placeholder;         // replace it with a marker
+        });
 
-    const contentWithPlaceholders = content.replace(fenceRegex, (match) => {
-        const placeholder = `@@FENCE_${fencedIndex}@@`;
-        fencedBlocks.push(match);   // store the full fenced block
-        fencedIndex += 1;
-        return placeholder;         // replace it with a marker
-    });
-
-    // ------------------------------------------------------------
-    //  STEP 2: PROCESS INLINE PUML ONLY IN NON-FENCED TEXT
-    //
-    // At this point, all ```...``` blocks have been replaced by placeholders,
-    // so pumlRegex will only see @startuml blocks that are truly "inline"
-    // in the Markdown, not inside code fences.
-    // ------------------------------------------------------------
+        // ------------------------------------------------------------
+        //  STEP 2: PROCESS INLINE PUML ONLY IN NON-FENCED TEXT
+        //
+        // At this point, all ```...``` blocks have been replaced by placeholders,
+        // so pumlRegex will only see @startuml blocks that are truly "inline"
+        // in the Markdown, not inside code fences.
+        // ------------------------------------------------------------
+        // ------------------------------------------------------------
+        //  STEP 2: PROCESS INLINE PUML ONLY IN NON-FENCED TEXT (ASYNC)
+        // ------------------------------------------------------------
     const processed = contentWithPlaceholders.replace(pumlRegex, (match, blockContent) => {
         logger.debug("ui: updatePreview", "Found inline PUML block:\n" + blockContent);
 
@@ -773,67 +773,68 @@ export async function updatePreview() {
         // This will later be turned into an <img> by the Markdown renderer.
         return `\n![PlantUML](${url})\n`;
     });
-
-    // ------------------------------------------------------------
-    //  STEP 3: RESTORE FENCED CODE BLOCKS UNTOUCHED
-    //
-    // Now we put back each ```...``` block exactly where it was.
-    // Any PUML inside these blocks remains literal code and is NOT rendered.
-    // ------------------------------------------------------------
-    const restored = processed.replace(/@@FENCE_(\d+)@@/g, (match, idxStr) => {
-        const idx = Number(idxStr);
-        return fencedBlocks[idx] ?? match;
-    });
-
-    // ------------------------------------------------------------
-    //  STEP 4: FINAL MARKDOWN RENDER
-    // ------------------------------------------------------------
-
-    // Auto-link bare internal IDs like: app://file/<id>
-    const autoLinkRegex = /(?<!["(>])\bapp:\/\/file\/([A-Za-z0-9-]+)\b/g;
-
-    const autoLinked = restored.replace(autoLinkRegex, (match, id) => {
-        return `<a href="app://file/${id}">${match}</a>`;
-    });
-
-    try {
-        // IMPORTANT: render autoLinked, not restored
-        preview.innerHTML = `<div class="prose">${marked.parse(autoLinked)}</div>`;
-
         // ------------------------------------------------------------
-        //  MAKE INTERNAL LINKS CLICKABLE (app://file/<id>)
+        //  STEP 3: RESTORE FENCED CODE BLOCKS UNTOUCHED
+        //
+        // Now we put back each ```...``` block exactly where it was.
+        // Any PUML inside these blocks remains literal code and is NOT rendered.
         // ------------------------------------------------------------
-        const internalLinks = preview.querySelectorAll('a[href^="app://file/"]');
-
-        internalLinks.forEach(a => {
-            a.addEventListener("click", (e) => {
-                e.preventDefault();
-
-                const href = e.currentTarget.getAttribute("href");
-                const id = href.replace("app://file/", "");
-
-                logger.debug("ui: updatePreview", "Internal link clicked:", id);
-
-                // Push the page we are leaving
-                if (activeFileId && activeFileId !== id) {
-                    history.pushState({ fileId: activeFileId }, "", `#${activeFileId}`);
-                }
-
-                // Push the page we are going to
-                history.pushState({ fileId: id }, "", `#${id}`);
-
-                loadFile(id);
-            });
+        const restored = processed.replace(/@@FENCE_(\d+)@@/g, (match, idxStr) => {
+            const idx = Number(idxStr);
+            return fencedBlocks[idx] ?? match;
         });
 
+        // ------------------------------------------------------------
+        //  STEP 4: FINAL MARKDOWN RENDER
+        // ------------------------------------------------------------
 
-    } catch (e) {
-        logger.error("ui: updatePreview", "Markdown rendering failed:", e);
-        preview.innerHTML = `<pre style="color:red;">Markdown rendering error:\n${e}</pre>`;
-    }
+        // Auto-link bare internal IDs like: app://file/<id>
+        const autoLinkRegex = /(?<!["(>])\bapp:\/\/file\/([A-Za-z0-9-]+)\b/g;
+
+        logger.info("ui: updatePreview", "RESTORED BEFORE AUTOLINK:", restored);
+
+        const autoLinked = restored.replace(autoLinkRegex, (match, id) => {
+            return `<a href="app://file/${id}">${match}</a>`;
+        });
+
+        try {
+            // IMPORTANT: render autoLinked, not restored
+            preview.innerHTML = `<div class="prose">${marked.parse(autoLinked)}</div>`;
+
+            // ------------------------------------------------------------
+            //  MAKE INTERNAL LINKS CLICKABLE (app://file/<id>)
+            // ------------------------------------------------------------
+            const internalLinks = preview.querySelectorAll('a[href^="app://file/"]');
+
+            internalLinks.forEach(a => {
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+
+                    const href = e.currentTarget.getAttribute("href");
+                    const id = href.replace("app://file/", "");
+
+                    logger.debug("ui: updatePreview", "Internal link clicked:", id);
+
+                    // Push the page we are leaving
+                    if (activeFileId && activeFileId !== id) {
+                        history.pushState({ fileId: activeFileId }, "", `#${activeFileId}`);
+                    }
+
+                    // Push the page we are going to
+                    history.pushState({ fileId: id }, "", `#${id}`);
+
+                    loadFile(id);
+                });
+            });
+
+
+        } catch (e) {
+            logger.error("ui: updatePreview", "Markdown rendering failed:", e);
+            preview.innerHTML = `<pre style="color:red;">Markdown rendering error:\n${e}</pre>`;
+        }
     } catch (e) {
         console.error("updatePreview() global error:", e);
-    }        
+    }
 }
 
 function extractInlinePumlBlocks(text) {
