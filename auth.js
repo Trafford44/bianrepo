@@ -147,7 +147,8 @@ export function bindLoginButton() {
         logger.info("auth: bindLoginButton", "Login button not found");
         return;
     }
-    console.log("Bind-time button:", btn);
+
+    logger.debug("Bind-time button:", btn);
     btn.addEventListener("click", (event) => {
         // 1. Check for ?redirect=... in the URL (dev override)
         const redirectOverride = new URLSearchParams(window.location.search).get("redirect");
@@ -170,7 +171,7 @@ export function bindLoginButton() {
         // 4. Redirect to GitHub
         logger.debug("auth: bindLoginButton", "OAuth URL:", url);
         window.location.href = url;
-        console.log("Click-time button:", event.target);
+        logger.debug("Click-time button:", event.target);
 
     });
     
