@@ -603,7 +603,7 @@ function looksLikeOldFormat(data) {
 
 export function createNewID(context = "unspecified") {
     const id = crypto.randomUUID();
-    logger.watch("ID-GEN", `Generated new ID: ${id} (context: ${context})`);
+    logger.watch("createNewID", `Generated new ID: ${id} (context: ${context})`);
     return id;
 }
 
