@@ -831,6 +831,9 @@ export async function updatePreview() {
         logger.error("ui: updatePreview", "Markdown rendering failed:", e);
         preview.innerHTML = `<pre style="color:red;">Markdown rendering error:\n${e}</pre>`;
     }
+    } catch (e) {
+        console.error("updatePreview() global error:", e);
+    }        
 }
 
 function extractInlinePumlBlocks(text) {
