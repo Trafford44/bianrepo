@@ -97,7 +97,7 @@ async function init() {
         });
 
     } catch (err) {
-        logger.error("app: init()", "Unhandled error in init()", err);
+        console.log("app: init()", "Unhandled error in init()", err);
     }
 }
 
