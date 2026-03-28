@@ -16,6 +16,13 @@ let CURRENT_LEVEL = LOG_LEVELS.WATCH;
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
+  console.log("LOG CALL:", {
+    levelName,
+    source,
+    messagePreview: message?.slice(0, 40),
+    details,
+    options
+  });  
   if (CURRENT_LEVEL === LOG_LEVELS.NONE) return;
   if (levelValue > CURRENT_LEVEL) return;
 
