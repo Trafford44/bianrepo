@@ -12,7 +12,7 @@ const LOG_LEVELS = {
 
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.WATCH;
+let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
 function log(levelName, levelValue, source, message, details) {
   if (CURRENT_LEVEL === LOG_LEVELS.NONE) return;
@@ -55,9 +55,9 @@ export const logger = {
   watch(source, message, details) {
     log("WATCH", LOG_LEVELS.WATCH, source, message, details);
     // Trigger a browser alert for WATCH logs
-    // if (source === "createNewID") {
-    alert(`New UUID generated: ${message}`);
-    //}
+    if (source === "createNewID") {
+      alert(`New UUID generated: ${message}`);
+    }
   },
 
   warn(source, message, details) {
