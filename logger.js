@@ -49,10 +49,11 @@ function log(levelName, levelValue, source, message, details, options = {}) {
   }
 }
 
-
-
 function formatMultiline(text, { lineNumbers = false } = {}) {
   if (!text || typeof text !== "string") return text;
+
+  // Normalize CRLF → LF
+  text = text.replace(/\r\n/g, "\n");
 
   let output = text;
 
@@ -65,14 +66,6 @@ function formatMultiline(text, { lineNumbers = false } = {}) {
 
   return output;
 }
-
-function printStyledBlock(header, text) {
-  console.log(
-    `%c${header}\n${text}`,
-    "white-space: pre; font-family: monospace; line-height: 1.4; color: #2c3e50; background: #ecf0f1; padding: 6px; border-radius: 4px;"
-  );
-}
-
 
 export const logger = {
   setLevel(level) {
