@@ -14,7 +14,7 @@ const LOG_LEVELS = {
 // Change this per module if you want different log levels for different parts of the app
 let CURRENT_LEVEL = LOG_LEVELS.WATCH;
 
-function log(levelName, levelValue, source, message, details) {
+function log(levelName, levelValue, source, message, details, options = {}) {
   if (CURRENT_LEVEL === LOG_LEVELS.NONE) return;
   if (levelValue > CURRENT_LEVEL) return;
 
@@ -29,18 +29,48 @@ function log(levelName, levelValue, source, message, details) {
   };
 
   const style = colours[levelName] || "color: inherit";
+  const header = `[${timestamp}] [${levelName}] [${source}]`;
 
-  const header = `[${timestamp}] [${levelName}] [${source}] ${message}`;
+  // If multiline formatting is requested
+  if (options.multiline) {
+    const formatted = formatMultiline(message, {
+      lineNumbers: options.lineNumbers
+    });
+    printStyledBlock(header, formatted);
+    return;
+  }
 
+  // Normal logging
   if (details !== undefined) {
-    // Print header + details on the SAME line
-    console.log("%c" + header, style, details);
+    console.log("%c" + header + " " + message, style, details);
   } else {
-    console.log("%c" + header, style);
+    console.log("%c" + header + " " + message, style);
   }
 }
 
 
+
+function formatMultiline(text, { lineNumbers = false } = {}) {
+  if (!text || typeof text !== "string") return text;
+
+  let output = text;
+
+  if (lineNumbers) {
+    output = output
+      .split("\n")
+      .map((line, i) => `${String(i + 1).padStart(3, " ")} | ${line}`)
+      .join("\n");
+  }
+
+  return output;
+}
+
+function printStyledBlock(header, text) {
+  console.log(
+    `%c${header}\n${text}`,
+    "white-space: pre; font-family: monospace; line-height: 1.4; color: #2c3e50; background: #ecf0f1; padding: 6px; border-radius: 4px;"
+  );
+}
 
 
 export const logger = {
@@ -48,28 +78,28 @@ export const logger = {
     CURRENT_LEVEL = level;
   },
 
-  error(source, message, details) {
-    log("ERROR", LOG_LEVELS.ERROR, source, message, details);
+  error(source, message, details, options) {
+    log("ERROR", LOG_LEVELS.ERROR, source, message, details, options);
   },
 
-  watch(source, message, details) {
-    log("WATCH", LOG_LEVELS.WATCH, source, message, details);
+  watch(source, message, details, options) {
+    log("WATCH", LOG_LEVELS.WATCH, source, message, details, options);
     // Trigger a browser alert for WATCH logs
     if (source === "createNewID") {
       alert(`New UUID generated: ${message}`);
     }
   },
 
-  warn(source, message, details) {
-    log("WARN", LOG_LEVELS.WARN, source, message, details);
+  warn(source, message, details, options) {
+    log("WARN", LOG_LEVELS.WARN, source, message, details, options);
   },
 
-  info(source, message, details) {
-    log("INFO", LOG_LEVELS.INFO, source, message, details);
+  info(source, message, details, options) {
+    log("INFO", LOG_LEVELS.INFO, source, message, details, options);
   },
 
-  debug(source, message, details) {
-    log("DEBUG", LOG_LEVELS.DEBUG, source, message, details);
+  debug(source, message, details, options) {
+    log("DEBUG", LOG_LEVELS.DEBUG, source, message, details, options);
   }
 };
 
