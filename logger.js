@@ -67,6 +67,13 @@ function formatMultiline(text, { lineNumbers = false } = {}) {
   return output;
 }
 
+function printStyledBlock(header, text) {
+  console.log(
+    `%c${header}\n${text}`,
+    "white-space: pre; font-family: monospace; line-height: 1.4; color: #2c3e50; background: #ecf0f1; padding: 6px; border-radius: 4px;"
+  );
+}
+
 export const logger = {
   setLevel(level) {
     CURRENT_LEVEL = level;
