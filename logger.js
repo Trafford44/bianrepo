@@ -52,33 +52,33 @@ function log(levelName, levelValue, source, message, details, options = {}) {
 function formatMultiline(text, { lineNumbers = false } = {}) {
   if (!text || typeof text !== "string") return text;
 
-  // Normalize CRLF → LF
-  text = text.replace(/\r\n/g, "\n");
-
-  let output = text;
+  // Normalize newlines
+  const lines = text.replace(/\r\n|\r/g, "\n").split("\n");
 
   if (lineNumbers) {
-    output = output
-      .split("\n")
+    return lines
       .map((line, i) => `${String(i + 1).padStart(3, " ")} | ${line}`)
       .join("\n");
   }
 
-  return output;
+  return lines.join("\n");
 }
 
 function printStyledBlock(header, text) {
+  // We use two %c specifiers. This forces the browser to treat 
+  // the header and the code as distinct blocks.
   console.log(
-    `%c${header}\n${text}`,
+    `%c${header}\n%c${text}`,
+    "color: #7f8c8d; font-weight: bold; font-family: sans-serif;", 
     `
-      display: block;
-      white-space: pre;
-      font-family: monospace;
-      line-height: 1.4;
-      color: #2c3e50;
-      background: #ecf0f1;
-      padding: 6px;
-      border-radius: 4px;
+      display: block; 
+      white-space: pre; 
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+      line-height: 1.5; 
+      background: #f4f4f4; 
+      color: #333; 
+      padding: 10px; 
+      border-left: 5px solid #ce13e7;
     `
   );
 }
