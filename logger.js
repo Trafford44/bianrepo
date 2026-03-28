@@ -16,13 +16,6 @@ let CURRENT_LEVEL = LOG_LEVELS.WATCH;
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
-  console.log("LOG CALL:", {
-    levelName,
-    source,
-    messagePreview: message?.slice(0, 40),
-    details,
-    options
-  });  
   if (CURRENT_LEVEL === LOG_LEVELS.NONE) return;
   if (levelValue > CURRENT_LEVEL) return;
 
@@ -77,9 +70,19 @@ function formatMultiline(text, { lineNumbers = false } = {}) {
 function printStyledBlock(header, text) {
   console.log(
     `%c${header}\n${text}`,
-    "white-space: pre; font-family: monospace; line-height: 1.4; color: #2c3e50; background: #ecf0f1; padding: 6px; border-radius: 4px;"
+    `
+      display: block;
+      white-space: pre;
+      font-family: monospace;
+      line-height: 1.4;
+      color: #2c3e50;
+      background: #ecf0f1;
+      padding: 6px;
+      border-radius: 4px;
+    `
   );
 }
+
 
 export const logger = {
   setLevel(level) {
