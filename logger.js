@@ -65,19 +65,21 @@ function formatMultiline(text, { lineNumbers = false } = {}) {
 }
 
 function printStyledBlock(header, text) {
-  // We use two %c specifiers. This forces the browser to treat 
-  // the header and the code as distinct blocks.
+  // Combine into one string to ensure everything stays together
+  console.log("DEBUG: printStyledBlock was called"); // Temporary check
+  const output = `--- ${header} ---\n${text}`;
+
   console.log(
-    `%c${header}\n%c${text}`,
-    "color: #7f8c8d; font-weight: bold; font-family: sans-serif;", 
+    `%c${output}`,
     `
-      display: block; 
-      white-space: pre; 
-      font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
-      line-height: 1.5; 
-      background: #f4f4f4; 
-      color: #333; 
-      padding: 10px; 
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #333;
+      background: #fdfdfd;
+      display: block;
+      white-space: pre;
+      padding: 10px;
       border-left: 5px solid #ce13e7;
     `
   );
