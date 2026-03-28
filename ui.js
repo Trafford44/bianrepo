@@ -647,7 +647,7 @@ export async function updatePreview() {
 
             // 1. Resolve !include app://file/... inside the PUML file
             const resolved = resolvePumlIncludes(content, tree);
-            logger.watch("ui: updatePreview", "Resolved PUML content:\n" + resolved);
+            logger.watch("ui: updatePreview", "Resolved PUML content:\n" + resolved, null, { multiline: true, lineNumbers: true });
 
             if (!resolved.trim()) {
                 logger.warn("ui: updatePreview", "Resolved PUML is empty");
