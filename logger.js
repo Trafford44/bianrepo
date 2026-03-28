@@ -65,24 +65,11 @@ function formatMultiline(text, { lineNumbers = false } = {}) {
 }
 
 function printStyledBlock(header, text) {
-  // Combine into one string to ensure everything stays together
-  console.log("DEBUG: printStyledBlock was called"); // Temporary check
-  const output = `--- ${header} ---\n${text}`;
-
-  console.log(
-    `%c${output}`,
-    `
-      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-      font-size: 12px;
-      line-height: 1.5;
-      color: #333;
-      background: #fdfdfd;
-      display: block;
-      white-space: pre;
-      padding: 10px;
-      border-left: 5px solid #ce13e7;
-    `
-  );
+  console.log("DEBUG: printStyledBlock was called");
+  
+  // No complex CSS, just the essentials
+  console.log(`%c${header}`, "font-weight: bold; color: #ce13e7;");
+  console.log(`%c${text}`, "font-family: monospace; white-space: pre; background: #fdfdfd; display: block; padding: 5px;");
 }
 
 
