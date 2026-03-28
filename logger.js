@@ -14,6 +14,7 @@ const LOG_LEVELS = {
 // Change this per module if you want different log levels for different parts of the app
 let CURRENT_LEVEL = LOG_LEVELS.WATCH;
 
+// use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
   if (CURRENT_LEVEL === LOG_LEVELS.NONE) return;
   if (levelValue > CURRENT_LEVEL) return;
@@ -78,11 +79,11 @@ export const logger = {
     CURRENT_LEVEL = level;
   },
 
-  error(source, message, details, options) {
+  error(source, message, details = null, options = {}) {
     log("ERROR", LOG_LEVELS.ERROR, source, message, details, options);
   },
 
-  watch(source, message, details, options) {
+  watch(source, message, details = null, options = {}) {
     log("WATCH", LOG_LEVELS.WATCH, source, message, details, options);
     // Trigger a browser alert for WATCH logs
     if (source === "createNewID") {
@@ -90,15 +91,15 @@ export const logger = {
     }
   },
 
-  warn(source, message, details, options) {
+  warn(source, message, details = null, options = {}) {
     log("WARN", LOG_LEVELS.WARN, source, message, details, options);
   },
 
-  info(source, message, details, options) {
+  info(source, message, details = null, options = {}) {
     log("INFO", LOG_LEVELS.INFO, source, message, details, options);
   },
 
-  debug(source, message, details, options) {
+  debug(source, message, details = null, options = {}) {
     log("DEBUG", LOG_LEVELS.DEBUG, source, message, details, options);
   }
 };
