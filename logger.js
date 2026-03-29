@@ -12,7 +12,7 @@ const LOG_LEVELS = {
 
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
+let CURRENT_LEVEL = LOG_LEVELS.WATCH;
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
@@ -98,9 +98,15 @@ export const logger = {
   watch(source, message, details = null, options = {}) {
     log("WATCH", LOG_LEVELS.WATCH, source, message, details, options);
     // Trigger a browser alert for WATCH logs
-    if (source === "createNewID") {
+    if (source === "createNewID" ) {
       alert(`New UUID generated: ${message}`);
     }
+    if (source === "logIdAnomaly" ) {
+      alert(`Add ID anomaly detected!: ${message}`);
+    }  
+    if (source === "mergeWorkspace:id-missing" ) {
+      alert(`Missing ID detected!: ${message}`);
+    }        
   },
 
   warn(source, message, details = null, options = {}) {
