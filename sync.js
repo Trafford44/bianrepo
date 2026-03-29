@@ -291,12 +291,14 @@ export async function runSyncCheck(reason) {
     }
 
     // --- Cloud is newer ---
-    if (cloudHash !== lastSyncedHash) {
+    // Only trigger cloud-change if we have *already* synced once
+    if (lastSyncedHash !== null && cloudHash !== lastSyncedHash) {
         logger.info("sync: runSyncCheck",
             "Cloud hash differs from lastSyncedHash. Cloud is newer. Triggering cloud-change handler."
         );
         return handleCloudChange({ id: gistId }, idleReturn);
     }
+
 
     // --- Everything matches ---
     logger.info("sync: runSyncCheck",
