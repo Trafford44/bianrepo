@@ -758,6 +758,29 @@
             display: block;
         }
 
+        #sync-toggle-btn {
+            padding: 4px 10px;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color, #ccc);
+            background: var(--button-bg, #f5f5f5);
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        /* When sync is running */
+        #sync-toggle-btn.sync-running {
+            background: #d9534f;      /* soft red */
+            color: white;
+            border-color: #b52b27;
+        }
+
+        /* When sync is stopped */
+        #sync-toggle-btn.sync-stopped {
+            background: #5cb85c;      /* soft green */
+            color: white;
+            border-color: #3d8b3d;
+        }
 
 
         /* 
@@ -1162,6 +1185,7 @@
                 <button id="zoom-editor-out" title="Zoom out" class="btn-tool">🔍-</button>
                 <button id="zoom-reset-btn" class="btn-tool" title="Reset zoom">🔍0</button>
                 <a id="puml-external-link" href="#" target="_blank" title="Edit in PlantUML" class="btn-tool puml-only">🌐↗</a>
+                <button id="sync-toggle-btn" class="btn-tool" title="Stop/start cloud syncing">Stop Sync</button>
                 <button id="logout-btn" class="btn-tool" title="Logout of cloud">Logout</button>
             </div>
         </header>
