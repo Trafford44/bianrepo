@@ -2,7 +2,7 @@ import { handleOAuthRedirect, bindLoginButton, getToken, getGistId } from "./aut
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, loadFile } from "./ui.js";
 import { loadState, migrateWorkspace, setWorkspace, saveState } from "./workspace.js";
 import { setupMarked } from "./md-editor.js";
-import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud } from "./sync.js";
+import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud, loadWorkspaceFromGist } from "./sync.js";
 import { logger } from "./logger.js";
 
 /* it's critical that the order remains as below
