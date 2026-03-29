@@ -408,6 +408,19 @@ function buildMetadataPathMap(metadata) {
     return map;
 }
 
+function logIdAnomaly(context, path, cloudEntry, meta, local) {
+    logger.watch("logIdAnomaly", {
+        context,
+        path,
+        cloudId: cloudEntry?.id,
+        metaId: meta?.id,
+        localId: local?.id,
+        cloudEntry,
+        meta,
+        local
+    });
+}
+
 export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
     logger.debug("workspace", "mergeWorkspace() CALLED", {
         localCount: Array.isArray(localTree) ? localTree.length : typeof localTree,
@@ -424,6 +437,32 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
     const localMap = buildLocalPathMap(localTree);
     const metaMap = buildMetadataPathMap(cloudMetadata || []);
+
+    // checking for missing ID issue
+    if (cloudEntry && !("id" in cloudEntry)) {
+        logger.watch("mergeWorkspace:id-missing", {
+            context: "cloudEntry missing id property",
+            path,
+            cloudEntry
+        });
+    }
+
+    if (meta && !("id" in meta)) {
+        logger.watch("mergeWorkspace:id-missing", {
+            context: "meta entry missing id property",
+            path,
+            meta
+        });
+    }
+
+    if (local && !("id" in local)) {
+        logger.watch("mergeWorkspace:id-missing", {
+            context: "local entry missing id property",
+            path,
+            local
+        });
+    }
+
 
     const mergedMap = {};
 
@@ -447,9 +486,15 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
         } else if (local && local.id) {
             id = local.id;                          // ✔ fallback
         } else {
-            id = createNewID("mergeWorkspace: new folder");  // ✔ only for brand-new nodes
+            // No ID source found — log BEFORE createNewID runs
+            logIdAnomaly("ensureFolderPath:all-missing", path, cloudEntry, meta, local);            
+            id = createNewID("mergeWorkspace() new folder: ", meta.name);  // ✔ only for brand-new nodes
         }
 
+        // Log if the chosen ID is undefined/null/empty
+        if (!id) {
+            logIdAnomaly("ensureFolderPath:undefined-id", path, cloudEntry, meta, local);
+        }
 
         mergedMap[path] = {
             id,
@@ -496,8 +541,14 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
         } else if (local && local.id) {
             id = local.id;                          // ✔ fallback
         } else {
-            id = createNewID("mergeWorkspace:new"); // ✔ only for brand-new nodes
+            logIdAnomaly("cloudLoop:all-missing", flatKey, cloudEntry, meta, local);
+            id = createNewID("mergeWorkspace() new file: ", meta.name); // ✔ only for brand-new nodes
         }
+
+        // Log if the chosen ID is undefined/null/empty
+        if (!id) {
+            logIdAnomaly("cloudLoop:undefined-id", flatKey, cloudEntry, meta, local);
+        }        
 
         mergedMap[flatKey] = {
             id,
@@ -631,7 +682,7 @@ path	❌	✔	Metadata	Full path used as metadata key
 */
 
 function migrateNode(node) {
-    logger.debug("workspace", "migrateNode()");
+    // logger.debug("workspace", "migrateNode()");
     // Internal linking
     if (!("pathCache" in node)) node.pathCache = null;
 
@@ -657,9 +708,8 @@ function migrateNode(node) {
     }
 }
 
-
 export function migrateWorkspace(workspace) {
-    logger.debug("workspace", "migrateWorkspace()");
+    logger.debug("workspace", "migrateWorkspace().  Calls migrateNode() for each workspace tree node. migrateNode is not concerned with ID's");
     workspace.forEach(migrateNode);
 }
 
