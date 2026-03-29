@@ -889,11 +889,13 @@ export async function loadWorkspaceFromGist() {
         const data = await res.json();
         const files = data.files || {};
 
-        // --- 1. Build flat ARRAY model from all real content files ---
+        // ------------------------------------------------------------
+        // 1. Build initial flat list (content only, metadata merged later)
+        // ------------------------------------------------------------
         const flat = [];
 
         for (const filename in files) {
-            if (filename === "__workspace.json") continue; // skip metadata
+            if (filename === "__workspace.json") continue; // skip metadata file
 
             flat.push({
                 path: filename,
@@ -901,7 +903,9 @@ export async function loadWorkspaceFromGist() {
             });
         }
 
-        // --- 2. Parse metadata (optional) ---
+        // ------------------------------------------------------------
+        // 2. Parse metadata file
+        // ------------------------------------------------------------
         let metadata = [];
         if (files["__workspace.json"]) {
             try {
@@ -916,17 +920,52 @@ export async function loadWorkspaceFromGist() {
             metadata = [metadata];
         }
 
+        logger.debug("sync: loadWorkspaceFromGist", "Parsed metadata:", metadata);
+
+        // ------------------------------------------------------------
+        // 3. Build metadata lookup map: path → metadata entry
+        // ------------------------------------------------------------
+        const metaMap = new Map();
+        for (const m of metadata) {
+            if (m && m.path) {
+                metaMap.set(m.path, m);
+            }
+        }
+
+        logger.debug("sync", "Metadata map keys:", Array.from(metaMap.keys()));
+
+        // ------------------------------------------------------------
+        // 4. Merge metadata into flat list entries
+        // ------------------------------------------------------------
+        for (const entry of flat) {
+            const meta = metaMap.get(entry.path);
+
+            if (meta) {
+                logger.debug("sync", "Merging metadata for:", entry.path, meta);
+            } else {
+                logger.warn("sync", "No metadata found for:", entry.path);
+            }
+
+            entry.id        = meta?.id        ?? null;
+            entry.isPublic  = meta?.isPublic  ?? false;
+            entry.publicId  = meta?.publicId  ?? null;
+            entry.publicAt  = meta?.publicAt  ?? null;
+            entry.updatedAt = meta?.updatedAt ?? Date.now();
+        }
+
+        // ------------------------------------------------------------
+        // 5. Final debug summary
+        // ------------------------------------------------------------
         logger.debug("sync: loadWorkspaceFromGist", "Returning cloud data:", {
             flatType: Array.isArray(flat) ? "array" : typeof flat,
-            flatLength: Array.isArray(flat) ? flat.length : "n/a",
+            flatLength: flat.length,
             metadataType: Array.isArray(metadata) ? "array" : typeof metadata,
-            metadataLength: Array.isArray(metadata) ? metadata.length : "n/a",
+            metadataLength: metadata.length,
             fileKeys: Object.keys(files)
         });
 
-        // --- 3. Return structured cloud data ---
         return {
-            flat,       // ARRAY of { path, content }
+            flat,       // ARRAY of { path, content, id, ... }
             metadata    // ARRAY of metadata entries
         };
 
@@ -938,11 +977,6 @@ export async function loadWorkspaceFromGist() {
         return null;
     }
 }
-
-
-
-
-
 
 async function getNewestGistAcrossAccount() {
     logger.debug("sync", "Running getNewestGistAcrossAccount()");
