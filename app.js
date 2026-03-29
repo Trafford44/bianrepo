@@ -33,21 +33,54 @@ async function init() {
             await handleOAuthRedirect();
         }
 
-        // 3. Load workspace from localStorage (new model)
+        // ------------------------------------------------------------
+        // 3. Load LOCAL workspace (but do NOT create or save anything)
+        // ------------------------------------------------------------
         logger.debug("app: init()", "Running workspace.loadState()");
-        const local = loadState(); // <-- capture the return value
+        let local = loadState();   // null or valid array
+        let workspace = null;
 
-        // ⭐ NEW: Reconcile local vs cloud BEFORE starting sync loop
+        if (local && Array.isArray(local) && local.length > 0) {
+            logger.debug("app: init()", "Using LOCAL workspace (non-empty)");
+            workspace = local;
+        } else {
+            logger.debug("app: init()", "Local workspace missing or empty → trying CLOUD");
+
+            // ------------------------------------------------------------
+            // 3.1 Try to load CLOUD workspace
+            // ------------------------------------------------------------
+            const cloud = await loadWorkspaceFromGist();
+
+            if (cloud && Array.isArray(cloud.flat)) {
+                logger.debug("app: init()", "Cloud workspace FOUND → inflating");
+                workspace = inflateWorkspace(cloud.flat);
+            } else {
+                logger.debug("app: init()", "No cloud workspace found → creating EMPTY workspace");
+                workspace = createEmptyWorkspace();
+            }
+
+            // Save whichever workspace we ended up with
+            logger.debug("app: init()", "Saving initial workspace to localStorage");
+            saveState(workspace);
+        }
+
+        // ------------------------------------------------------------
+        // 4. Now that workspace is loaded, reconcile safely
+        // ------------------------------------------------------------
         logger.debug("app: init()", "Running sync.reconcileLocalAndCloud()");
-        await reconcileLocalAndCloud(local);
+        await reconcileLocalAndCloud(workspace);
 
-        // 3.5 Re-check the token immediately after wake
+        // ------------------------------------------------------------
+        // 4.5 Bind visibility + activity events
+        // ------------------------------------------------------------
         logger.debug("app: init()", "Running sync.bindVisibilityEvents()");
         bindVisibilityEvents();
         logger.debug("app: init()", "Running sync.bindActivityEvents()");
         bindActivityEvents();
 
-        // 4. Start sync loop ONLY if token + gistId exist
+        // ------------------------------------------------------------
+        // 5. Start sync loop ONLY if token + gistId exist
+        // ------------------------------------------------------------
         const token = getToken();
         const gistId = getGistId();
         if (token && gistId) {
@@ -56,26 +89,28 @@ async function init() {
         } else {
             logger.debug("app: init()", "Not starting sync loop — missing token or gistId");
 
-            // ⭐ NEW: ensure login button is visible
+            // Ensure login button is visible
             const editorActions = document.getElementById("editor-actions");
             if (editorActions) {
                 editorActions.classList.remove("hidden");
-            }            
+            }
         }
 
-        // 5. Render UI
+        // ------------------------------------------------------------
+        // 6. Render UI
+        // ------------------------------------------------------------
         logger.debug("app: init()", "Running ui.renderSidebar()");
         renderSidebar();
 
-        // 6. Bind login button AFTER sidebar is rendered
+        // 7. Bind login button AFTER sidebar is rendered
         logger.debug("app: init()", "Running auth.bindLoginButton()");
         bindLoginButton();
 
-        // 7. Update login indicator AFTER login button exists
+        // 8. Update login indicator AFTER login button exists
         logger.debug("app: init()", "Running ui.updateLoginIndicator()");
         updateLoginIndicator();
 
-        // 8. Bind UI interactions
+        // 9. Bind UI interactions
         logger.debug("app: init()", "Running ui.initResizers()");
         initResizers();
         logger.debug("app: init()", "Running ui.bindEditorEvents()");
@@ -84,7 +119,7 @@ async function init() {
         bindPaneFocusEvents();
 
         // ------------------------------------------------------------
-        // 9. Browser history: handle Back/Forward navigation
+        // 10. Browser history: handle Back/Forward navigation
         // ------------------------------------------------------------
         logger.debug("app: init()", "Adding popState listener");
         window.addEventListener("popstate", (event) => {
