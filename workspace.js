@@ -338,13 +338,6 @@ export function inflateWorkspace(flatList) {
             // Check if we already created this node
             let node = pathMap.get(currentPath);
 
-            logger.debug("workspace: inflateWorkspace", "inflate: created node", {
-                name: node.name,
-                type: node.type,
-                id: node.id,
-                path: currentPath
-            });
-
             if (!node) {
                 if (isFileNode) {
                     // FILE NODE — preserve ID from flatList
@@ -368,6 +361,13 @@ export function inflateWorkspace(flatList) {
                 pathMap.set(currentPath, node);
             }
 
+            logger.debug("workspace: inflateWorkspace", "inflate: created node", {
+                name: node.name,
+                type: node.type,
+                id: node.id,
+                path: currentPath
+            });
+            
             // Descend into folder children
             if (!isFileNode) {
                 current = node.children;
