@@ -11,7 +11,7 @@ let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
 const contextMenuList = contextMenu.querySelector("ul");
 let currentContextTarget = null;
-const USE_KROKI = true;
+const USE_KROKI = false;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
 
@@ -268,6 +268,11 @@ export function renderSidebar() {
     }
 
     tree.forEach(node => {
+        logger.debug("ui", "renderSidebar node", {
+            name: node.name,
+            id: node.id
+        });
+
         const el = renderNode(node, 0);
         container.appendChild(el);
     });
@@ -487,7 +492,7 @@ export function createSubfolder(parentId) {
 
     parent.children.sort((a, b) => {
         if (a.type !== b.type) {
-            return a.type === "folder" ? -1 : 1;
+            return a.type === "folderenderFileNoder" ? -1 : 1;
         }
         return a.name.localeCompare(b.name);
     });
@@ -501,6 +506,10 @@ export function createSubfolder(parentId) {
 export function loadFile(fileId) {
     logger.debug("ui", "loadFile()");
     const tree = getWorkspace();
+
+    logger.debug("ui", "loadFile searching for id:", fileId);
+    logger.debug("ui", "current workspace tree:", JSON.stringify(getWorkspace(), null, 2));
+   
     const file = findNodeById(tree, fileId);
 
     if (!file || file.type !== "file") {
