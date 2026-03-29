@@ -99,39 +99,33 @@ export function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(tree));
 }
 
-
-
 export function loadState() {
     logger.debug("workspace", "loadState()");
     const saved = localStorage.getItem(STORAGE_KEY);
 
     if (!saved) {
-        logger.info("workspace: loadState", "Workspace not found:", STORAGE_KEY);
-        return [];   // ← FIX
+        logger.info("workspace: loadState", "No local workspace found");
+        return null;   // ← IMPORTANT
     }
 
     logger.debug("workspace: loadState", "Raw localStorage:", saved);
 
     try {
-        let tree = JSON.parse(saved);
-        logger.debug("workspace: loadState", "Parsed localStorage:", tree);
+        const tree = JSON.parse(saved);
 
         if (!Array.isArray(tree)) {
-            logger.error("workspace: loadState", "Invalid workspace format, resetting:", tree);
-            tree = [];   // ← FIX
+            logger.error("workspace: loadState", "Invalid workspace format:", tree);
+            return null;   // ← IMPORTANT
         }
 
-        migrateWorkspace(tree);
-        setWorkspace(tree);
-        saveState();
-
-        return tree;
+        return tree;   // ← DO NOT migrate or save here
 
     } catch (e) {
-        logger.error("workspace: loadState", "Failed to load workspace:", e);
-        return [];   // ← FIX
+        logger.error("workspace: loadState", "Failed to parse workspace:", e);
+        return null;   // ← IMPORTANT
     }
 }
+
 
 
 export function findNodeById(nodeList, id) {
