@@ -18,7 +18,9 @@ export function createEmptyWorkspace() {
 
 // Main entry point
 export function setWorkspace(tree) {
-    logger.debug("workspace", "setWorkspace()");
+    //logger.debug("workspace", "setWorkspace()");
+
+    logger.debug("workspace", "setWorkspace storing tree:", JSON.stringify(tree, null, 2));
 
     if (!Array.isArray(tree)) {
         logger.error("workspace", "setWorkspace received non-array:", tree);
@@ -335,6 +337,13 @@ export function inflateWorkspace(flatList) {
 
             // Check if we already created this node
             let node = pathMap.get(currentPath);
+
+            logger.debug("workspace: inflateWorkspace", "inflate: created node", {
+                name: node.name,
+                type: node.type,
+                id: node.id,
+                path: currentPath
+            });
 
             if (!node) {
                 if (isFileNode) {
@@ -681,6 +690,13 @@ path	❌	✔	Metadata	Full path used as metadata key
 
 function migrateNode(node) {
     // logger.debug("workspace", "migrateNode()");
+
+    logger.debug("workspace", "migrateNode BEFORE", {
+        name: node.name,
+        type: node.type,
+        id: node.id
+    });
+   
     // Internal linking
     if (!("pathCache" in node)) node.pathCache = null;
 
@@ -704,6 +720,13 @@ function migrateNode(node) {
         if (!Array.isArray(node.children)) node.children = [];
         node.children.forEach(migrateNode);
     }
+
+    logger.debug("workspace", "migrateNode AFTER", {
+        name: node.name,
+        type: node.type,
+        id: node.id
+    });
+
 }
 
 export function migrateWorkspace(workspace) {
