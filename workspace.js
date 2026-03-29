@@ -277,7 +277,8 @@ export function flattenWorkspace(tree) {
                 // ------------------------------------------------------------
                 output.push({
                     path: fullPath,
-                    content: node.content || ""
+                    content: node.content || "",
+                    id: node.id
                 });
             }
         }
