@@ -52,10 +52,18 @@ async function init() {
             if (cloud && Array.isArray(cloud.flat)) {
                 logger.debug("app: init()", "Cloud workspace FOUND → inflating");
                 workspace = inflateWorkspace(cloud.flat);
+
+                // SAFETY GUARD: ensure inflateWorkspace() returned a valid array
+                if (!Array.isArray(workspace)) {
+                    logger.error("app: init()", "inflateWorkspace returned invalid workspace, creating EMPTY workspace");
+                    workspace = createEmptyWorkspace();
+                }
+
             } else {
                 logger.debug("app: init()", "No cloud workspace found → creating EMPTY workspace");
                 workspace = createEmptyWorkspace();
             }
+
         }
 
         // ------------------------------------------------------------
