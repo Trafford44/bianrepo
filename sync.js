@@ -11,6 +11,7 @@ import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspa
 import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
 import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
+import { updateSyncToggleButton } from "./binding.js";
 
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
@@ -83,12 +84,17 @@ async function getCurrentWorkspaceGist() {
 
 export async function startSyncLoop() {
     logger.debug("sync", "Running startSyncLoop()");
+    if (syncIntervalId !== null) {
+        logger.warn("sync", "startSyncLoop() called but loop already running");
+        return;
+    }    
     try {
         await runSyncCheck("startup");
         logger.info("startSyncLoop called");
         syncIntervalId = setInterval(async () => {
             await runSyncCheck("periodic");
         }, syncInterval);
+        updateSyncToggleButton();
     } catch (error) {
         logger.error("sync: startSyncLoop", error);
         return null;
@@ -102,11 +108,22 @@ export function stopSyncLoop() {
             clearInterval(syncIntervalId);
             syncIntervalId = null;
             logger.info("stopSyncLoop:", syncIntervalId);
+            updateSyncToggleButton();
         }
     } catch (error) {
         logger.error("sync: stopSyncLoop", error);
         return null;
     }           
+}
+
+export function toggleSyncLoop() {
+    if (syncIntervalId === null) {
+        startSyncLoop();
+        logger.info("sync", "toggleSyncLoop → started");
+    } else {
+        stopSyncLoop();
+        logger.info("sync", "toggleSyncLoop → stopped");
+    }
 }
 
 
