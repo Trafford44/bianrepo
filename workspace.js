@@ -301,6 +301,7 @@ export function flattenWorkspace(tree) {
 
 export function inflateWorkspace(flatList) {
     logger.debug("workspace", "Running inflateWorkspace()");
+    logger.debug("workspace", "inflateWorkspace input:", flatList);
 
     // Root of the reconstructed tree
     const root = [];
@@ -326,6 +327,8 @@ export function inflateWorkspace(flatList) {
             const part = parts[i];
             const isLast = i === parts.length - 1;
             const isFileNode = isLast && isFile;
+
+            logger.debug("workspace", "inflateWorkspace processing path:", entry.path);
 
             currentPath = currentPath ? `${currentPath}___${part}` : part;
 
