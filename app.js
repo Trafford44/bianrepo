@@ -1,6 +1,6 @@
 import { handleOAuthRedirect, bindLoginButton, getToken, getGistId } from "./auth.js";
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, loadFile } from "./ui.js";
-import { loadState } from "./workspace.js";
+import { loadState, migrateWorkspace, setWorkspace, saveState } from "./workspace.js";
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud } from "./sync.js";
 import { logger } from "./logger.js";
@@ -46,9 +46,7 @@ async function init() {
         } else {
             logger.debug("app: init()", "Local workspace missing or empty → trying CLOUD");
 
-            // ------------------------------------------------------------
             // 3.1 Try to load CLOUD workspace
-            // ------------------------------------------------------------
             const cloud = await loadWorkspaceFromGist();
 
             if (cloud && Array.isArray(cloud.flat)) {
@@ -58,17 +56,25 @@ async function init() {
                 logger.debug("app: init()", "No cloud workspace found → creating EMPTY workspace");
                 workspace = createEmptyWorkspace();
             }
-
-            // Save whichever workspace we ended up with
-            logger.debug("app: init()", "Saving initial workspace to localStorage");
-            saveState(workspace);
         }
+
+        // ------------------------------------------------------------
+        // 3.2 MIGRATE + SET WORKSPACE (this was missing before)
+        // ------------------------------------------------------------
+        logger.debug("app: init()", "Migrating workspace");
+        const migrated = migrateWorkspace(workspace);
+
+        logger.debug("app: init()", "Setting workspace into memory");
+        setWorkspace(migrated);
+
+        logger.debug("app: init()", "Saving workspace to localStorage");
+        saveState(migrated);
 
         // ------------------------------------------------------------
         // 4. Now that workspace is loaded, reconcile safely
         // ------------------------------------------------------------
         logger.debug("app: init()", "Running sync.reconcileLocalAndCloud()");
-        await reconcileLocalAndCloud(workspace);
+        await reconcileLocalAndCloud(migrated);
 
         // ------------------------------------------------------------
         // 4.5 Bind visibility + activity events
@@ -89,7 +95,6 @@ async function init() {
         } else {
             logger.debug("app: init()", "Not starting sync loop — missing token or gistId");
 
-            // Ensure login button is visible
             const editorActions = document.getElementById("editor-actions");
             if (editorActions) {
                 editorActions.classList.remove("hidden");
