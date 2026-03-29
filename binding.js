@@ -1,6 +1,6 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportFile, deleteFile, addFolder} from "./ui.js";
-import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog} from "./sync.js";
+import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop} from "./sync.js";
 import { logger } from "./logger.js";
 import { clearToken } from "./auth.js";
 
@@ -158,6 +158,8 @@ export function bindToolbarEvents(textarea) {
     document.getElementById("export-btn")?.addEventListener("click", () => exportFile());
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
     document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
+    document.getElementById("sync-toggle-btn")?.addEventListener("click", () => {toggleSyncLoop();  updateSyncToggleButton();});
+
 
     // Zoom Buttons
     document.getElementById("zoom-editor-in")?.addEventListener("click", () => {
@@ -180,6 +182,21 @@ export function bindToolbarEvents(textarea) {
 
         applyMarkdownFormat(type, textarea);
     });
+}
+
+export function updateSyncToggleButton() {
+    const btn = document.getElementById("sync-toggle-btn");
+    if (!btn) return;
+
+    if (syncIntervalId === null) {
+        btn.textContent = "Start Sync";
+        btn.classList.add("sync-stopped");
+        btn.classList.remove("sync-running");
+    } else {
+        btn.textContent = "Stop Sync";
+        btn.classList.add("sync-running");
+        btn.classList.remove("sync-stopped");
+    }
 }
 
 export function bindPopupEvents(textarea) {
