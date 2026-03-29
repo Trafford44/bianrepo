@@ -706,8 +706,9 @@ function migrateNode(node) {
 }
 
 export function migrateWorkspace(workspace) {
-    logger.debug("workspace", "migrateWorkspace().  Calls migrateNode() for each workspace tree node. migrateNode is not concerned with ID's");
+    logger.debug("workspace", "migrateWorkspace(). Calls migrateNode() for each workspace tree node.");
     workspace.forEach(migrateNode);
+    return workspace;   // ← THIS WAS MISSING
 }
 
 // Helpers
