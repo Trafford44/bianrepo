@@ -1,6 +1,6 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportFile, deleteFile, addFolder} from "./ui.js";
-import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop} from "./sync.js";
+import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId } from "./sync.js";
 import { logger } from "./logger.js";
 import { clearToken } from "./auth.js";
 
