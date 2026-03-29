@@ -438,31 +438,6 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
     const localMap = buildLocalPathMap(localTree);
     const metaMap = buildMetadataPathMap(cloudMetadata || []);
 
-    // checking for missing ID issue
-    if (cloudEntry && !("id" in cloudEntry)) {
-        logger.watch("mergeWorkspace:id-missing", {
-            context: "cloudEntry missing id property",
-            path,
-            cloudEntry
-        });
-    }
-
-    if (meta && !("id" in meta)) {
-        logger.watch("mergeWorkspace:id-missing", {
-            context: "meta entry missing id property",
-            path,
-            meta
-        });
-    }
-
-    if (local && !("id" in local)) {
-        logger.watch("mergeWorkspace:id-missing", {
-            context: "local entry missing id property",
-            path,
-            local
-        });
-    }
-
 
     const mergedMap = {};
 
@@ -478,6 +453,31 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
         let id;
         const cloudEntry = cloudFlat.find(f => f.path === path);
+
+        // checking for missing ID issue
+        if (cloudEntry && !("id" in cloudEntry)) {
+            logger.watch("mergeWorkspace:id-missing", {
+                context: "cloudEntry missing id property",
+                path,
+                cloudEntry
+            });
+        }
+
+        if (meta && !("id" in meta)) {
+            logger.watch("mergeWorkspace:id-missing", {
+                context: "meta entry missing id property",
+                path,
+                meta
+            });
+        }
+
+        if (local && !("id" in local)) {
+            logger.watch("mergeWorkspace:id-missing", {
+                context: "local entry missing id property",
+                path,
+                local
+            });
+        }
 
         if (cloudEntry && cloudEntry.id) {
             id = cloudEntry.id;                     // ✔ canonical
