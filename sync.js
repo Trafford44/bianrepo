@@ -923,6 +923,23 @@ export async function loadWorkspaceFromGist() {
         logger.debug("sync: loadWorkspaceFromGist", "Parsed metadata:", metadata);
 
         // ------------------------------------------------------------
+        // 2.5 INSERTED: Add folder metadata entries to flat list FIRST
+        // ------------------------------------------------------------
+        for (const m of metadata) {
+            if (m.type === "folder") {
+                flat.push({
+                    path: m.path,
+                    content: null,          // folders have no content
+                    id: m.id,
+                    isPublic: m.isPublic ?? false,
+                    publicId: m.publicId ?? null,
+                    publicAt: m.publicAt ?? null,
+                    updatedAt: m.updatedAt ?? Date.now()
+                });
+            }
+        }
+
+        // ------------------------------------------------------------
         // 3. Build metadata lookup map: path → metadata entry
         // ------------------------------------------------------------
         const metaMap = new Map();
@@ -931,6 +948,7 @@ export async function loadWorkspaceFromGist() {
                 metaMap.set(m.path, m);
             }
         }
+
 
         logger.debug("sync", "Metadata map keys:", Array.from(metaMap.keys()));
 
