@@ -914,6 +914,14 @@ export async function loadWorkspaceFromGist() {
             metadata = [metadata];
         }
 
+        logger.debug("sync: loadWorkspaceFromGist", "Returning cloud data:", {
+            flatType: Array.isArray(flat) ? "array" : typeof flat,
+            flatLength: Array.isArray(flat) ? flat.length : "n/a",
+            metadataType: Array.isArray(metadata) ? "array" : typeof metadata,
+            metadataLength: Array.isArray(metadata) ? metadata.length : "n/a",
+            fileKeys: Object.keys(files)
+        });
+
         // --- 3. Return structured cloud data ---
         return {
             flat,       // ARRAY of { path, content }
