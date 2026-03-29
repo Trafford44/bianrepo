@@ -452,10 +452,10 @@ export async function computeWorkspaceHash(flat) {
 export async function reconcileLocalAndCloud(localTree) {
     logger.debug("sync", "Running reconcileLocalAndCloud()");
 
-    // Always normalize localTree to a valid tree array
-    if (!Array.isArray(localTree)) {
-        localTree = [];
-    }
+    // SAFETY FIX:
+    // Do NOT convert null → [].
+    // Null means "no local workspace exists".
+    const hasLocal = Array.isArray(localTree) && localTree.length > 0;
 
     const cloudMeta = await getLatestWorkspaceGistMeta();
     const lastSyncedHash = localStorage.getItem("lastSyncedHash");
@@ -465,7 +465,8 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     if (!cloudMeta) {
         logger.debug("sync: reconcileLocalAndCloud", "CASE 1: No cloud gist exists yet");
-        if (localTree.length === 0) {
+
+        if (!hasLocal) {
             // No local, no cloud → create empty workspace
             const fresh = createEmptyWorkspace();
             saveState(fresh);
@@ -496,6 +497,7 @@ export async function reconcileLocalAndCloud(localTree) {
         return;
     }
     logger.debug("sync: reconcileLocalAndCloud", "CASE 2: Cloud exists → load cloud workspace");
+
     const cloudFlat = cloud.flat;
     const cloudTree = inflateWorkspace(cloudFlat);
     const cloudMetadata = cloud.metadata || [];
@@ -503,7 +505,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     // Compute structural hashes (FLAT MODEL)
     // ------------------------------------------------------------
-    const localFlat = flattenWorkspace(localTree);
+    const localFlat = hasLocal ? flattenWorkspace(localTree) : [];
     const localHash = await computeWorkspaceHash(localFlat);
     const cloudHash = await computeWorkspaceHash(cloudFlat);
 
@@ -514,7 +516,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     // CASE 3: Local and cloud match → nothing to do
     // ------------------------------------------------------------
-    if (localHash === cloudHash) {
+    if (hasLocal && localHash === cloudHash) {
         logger.debug("sync: reconcileLocalAndCloud", "CASE 3: Local and cloud match → nothing to do");
         const migrated = migrateWorkspace(localTree);
         saveState(migrated);
@@ -527,7 +529,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     if (cloudHash !== lastSyncedHash) {
         logger.debug("sync: reconcileLocalAndCloud", "CASE 4: Cloud changed since last sync → cloud wins");
-        const merged = mergeWorkspace(localTree, cloudTree, cloudMetadata);
+        const merged = mergeWorkspace(localTree || [], cloudTree, cloudMetadata);
         const migrated = migrateWorkspace(merged);
 
         saveState(migrated);
@@ -539,7 +541,8 @@ export async function reconcileLocalAndCloud(localTree) {
     // CASE 5: Local changed, cloud didn’t → local wins
     // ------------------------------------------------------------
     logger.debug("sync: reconcileLocalAndCloud", "CASE 5: Local changed, cloud didn’t → local wins");
-    const merged = mergeWorkspace(localTree, cloudTree, cloudMetadata);
+
+    const merged = mergeWorkspace(localTree || [], cloudTree, cloudMetadata);
     const migrated = migrateWorkspace(merged);
 
     saveState(migrated);
@@ -549,6 +552,7 @@ export async function reconcileLocalAndCloud(localTree) {
     const newHash = await computeWorkspaceHash(newFlat);
     localStorage.setItem("lastSyncedHash", newHash);
 }
+
 
 
 async function getLatestWorkspaceGistMeta() {
