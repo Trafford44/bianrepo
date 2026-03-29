@@ -49,7 +49,7 @@ async function init() {
             // 3.1 Try to load CLOUD workspace
             const cloud = await loadWorkspaceFromGist();
 
-            if (cloud && Array.isArray(cloud.flat)) {
+            if (cloud && Array.isArray(cloud.flat) && cloud.flat.length > 0) {
                 logger.debug("app: init()", "Cloud workspace FOUND → inflating");
                 workspace = inflateWorkspace(cloud.flat);
 
@@ -63,6 +63,7 @@ async function init() {
                 logger.debug("app: init()", "No cloud workspace found → creating EMPTY workspace");
                 workspace = createEmptyWorkspace();
             }
+
 
         }
 
