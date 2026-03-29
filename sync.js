@@ -447,6 +447,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // CASE 1: No cloud gist exists yet
     // ------------------------------------------------------------
     if (!cloudMeta) {
+        logger.debug("sync: reconcileLocalAndCloud", "CASE 1: No cloud gist exists yet");
         if (localTree.length === 0) {
             // No local, no cloud → create empty workspace
             const fresh = createEmptyWorkspace();
@@ -477,7 +478,7 @@ export async function reconcileLocalAndCloud(localTree) {
         logger.error("sync: reconcileLocalAndCloud", "Cloud load failed or returned invalid structure");
         return;
     }
-
+    logger.debug("sync: reconcileLocalAndCloud", "CASE 2: Cloud exists → load cloud workspace");
     const cloudFlat = cloud.flat;
     const cloudTree = inflateWorkspace(cloudFlat);
     const cloudMetadata = cloud.metadata || [];
@@ -497,6 +498,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // CASE 3: Local and cloud match → nothing to do
     // ------------------------------------------------------------
     if (localHash === cloudHash) {
+        logger.debug("sync: reconcileLocalAndCloud", "CASE 3: Local and cloud match → nothing to do");
         const migrated = migrateWorkspace(localTree);
         saveState(migrated);
         localStorage.setItem("lastSyncedHash", localHash);
@@ -507,6 +509,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // CASE 4: Cloud changed since last sync → cloud wins
     // ------------------------------------------------------------
     if (cloudHash !== lastSyncedHash) {
+        logger.debug("sync: reconcileLocalAndCloud", "CASE 4: Cloud changed since last sync → cloud wins");
         const merged = mergeWorkspace(localTree, cloudTree, cloudMetadata);
         const migrated = migrateWorkspace(merged);
 
@@ -518,6 +521,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     // CASE 5: Local changed, cloud didn’t → local wins
     // ------------------------------------------------------------
+    logger.debug("sync: reconcileLocalAndCloud", "CASE 5: Local changed, cloud didn’t → local wins");
     const merged = mergeWorkspace(localTree, cloudTree, cloudMetadata);
     const migrated = migrateWorkspace(merged);
 
