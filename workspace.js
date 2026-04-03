@@ -340,7 +340,8 @@ export function inflateWorkspace(flatList) {
 
             if (!node) {
                 if (isFileNode) {
-                    logger.debug("workspace: inflateWorkspace", "inflateWorkspace processing file. isFileNode:", isFileNode);
+                    logger.debug("workspace: inflateWorkspace", "inflateWorkspace processing file. isFileNode: ", isFileNode);
+                    logger.debug("workspace: inflateWorkspace", "File entry.id: ", entry.id);
                     // FILE NODE — preserve ID from flatList
                     node = {
                         id: entry.id,              // ← CRITICAL: preserve ID
@@ -351,6 +352,7 @@ export function inflateWorkspace(flatList) {
                 } else {
                     // FOLDER NODE — preserve ID from flatList
                     logger.debug("workspace: inflateWorkspace", "inflateWorkspace processing folder. isFileNode:", isFileNode);
+                    logger.debug("workspace: inflateWorkspace", "Folder entry.id: ", entry.id);
                     node = {
                         id: entry.id,              // ← CRITICAL: preserve ID
                         type: "folder",
