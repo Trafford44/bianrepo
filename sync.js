@@ -928,7 +928,8 @@ export async function loadWorkspaceFromGist() {
                 logger.debug("sync: loadWorkspaceFromGist", "Pushed to flat (folder): ", flat[flat.length - 1]);
             }
         }
-
+        logger.debug("sync: loadWorkspaceFromGist", "Flat (folders):", flat);
+        
         // ------------------------------------------------------------
         // 3. Add file entries SECOND
         // ------------------------------------------------------------
