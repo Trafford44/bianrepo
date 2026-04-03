@@ -748,7 +748,7 @@ function isFileNode(node) {
     return node && node.type === "file" && typeof node.content === "string";
 }
 
-function encodeName(name) {
+export function encodeName(name) {
     return name
         .replace(/___/g, "__TRIPLE__")
         .replace(/_/g, "__UNDERSCORE__");
