@@ -113,6 +113,9 @@ export function setSyncEnabled(value) {
     localStorage.setItem("syncEnabled", JSON.stringify(value));
 }
 
+export function getSyncEnabled() {
+    return syncEnabled;
+}
 
 export function stopSyncLoop() {
     logger.debug("sync", "Running stopSyncLoop()");
