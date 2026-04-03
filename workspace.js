@@ -760,7 +760,7 @@ export function encodeName(name) {
 }
 
 
-function decodeName(name) {
+export function decodeName(name) {
     logger.debug("workspace: decodeName", `IN:  ${name}`);
 
     const out = name
