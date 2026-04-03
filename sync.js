@@ -19,6 +19,7 @@ let lastLocalEditTime = 0;     // Last time user typed anything
 let syncInterval = 2 * 60 * 1000; // 2 minutes
 let idleReturnThreshold = syncInterval * 2; // 4 minutes = “user returned”
 let lastSyncedHash = localStorage.getItem("lastSyncedHash") || null;
+let syncEnabled = JSON.parse(localStorage.getItem("syncEnabled") ?? "true");
 export let syncIntervalId = null;
 let isSaving = false;
 let lastActivityTime = Date.now(); 
@@ -84,8 +85,14 @@ async function getCurrentWorkspaceGist() {
 
 export async function startSyncLoop() {
     logger.debug("sync", "Running startSyncLoop()");
+
+    if (!syncEnabled) {
+        logger.info("sync: startSyncLoop", "startSyncLoop() blocked — sync disabled");
+        return;
+    }
+
     if (syncIntervalId !== null) {
-        logger.warn("sync", "startSyncLoop() called but loop already running");
+        logger.warn("sync: startSyncLoop", "startSyncLoop() called but loop already running");
         return;
     }    
     try {
@@ -100,6 +107,12 @@ export async function startSyncLoop() {
         return null;
     }        
 }
+
+export function setSyncEnabled(value) {
+    syncEnabled = value;
+    localStorage.setItem("syncEnabled", JSON.stringify(value));
+}
+
 
 export function stopSyncLoop() {
     logger.debug("sync", "Running stopSyncLoop()");
@@ -213,6 +226,11 @@ function connectToGitHub() {
 
 export async function runSyncCheck(reason) {
     logger.info("sync: runSyncCheck", `Running sync check (reason: ${reason})`);
+
+    if (!syncEnabled) {
+        logger.debug("sync", `runSyncCheck(${reason}) skipped — sync disabled`);
+        return;
+    }
 
     const token = getToken();
     let gistId = getGistId();
@@ -453,6 +471,11 @@ export async function computeWorkspaceHash(flat) {
 
 export async function reconcileLocalAndCloud(localTree) {
     logger.debug("sync", "Running reconcileLocalAndCloud()");
+
+    if (!syncEnabled) {
+        logger.debug("sync: reconcileLocalAndCloud", "reconcileLocalAndCloud() skipped — sync disabled");
+        return;
+    }
 
     // SAFETY FIX:
     // Do NOT convert null → [].
