@@ -321,6 +321,8 @@ export function inflateWorkspace(flatList) {
 
     // First pass: collect folder entries so we can assign IDs later
     for (const entry of flatList) {
+        logger.debug("workspace: inflateWorkspace", "ENTRY:", JSON.stringify(entry));
+
         if (entry.type === "folder") {
             folderEntries.set(entry.path, entry);
         }
@@ -333,7 +335,16 @@ export function inflateWorkspace(flatList) {
         if (!entry || !entry.path) continue;
 
         const parts = entry.path.split("___").map(decodeName);
-        const isFile = entry.type === "file";
+        logger.debug("workspace: inflateWorkspace", "Decoded parts:", parts);
+
+        const lastPart = parts[parts.length - 1];
+        const isFile = /\.(md|puml)$/i.test(lastPart);
+
+        logger.debug("workspace: inflateWorkspace", 
+            "lastPart:", lastPart, 
+            "isFile:", isFile
+        );
+
 
         let current = root;
         let currentPath = "";
@@ -350,6 +361,11 @@ export function inflateWorkspace(flatList) {
             let node = pathMap.get(currentPath);
 
             if (!node) {
+                logger.debug("workspace: inflateWorkspace", 
+                    "CREATING NODE", 
+                    { part, isFileNode, isFile, entryId: entry.id }
+                );
+
                 if (isFileNode) {
                     // ------------------------------------------------------------
                     // FILE NODE — ID comes directly from the file entry
