@@ -961,7 +961,9 @@ export async function loadWorkspaceFromGist() {
         for (const m of metadata) {
             if (m && m.path) {
                 // Use your existing encoder so metadata paths match gist filenames
-                const encodedPath = encodeName(m.path);
+                const parts = m.path.split("___");
+                const encodedPath = encodeName(parts[0]) + "___" + encodeName(parts[1]);
+
                 metaMap.set(encodedPath, m);
             }
         }
