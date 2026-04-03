@@ -959,14 +959,17 @@ export async function loadWorkspaceFromGist() {
         const metaMap = new Map();
 
         for (const m of metadata) {
-            if (m && m.path) {
-                // Use your existing encoder so metadata paths match gist filenames
-                const parts = m.path.split("___");
-                const encodedPath = encodeName(parts[0]) + "___" + encodeName(parts[1]);
+            if (!m || !m.path) continue;
 
-                metaMap.set(encodedPath, m);
-            }
+            // m.path is the *decoded* workspace path, e.g. "_App___Bugs.md"
+            // We need to encode each segment exactly like flattenWorkspace does
+            const parts = m.path.split("___");          // ["_App", "Bugs.md"]
+            const encodedParts = parts.map(encodeName); // ["__UNDERSCORE__App", "Bugs.md"]
+            const encodedPath = encodedParts.join("___"); // "__UNDERSCORE__App___Bugs.md"
+
+            metaMap.set(encodedPath, m);
         }
+
 
         logger.debug("sync: loadWorkspaceFromGist", "Metadata map keys:", Array.from(metaMap.keys()));
 
