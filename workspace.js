@@ -708,7 +708,7 @@ function migrateNode(node) {
     if (!("isPublic" in node)) node.isPublic = false;
     if (!("publicId" in node)) node.publicId = null;
     if (!("publicAt" in node)) node.publicAt = null;
-    if (!("updatedAt" in node)) node.updatedAt = Date.now();
+    if (!("updatedAt" in node)) node.updatedAt = null;
 
     // Future features
     /*
