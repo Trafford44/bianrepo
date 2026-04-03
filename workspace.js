@@ -306,7 +306,6 @@ export function inflateWorkspace(flatList) {
     logger.debug("workspace", "Running inflateWorkspace()");
     logger.debug("workspace", "inflateWorkspace input:", flatList);
 
-    // Root of the reconstructed tree
     const root = [];
 
     if (!Array.isArray(flatList)) {
@@ -314,14 +313,27 @@ export function inflateWorkspace(flatList) {
         return root;
     }
 
-    // Map from path → node for quick lookup
-    const pathMap = new Map();
+    // ------------------------------------------------------------
+    // Maps for deterministic reconstruction
+    // ------------------------------------------------------------
+    const pathMap = new Map();          // canonicalPath → node
+    const folderEntries = new Map();    // folderPath → folder entry from flatList
 
+    // First pass: collect folder entries so we can assign IDs later
+    for (const entry of flatList) {
+        if (entry.type === "folder") {
+            folderEntries.set(entry.path, entry);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // MAIN PASS: build the tree structure
+    // ------------------------------------------------------------
     for (const entry of flatList) {
         if (!entry || !entry.path) continue;
 
         const parts = entry.path.split("___").map(decodeName);
-        const isFile = parts[parts.length - 1].match(/\.(md|puml)$/i);
+        const isFile = entry.type === "file";
 
         let current = root;
         let currentPath = "";
@@ -335,29 +347,39 @@ export function inflateWorkspace(flatList) {
 
             currentPath = currentPath ? `${currentPath}___${part}` : part;
 
-            // Check if we already created this node
             let node = pathMap.get(currentPath);
 
             if (!node) {
                 if (isFileNode) {
+                    // ------------------------------------------------------------
+                    // FILE NODE — ID comes directly from the file entry
+                    // ------------------------------------------------------------
                     logger.debug("workspace: inflateWorkspace", "inflateWorkspace processing file. isFileNode: ", isFileNode);
                     logger.debug("workspace: inflateWorkspace", "File entry.id: ", entry.id);
-                    // FILE NODE — preserve ID from flatList
+
                     node = {
-                        id: entry.id,              // ← CRITICAL: preserve ID
+                        id: entry.id,
                         type: "file",
                         name: part,
-                        content: entry.content || ""
+                        content: entry.content || "",
+                        isPublic: entry.isPublic || false,
+                        publicId: entry.publicId || null,
+                        publicAt: entry.publicAt || null
                     };
+
                 } else {
-                    // FOLDER NODE — preserve ID from flatList
+                    // ------------------------------------------------------------
+                    // FOLDER NODE — ID assigned later in second pass
+                    // ------------------------------------------------------------
                     logger.debug("workspace: inflateWorkspace", "inflateWorkspace processing folder. isFileNode:", isFileNode);
                     logger.debug("workspace: inflateWorkspace", "Folder entry.id: ", entry.id);
+
                     node = {
-                        id: entry.id,              // ← CRITICAL: preserve ID
+                        id: null,          // IMPORTANT: do NOT assign file IDs here
                         type: "folder",
                         name: part,
-                        children: []
+                        children: [],
+                        isOpen: false
                     };
                 }
 
@@ -371,11 +393,22 @@ export function inflateWorkspace(flatList) {
                 id: node.id,
                 path: currentPath
             });
-            
+
             // Descend into folder children
             if (!isFileNode) {
                 current = node.children;
             }
+        }
+    }
+
+    // ------------------------------------------------------------
+    // SECOND PASS: assign folder IDs from folderEntries
+    // ------------------------------------------------------------
+    for (const [folderPath, entry] of folderEntries.entries()) {
+        const node = pathMap.get(folderPath);
+        if (node) {
+            node.id = entry.id;          // Correct folder ID
+            node.isOpen = !!entry.isOpen;
         }
     }
 
