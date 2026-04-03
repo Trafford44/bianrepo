@@ -4,6 +4,7 @@ import { loadState, migrateWorkspace, setWorkspace, saveState, inflateWorkspace 
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud, loadWorkspaceFromGist,  } from "./sync.js";
 import { logger } from "./logger.js";
+import { updateSyncToggleButton } from "./binding.js";
 
 /* it's critical that the order remains as below
 This ensures:
@@ -92,6 +93,15 @@ async function init() {
         bindVisibilityEvents();
         logger.debug("app: init()", "Running sync.bindActivityEvents()");
         bindActivityEvents();
+
+        // ------------------------------------------------------------
+        // 4.5.5 Sync disabled? Update UI and skip starting loop
+        // ------------------------------------------------------------
+        if (!getSyncEnabled()) {
+            logger.info("app: init()", "Sync disabled at startup — skipping sync loop");
+            updateSyncToggleButton();
+            // Do NOT return — continue with UI setup
+        } 
 
         // ------------------------------------------------------------
         // 5. Start sync loop ONLY if token + gistId exist
