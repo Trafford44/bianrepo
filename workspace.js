@@ -171,7 +171,7 @@ export function createFolder(name) {
         isPublic: false,
         publicId: null,
         publicAt: null,
-        updatedAt: Date.now()
+        //updatedAt: Date.now()
     };
 }
 
@@ -191,7 +191,7 @@ export function createFile(name, content = "") {
         isPublic: false,
         publicId: null,
         publicAt: null,
-        updatedAt: Date.now(),
+        //updatedAt: Date.now(),
 
         // Future features
         backlinks: [],
@@ -708,7 +708,7 @@ function migrateNode(node) {
     if (!("isPublic" in node)) node.isPublic = false;
     if (!("publicId" in node)) node.publicId = null;
     if (!("publicAt" in node)) node.publicAt = null;
-    if (!("updatedAt" in node)) node.updatedAt = null;
+    //if (!("updatedAt" in node)) node.updatedAt = null;
 
     // Future features
     /*
