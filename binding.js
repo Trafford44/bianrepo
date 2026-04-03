@@ -1,6 +1,6 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportFile, deleteFile, addFolder} from "./ui.js";
-import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled } from "./sync.js";
+import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled } from "./sync.js";
 import { logger } from "./logger.js";
 import { clearToken } from "./auth.js";
 
@@ -194,8 +194,10 @@ export function updateSyncToggleButton() {
     const btn = document.getElementById("sync-toggle-btn");
     if (!btn) return;
 
+    const enabled = getSyncEnabled();
+
     // If sync is disabled, always show "Start Sync"
-    if (!syncEnabled) {
+    if (!enabled) {
         btn.textContent = "Start Sync";
         btn.classList.add("sync-stopped");
         btn.classList.remove("sync-running");
