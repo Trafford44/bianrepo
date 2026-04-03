@@ -1,10 +1,19 @@
 import { handleOAuthRedirect, bindLoginButton, getToken, getGistId } from "./auth.js";
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, loadFile } from "./ui.js";
-import { loadState, migrateWorkspace, setWorkspace, saveState, inflateWorkspace } from "./workspace.js";
+import { loadState, migrateWorkspace, setWorkspace, getWorkspace, saveState, inflateWorkspace } from "./workspace.js";
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud, loadWorkspaceFromGist, getSyncEnabled } from "./sync.js";
 import { logger } from "./logger.js";
 import { updateSyncToggleButton } from "./binding.js";
+
+// Debug helpers (only used in DevTools)
+window.debug = {
+    loadState,
+    saveState,
+    getWorkspace,
+    setWorkspace
+};
+
 
 /* it's critical that the order remains as below
 This ensures:
