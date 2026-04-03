@@ -628,8 +628,8 @@ async function getLatestWorkspaceGistMeta() {
             updatedAt: data.updated_at,
             hash: cloudHash,
             files: Object.keys(data.files)
-        };localStorage.clear();
-
+        };
+        
     } catch (err) {
         logger.error("sync: getLatestWorkspaceGistMeta", "Network or fetch error", err);
         return null;
@@ -959,8 +959,8 @@ export async function loadWorkspaceFromGist() {
                     id: m.id,
                     isPublic: m.isPublic ?? false,
                     publicId: m.publicId ?? null,
-                    publicAt: m.publicAt ?? null,
-                    updatedAt: m.updatedAt ?? Date.now()
+                    publicAt: m.publicAt ?? null
+                    //updatedAt: m.updatedAt ?? Date.now()
                 });
                 logger.debug("sync: loadWorkspaceFromGist", "Pushed to flat (folder): ", flat[flat.length - 1]);
             }
@@ -1018,7 +1018,7 @@ export async function loadWorkspaceFromGist() {
             entry.isPublic  = meta?.isPublic  ?? entry.isPublic ?? false;
             entry.publicId  = meta?.publicId  ?? entry.publicId ?? null;
             entry.publicAt  = meta?.publicAt  ?? entry.publicAt ?? null;
-            entry.updatedAt = meta?.updatedAt ?? entry.updatedAt ?? Date.now();
+            //entry.updatedAt = meta?.updatedAt ?? entry.updatedAt ?? Date.now();
         }
 
 
