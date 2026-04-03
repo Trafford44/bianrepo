@@ -1,6 +1,6 @@
 import { handleOAuthRedirect, bindLoginButton, getToken, getGistId } from "./auth.js";
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, loadFile } from "./ui.js";
-import { loadState, migrateWorkspace, setWorkspace, getWorkspace, saveState, inflateWorkspace } from "./workspace.js";
+import { loadState, migrateWorkspace, setWorkspace, getWorkspace, saveState, inflateWorkspace, createEmptyWorkspace } from "./workspace.js";
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud, loadWorkspaceFromGist, getSyncEnabled } from "./sync.js";
 import { logger } from "./logger.js";
