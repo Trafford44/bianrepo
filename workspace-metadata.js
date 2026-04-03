@@ -77,7 +77,7 @@ export function extractMetadata(nodes) {
                 entry.isPublic = !!node.isPublic;
                 entry.publicId = node.publicId || null;
                 entry.publicAt = node.publicAt || null;
-                entry.updatedAt = node.updatedAt || null;
+                //entry.updatedAt = node.updatedAt || null;
 
                 meta.push(entry);
             }
@@ -133,7 +133,7 @@ export function applyMetadata(tree, metadata) {
                     node.isPublic = !!meta.isPublic;
                     node.publicId = meta.publicId || null;
                     node.publicAt = meta.publicAt || null;
-                    node.updatedAt = meta.updatedAt || null;
+                    //node.updatedAt = meta.updatedAt || null;
                 }
             }
 
@@ -146,4 +146,3 @@ export function applyMetadata(tree, metadata) {
     walk(tree);
 }
 
- 
