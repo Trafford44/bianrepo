@@ -748,7 +748,7 @@ function isFileNode(node) {
     return node && node.type === "file" && typeof node.content === "string";
 }
 
-function encodeName(name) {
+export function encodeName(name) {
     logger.debug("workspace: encodeName", `IN:  ${name}`);
 
     const out = name
