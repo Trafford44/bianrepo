@@ -350,7 +350,7 @@ export function inflateWorkspace(flatList) {
                 } else {
                     // FOLDER NODE — preserve ID from flatList
                     node = {
-                        id: ntll,              // ← CRITICAL: preserve ID
+                        id: null,              // ← CRITICAL: preserve ID
                         type: "folder",
                         name: part,
                         children: []
