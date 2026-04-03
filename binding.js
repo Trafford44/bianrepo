@@ -1,6 +1,6 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportFile, deleteFile, addFolder} from "./ui.js";
-import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId } from "./sync.js";
+import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled } from "./sync.js";
 import { logger } from "./logger.js";
 import { clearToken } from "./auth.js";
 
@@ -158,7 +158,13 @@ export function bindToolbarEvents(textarea) {
     document.getElementById("export-btn")?.addEventListener("click", () => exportFile());
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
     document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
-    document.getElementById("sync-toggle-btn")?.addEventListener("click", () => {toggleSyncLoop();  updateSyncToggleButton();});
+    document.getElementById("sync-toggle-btn")?.addEventListener("click", () => {
+        const turningOn = (syncIntervalId === null);
+        toggleSyncLoop();          // start or stop the loop
+        setSyncEnabled(turningOn); // persist the new state
+        updateSyncToggleButton();  // update UI
+    });
+
 
 
     // Zoom Buttons
@@ -188,15 +194,20 @@ export function updateSyncToggleButton() {
     const btn = document.getElementById("sync-toggle-btn");
     if (!btn) return;
 
-    if (syncIntervalId === null) {
+    // If sync is disabled, always show "Start Sync"
+    if (!syncEnabled) {
         btn.textContent = "Start Sync";
         btn.classList.add("sync-stopped");
         btn.classList.remove("sync-running");
-    } else {
-        btn.textContent = "Stop Sync";
-        btn.classList.add("sync-running");
-        btn.classList.remove("sync-stopped");
+        return;
     }
+
+    // Sync enabled → reflect actual loop state
+    const running = syncIntervalId !== null;
+
+    btn.textContent = running ? "Stop Sync" : "Start Sync";
+    btn.classList.toggle("sync-running", running);
+    btn.classList.toggle("sync-stopped", !running);
 }
 
 export function bindPopupEvents(textarea) {
