@@ -102,7 +102,7 @@ export function saveState() {
 }
 
 export function loadState() {
-    logger.debug("workspace", "loadState()");
+    logger.debug("workspace", "Running loadState()");
     const saved = localStorage.getItem(STORAGE_KEY);
 
     if (!saved) {
@@ -748,14 +748,26 @@ function isFileNode(node) {
     return node && node.type === "file" && typeof node.content === "string";
 }
 
-export function encodeName(name) {
-    return name
+function encodeName(name) {
+    logger.debug("workspace: encodeName", `IN:  ${name}`);
+
+    const out = name
         .replace(/___/g, "__TRIPLE__")
         .replace(/_/g, "__UNDERSCORE__");
+
+    logger.debug("workspace: encodeName", `OUT: ${out}`);
+    return out;
 }
 
+
 function decodeName(name) {
-    return name
+    logger.debug("workspace: decodeName", `IN:  ${name}`);
+
+    const out = name
         .replace(/__UNDERSCORE__/g, "_")
         .replace(/__TRIPLE__/g, "___");
+
+    logger.debug("workspace: decodeName", `OUT: ${out}`);
+    return out;
 }
+
