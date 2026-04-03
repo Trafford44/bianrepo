@@ -7,7 +7,7 @@ Timestamps are used only for idle-return and auto-save timing.
 
 
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
-import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName } from "./workspace.js";
+import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName } from "./workspace.js";
 import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
 import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
@@ -954,21 +954,17 @@ export async function loadWorkspaceFromGist() {
         }
 
         // ------------------------------------------------------------
-        // 4. Build metadata lookup map (normalized paths)
+        // 4. Build metadata lookup map (decoded paths)
         // ------------------------------------------------------------
         const metaMap = new Map();
 
         for (const m of metadata) {
             if (!m || !m.path) continue;
 
-            // m.path is the *decoded* workspace path, e.g. "_App___Bugs.md"
-            // We need to encode each segment exactly like flattenWorkspace does
-            const parts = m.path.split("___");          // ["_App", "Bugs.md"]
-            const encodedParts = parts.map(encodeName); // ["__UNDERSCORE__App", "Bugs.md"]
-            const encodedPath = encodedParts.join("___"); // "__UNDERSCORE__App___Bugs.md"
-
-            metaMap.set(encodedPath, m);
+            // m.path is already decoded, e.g. "_App___Bugs.md"
+            metaMap.set(m.path, m);
         }
+
 
 
         logger.debug("sync: loadWorkspaceFromGist", "Metadata map keys:", Array.from(metaMap.keys()));
@@ -978,12 +974,17 @@ export async function loadWorkspaceFromGist() {
         // 5. Merge metadata into flat entries
         // ------------------------------------------------------------
         for (const entry of flat) {
-            const meta = metaMap.get(entry.path);
+            if (!entry || !entry.path) continue;
+
+            // entry.path is encoded → decode it to match metadata paths
+            const decodedFlatPath = decodeName(entry.path);
+
+            const meta = metaMap.get(decodedFlatPath);
 
             if (meta) {
-                logger.debug("sync: loadWorkspaceFromGist", "Merging metadata for:", entry.path, meta);
+                logger.debug("sync: loadWorkspaceFromGist", "Merging metadata for:", decodedFlatPath, meta);
             } else {
-                logger.warn("sync: loadWorkspaceFromGist", "No metadata found for:", entry.path);
+                logger.warn("sync: loadWorkspaceFromGist", "No metadata found for:", decodedFlatPath);
             }
 
             entry.id        = meta?.id        ?? entry.id ?? null;
@@ -992,6 +993,7 @@ export async function loadWorkspaceFromGist() {
             entry.publicAt  = meta?.publicAt  ?? entry.publicAt ?? null;
             entry.updatedAt = meta?.updatedAt ?? entry.updatedAt ?? Date.now();
         }
+
 
         // ------------------------------------------------------------
         // 6. Final debug summary
