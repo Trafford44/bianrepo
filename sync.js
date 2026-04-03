@@ -109,6 +109,7 @@ export async function startSyncLoop() {
 }
 
 export function setSyncEnabled(value) {
+    logger.debug("sync", "Running setSyncEnabled().  value: ", value);
     syncEnabled = value;
     localStorage.setItem("syncEnabled", JSON.stringify(value));
 }
