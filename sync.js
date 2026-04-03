@@ -924,6 +924,7 @@ export async function loadWorkspaceFromGist() {
                     publicAt: m.publicAt ?? null,
                     updatedAt: m.updatedAt ?? Date.now()
                 });
+                logger.debug("sync: loadWorkspaceFromGist", "Pushed to flat (folder): ", flat[flat.length - 1]);
             }
         }
 
@@ -937,6 +938,7 @@ export async function loadWorkspaceFromGist() {
                 path: filename,
                 content: files[filename].content || ""
             });
+            logger.debug("sync: loadWorkspaceFromGist", "Pushed to flat (file): ", flat[flat.length - 1]);
         }
 
         // ------------------------------------------------------------
@@ -949,7 +951,7 @@ export async function loadWorkspaceFromGist() {
             }
         }
 
-        logger.debug("sync", "Metadata map keys:", Array.from(metaMap.keys()));
+        logger.debug("sync: loadWorkspaceFromGist", "Metadata map keys:", Array.from(metaMap.keys()));  // !! returns empty array
 
         // ------------------------------------------------------------
         // 5. Merge metadata into flat entries
@@ -958,9 +960,9 @@ export async function loadWorkspaceFromGist() {
             const meta = metaMap.get(entry.path);
 
             if (meta) {
-                logger.debug("sync", "Merging metadata for:", entry.path, meta);
+                logger.debug("sync: loadWorkspaceFromGist", "Merging metadata for:", entry.path, meta);
             } else {
-                logger.warn("sync", "No metadata found for:", entry.path);
+                logger.warn("sync: loadWorkspaceFromGist", "No metadata found for:", entry.path);
             }
 
             entry.id        = meta?.id        ?? entry.id ?? null;
