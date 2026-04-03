@@ -7,7 +7,7 @@ Timestamps are used only for idle-return and auto-save timing.
 
 
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
-import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace } from "./workspace.js";
+import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName } from "./workspace.js";
 import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
 import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
@@ -954,16 +954,20 @@ export async function loadWorkspaceFromGist() {
         }
 
         // ------------------------------------------------------------
-        // 4. Build metadata lookup map
+        // 4. Build metadata lookup map (normalized paths)
         // ------------------------------------------------------------
         const metaMap = new Map();
+
         for (const m of metadata) {
             if (m && m.path) {
-                metaMap.set(m.path, m);
+                // Use your existing encoder so metadata paths match gist filenames
+                const encodedPath = encodeName(m.path);
+                metaMap.set(encodedPath, m);
             }
         }
 
-        logger.debug("sync: loadWorkspaceFromGist", "Metadata map keys:", Array.from(metaMap.keys()));  // !! returns empty array
+        logger.debug("sync: loadWorkspaceFromGist", "Metadata map keys:", Array.from(metaMap.keys()));
+
 
         // ------------------------------------------------------------
         // 5. Merge metadata into flat entries
