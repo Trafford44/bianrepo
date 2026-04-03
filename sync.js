@@ -893,14 +893,24 @@ export async function loadWorkspaceFromGist() {
         // 1. Parse metadata file
         // ------------------------------------------------------------
         let metadata = [];
+
         if (files["__workspace.json"]) {
             try {
-                metadata = JSON.parse(files["__workspace.json"].content);
+                const parsed = JSON.parse(files["__workspace.json"].content);
+
+                // NEW: extract nodes array
+                if (Array.isArray(parsed.nodes)) {
+                    metadata = parsed.nodes;
+                } else {
+                    metadata = [];
+                }
+
             } catch (err) {
                 logger.error("sync: loadWorkspaceFromGist", "Failed to parse metadata", err);
                 metadata = [];
             }
         }
+
 
         if (!Array.isArray(metadata)) {
             metadata = [metadata];
@@ -928,8 +938,8 @@ export async function loadWorkspaceFromGist() {
                 logger.debug("sync: loadWorkspaceFromGist", "Pushed to flat (folder): ", flat[flat.length - 1]);
             }
         }
-        logger.debug("sync: loadWorkspaceFromGist", "Flat (folders):", flat);
-        
+        logger.debug("sync: loadWorkspaceFromGist", "Flat (folders): ", flat);
+
         // ------------------------------------------------------------
         // 3. Add file entries SECOND
         // ------------------------------------------------------------
