@@ -914,6 +914,7 @@ export async function loadWorkspaceFromGist() {
         const flat = [];
 
         for (const m of metadata) {
+            logger.debug("sync: loadWorkspaceFromGist", "Push to flat if folder. m of metadata: ", m.id,m.type,m.path);
             if (m.type === "folder") {
                 flat.push({
                     path: m.path,
