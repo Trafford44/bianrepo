@@ -302,15 +302,25 @@ export function flattenWorkspace(tree) {
     return output;
 }
 
+function getCallerName() {
+  const stack = new Error().stack;
+  if (!stack) return "unknown";
+
+  const line = stack.split("\n")[2];
+
+  const match = line.match(/at (\S+)/);
+  return match ? match[1] : "unknown";
+}
+
 export function inflateWorkspace(flatList) {
-    logger.debug("workspace", "Running inflateWorkspace()");
+    logger.debug("workspace", "Running inflateWorkspace().  CALLED BY: " + getCallerName());
     logger.debug("workspace", "inflateWorkspace input:", flatList);
 
     // Root of the reconstructed tree
     const root = [];
 
     if (!Array.isArray(flatList)) {
-        logger.error("workspace", "inflateWorkspace received non-array:", flatList);
+        logger.error("workspace: inflateWorkspace", "inflateWorkspace received non-array:", flatList);
         return root;
     }
 
@@ -326,12 +336,14 @@ export function inflateWorkspace(flatList) {
         let current = root;
         let currentPath = "";
 
+        logger.debug("workspace: inflateWorkspace", "Array length: ", parts.length);
         for (let i = 0; i < parts.length; i++) {
+            logger.debug("workspace: inflateWorkspace", "Processing arrant item no: ", i);
             const part = parts[i];
             const isLast = i === parts.length - 1;
             const isFileNode = isLast && isFile;
 
-            logger.debug("workspace", "inflateWorkspace processing path:", entry.path);
+            logger.debug("workspace: inflateWorkspace", "inflateWorkspace processing path:", entry.path);
 
             currentPath = currentPath ? `${currentPath}___${part}` : part;
 
@@ -339,6 +351,8 @@ export function inflateWorkspace(flatList) {
             let node = pathMap.get(currentPath);
 
             if (!node) {
+                logger.debug("workspace: inflateWorkspace", "New node found: ", entry.path);
+
                 if (isFileNode) {
                     logger.debug("workspace: inflateWorkspace", "inflateWorkspace processing file. isFileNode: ", isFileNode);
                     logger.debug("workspace: inflateWorkspace", "File entry.id: ", entry.id);
@@ -374,6 +388,7 @@ export function inflateWorkspace(flatList) {
             
             // Descend into folder children
             if (!isFileNode) {
+                logger.debug("workspace: inflateWorkspace", "Process children: ", node.children);
                 current = node.children;
             }
         }
