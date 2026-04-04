@@ -101,7 +101,9 @@ export async function startSyncLoop() {
     try {
         await runSyncCheck("startup");
         logger.info("startSyncLoop called");
+        // setup the “sync loop timer” This is the heartbeat that keeps the local and cloud workspaces in sync. It runs every 2 minutes, but only triggers a sync if something has changed in the cloud (or if we’ve been idle for a while and returned).
         syncIntervalId = setInterval(async () => {
+            logger.debug("sync: startSyncLoop", "Periodic sync loop setup that fires runSyncCheck()");
             await runSyncCheck("periodic");
         }, syncInterval);
         updateSyncToggleButton();
@@ -233,7 +235,7 @@ function connectToGitHub() {
 }
 
 export async function runSyncCheck(reason) {
-    logger.info("sync", "Running runSyncCheck. CALLED BY: " + getCallerName("bindActivityEvents")," (reason: " + reason + ")");
+    logger.info("sync", "Running runSyncCheck. CALLED BY: " + getCallerName("runSyncCheck")," (reason: " + reason + ")");
 
     if (!syncEnabled) {
         logger.debug("sync", `runSyncCheck(${reason}) skipped — sync disabled`);
@@ -349,6 +351,8 @@ function updateSyncState() {
 
 async function handleCloudChange(latest, idleReturn) {
     logger.debug("sync", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
+    logger.debug("sync: handleCloudChange", `cloudChangeHandled = ${window.__cloudChangeHandled}`);
+
 
     // Prevent duplicate dialogs or duplicate cloud-apply
     if (cloudChangeHandled) {
