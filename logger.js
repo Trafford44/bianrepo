@@ -10,6 +10,7 @@ const LOG_LEVELS = {
   DEBUG: 5
 };
 
+let LOG_ENTRY_COUNTER = 0;
 
 // Change this per module if you want different log levels for different parts of the app
 let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
@@ -30,7 +31,8 @@ function log(levelName, levelValue, source, message, details, options = {}) {
   };
 
   const style = colours[levelName] || "color: inherit";
-  const header = `[${timestamp}] [${levelName}] [${source}]`;
+  const header = `#${++LOG_ENTRY_COUNTER} [${timestamp}] [${levelName}] [${source}]`;
+
 
   // If multiline formatting is requested
   if (options.multiline) {
@@ -54,6 +56,9 @@ function formatMultiline(text, { lineNumbers = false } = {}) {
 
   // Normalize newlines
   const lines = text.replace(/\r\n|\r/g, "\n").split("\n");
+
+
+Copy
 
   if (lineNumbers) {
     return lines
