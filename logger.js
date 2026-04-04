@@ -12,7 +12,7 @@ const LOG_LEVELS = {
 
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.WATCH;
+let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
