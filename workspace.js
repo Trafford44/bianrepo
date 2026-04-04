@@ -302,7 +302,7 @@ export function flattenWorkspace(tree) {
     return output;
 }
 
-function getCallerName(currentFunctionName) {
+export function getCallerName(currentFunctionName) {
   const stack = new Error().stack;
   if (!stack) return "unknown";
 
