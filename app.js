@@ -32,6 +32,7 @@ export function hasOAuthCode() {
 }
 
 async function init() {
+    logger.debug("app: init()", "Running init()");
     try {
         // 1. Markdown renderer must be ready before any preview happens
         logger.debug("md-editor", "setupMarked()");
@@ -57,6 +58,7 @@ async function init() {
             logger.debug("app: init()", "Local workspace missing or empty → trying CLOUD");
 
             // 3.1 Try to load CLOUD workspace
+            // First inflate - Used to bootstrap the in-memory tree so the app can render UI and have something to work with.
             const cloud = await loadWorkspaceFromGist();
 
             if (cloud && Array.isArray(cloud.flat) && cloud.flat.length > 0) {
@@ -93,6 +95,8 @@ async function init() {
         // 4. Now that workspace is loaded, reconcile safely
         // ------------------------------------------------------------
         logger.debug("app: init()", "Running sync.reconcileLocalAndCloud()");
+        // Second inflate (from reconcileLocalAndCloud) - Used to validate and reconcile the local tree against cloud metadata.
+        // This is the safety layer that prevents: drift, corruption, partial loads, stale local state, mismatched IDs, mismatched paths
         await reconcileLocalAndCloud(migrated);
 
         // ------------------------------------------------------------
