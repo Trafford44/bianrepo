@@ -24,6 +24,7 @@ export let syncIntervalId = null;
 let isSaving = false;
 let lastActivityTime = Date.now(); 
 const IDLE_THRESHOLD = 30_000; // 30 seconds
+let cloudChangeHandled = false;
 
 // When we have paths populated, chane to using paths, so as to avoind duplicate files. So wil lbecome EXCLUSION_PATHS
 export const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
@@ -348,14 +349,22 @@ function updateSyncState() {
 
 async function handleCloudChange(latest, idleReturn) {
     logger.debug("sync", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
+
+    // Prevent duplicate dialogs or duplicate cloud-apply
+    if (cloudChangeHandled) {
+        logger.debug("sync: handleCloudChange", "Skipping handleCloudChange — already handled this session");
+        return;
+    }
+
     const now = Date.now();
     const recentlyTyped = (now - lastLocalEditTime) < 30_000;
-
     const countdown = recentlyTyped ? 30 : 10;
 
     showCountdownNotification({
         countdown,
         onConfirm: async () => {
+
+            cloudChangeHandled = true;   // <-- IMPORTANT
 
             // --- SAFETY GUARD: ensure we have a valid gist reference ---
             if (!latest || !latest.id) {
@@ -395,6 +404,7 @@ async function handleCloudChange(latest, idleReturn) {
         },
 
         onCancel: () => {
+            cloudChangeHandled = true;   // <-- IMPORTANT
             showNotification(
                 "warning",
                 "Cloud version is newer. Saving now will overwrite it."
