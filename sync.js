@@ -362,12 +362,14 @@ async function handleCloudChange(latest, idleReturn) {
     logger.debug("sync", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
     logger.debug("sync: handleCloudChange", `cloudChangeHandled = ${window.__cloudChangeHandled}`);
 
-
     // Prevent duplicate dialogs or duplicate cloud-apply
     if (window.__cloudChangeHandled) {
         logger.debug("sync: handleCloudChange", "Skipping handleCloudChange — already handled this session");
         return;
     }
+
+    // ⭐ IMPORTANT: Mark as handled *immediately* so no second dialog can appear
+    window.__cloudChangeHandled = true;
 
     const now = Date.now();
     const recentlyTyped = (now - lastLocalEditTime) < 30_000;
@@ -375,9 +377,9 @@ async function handleCloudChange(latest, idleReturn) {
 
     showCountdownNotification({
         countdown,
-        onConfirm: async () => {
 
-            window.__cloudChangeHandled = true;   // <-- IMPORTANT
+        onConfirm: async () => {
+            // (Guard already set above — do NOT move it back here)
 
             // --- SAFETY GUARD: ensure we have a valid gist reference ---
             if (!latest || !latest.id) {
@@ -417,7 +419,7 @@ async function handleCloudChange(latest, idleReturn) {
         },
 
         onCancel: () => {
-            window.__cloudChangeHandled = true;   // <-- IMPORTANT
+            // (Guard already set above — do NOT move it back here)
             showNotification(
                 "warning",
                 "Cloud version is newer. Saving now will overwrite it."
