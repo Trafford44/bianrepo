@@ -38,7 +38,7 @@
 import { updateLoginIndicator, showNotification } from "./ui.js";
 import { runSyncCheck, stopSyncLoop } from "./sync.js";
 import { deviceId } from "./device.js";
-import { logger } from "./logger.js";
+import { logger, getCallerName } from "./logger.js";
 
 logger.debug("auth","auth.js loaded from:", import.meta.url);
 
@@ -46,7 +46,7 @@ const GITHUB_CLIENT_ID = "Ov23likIpQOhuNITyTEh";
 const WORKER_URL = "https://round-rain-473a.richard-191.workers.dev";
 
 export function getToken() {
-    logger.debug("auth", "Running getToken()");
+    logger.debug("auth", "Running getToken(). CALLED BY: " + getCallerName("getToken"));
     try {
         logger.debug("auth", "getToken() reading key:", tokenKey());
         const t = localStorage.getItem(tokenKey());
@@ -61,6 +61,7 @@ export function getToken() {
 }
 
 export function clearToken() {
+    logger.debug("auth", "Running clearToken(). CALLED BY: " + getCallerName("clearToken"));
     try {
         localStorage.removeItem(`github_token_${String(deviceId)}`);
         localStorage.removeItem("gist_id");
@@ -73,11 +74,12 @@ export function clearToken() {
 }
 
 function tokenKey() {
+    logger.debug("auth", "Running tokenKey(). CALLED BY: " + getCallerName("tokenKey"));
     return `github_token_${String(deviceId)}`;
 }
 
 export function getGistId() {
-    logger.debug("auth", "Running getGistId()");
+    logger.debug("auth", "Running getGistId(). CALLED BY: " + getCallerName("getGistId"));
 
     try {    
         // Preferred new key
@@ -104,7 +106,7 @@ export function getGistId() {
 
 
 export function setGistId(id) {
-    logger.debug("auth", "Running setGistId()");
+    logger.debug("auth", "Running setGistId(). CALLED BY: " + getCallerName("setGistId"), "ID:", id);
 
     try {
         // Preferred new key (device-scoped)
@@ -121,7 +123,7 @@ export function setGistId(id) {
 
 
 export function requireLogin() {
-    logger.debug("auth", "Running requireLogin()");
+    logger.debug("auth", "Running requireLogin(). CALLED BY: " + getCallerName("requireLogin"));
     try {      
         const token = getToken();
         if (!token) {
@@ -137,11 +139,12 @@ export function requireLogin() {
 }
 // an alternative background sync logic that checks login state, without notifying teh user of outcome
 export function isLoggedIn() {
+    logger.debug("auth", "Running isLoggedIn(). CALLED BY: " + getCallerName("isLoggedIn"));
     return !!getToken();
 }
 
 export function bindLoginButton() {
-    logger.debug("auth: bindLoginButton", "Running bindLoginButton()");
+    logger.debug("auth: bindLoginButton", "Running bindLoginButton(). CALLED BY: " + getCallerName("bindLoginButton"));
     const btn = document.getElementById("github-login");
     if (!btn) {
         logger.info("auth: bindLoginButton", "Login button not found");
@@ -179,7 +182,7 @@ export function bindLoginButton() {
 
 
 export async function handleOAuthRedirect() {
-    logger.debug("auth", "Running handleOAuthRedirect()");
+    logger.debug("auth", "Running handleOAuthRedirect(). CALLED BY: " + getCallerName("handleOAuthRedirect"));
     try {      
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
