@@ -1,4 +1,4 @@
-import { logger } from "./logger.js";
+import { logger, getCallerName } from "./logger.js";
 
 let workspace = []
 const STORAGE_KEY = "kb_data";
@@ -307,31 +307,6 @@ export function flattenWorkspace(tree) {
     output.sort((a, b) => a.path.localeCompare(b.path));
 
     return output;
-}
-
-export function getCallerName(currentFunctionName) {
-  const stack = new Error().stack;
-  if (!stack) return "unknown";
-
-  const lines = stack.split("\n").map(l => l.trim());
-
-  // Remove the first line ("Error")
-  lines.shift();
-
-  for (const line of lines) {
-    const match = line.match(/at (\S+)/);
-    const fn = match ? match[1] : null;
-
-    if (!fn) continue;
-
-    // Skip internal / current function
-    if (fn.includes("getCallerName")) continue;
-    if (fn.includes(currentFunctionName)) continue;
-
-    return fn;
-  }
-
-  return "unknown";
 }
 
 export function inflateWorkspace(flatList) {
