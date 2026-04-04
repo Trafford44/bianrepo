@@ -12,7 +12,7 @@ const LOG_LEVELS = {
 
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
+let CURRENT_LEVEL = LOG_LEVELS.WATCH;
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
@@ -142,4 +142,30 @@ export function formatDateNZ() {
 
   return `${get("year")}-${get("month")}-${get("day")} `
        + `${get("hour")}:${get("minute")}:${get("second")} NZ`;
+}
+
+
+export function getCallerName(currentFunctionName) {
+  const stack = new Error().stack;
+  if (!stack) return "unknown";
+
+  const lines = stack.split("\n").map(l => l.trim());
+
+  // Remove the first line ("Error")
+  lines.shift();
+
+  for (const line of lines) {
+    const match = line.match(/at (\S+)/);
+    const fn = match ? match[1] : null;
+
+    if (!fn) continue;
+
+    // Skip internal / current function
+    if (fn.includes("getCallerName")) continue;
+    if (fn.includes(currentFunctionName)) continue;
+
+    return fn;
+  }
+
+  return "unknown";
 }
