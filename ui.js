@@ -1512,6 +1512,7 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
             const cancel = el.querySelector("#cancel-countdown");
             if (cancel) {
                 cancel.onclick = () => {
+                    logger.debug("ui: countdown", "User CANCELLED the countdown to sync with cloud");
                     clearInterval(countdownInterval);
                     el.classList.remove("show");
                     onCancel();
@@ -1535,6 +1536,7 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
             render();
 
             if (remaining <= 0) {
+                logger.debug("ui: countdown", "Countdown reached zero → AUTO-CONFIRM sync with cloud");
                 clearInterval(countdownInterval);
                 el.classList.remove("show");
                 onConfirm();
@@ -1544,7 +1546,16 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
     } catch (error) {
         logger.error("ui: showCountdownNotification", error);
         return;
-    }     
+    }
+    
+    // did the dialog is disappearing without calling onCancel or onConfirm. This can happen if the user clicks outside the dialog or presses Escape. In this case, we want to log a warning.
+    setTimeout(() => {
+        const isVisible = el.classList.contains("show");
+        if (!isVisible) {
+            logger.warn("ui: countdown", "Dialog closed WITHOUT confirm/cancel");
+        }
+    }, 0);
+    
 }
 
 
