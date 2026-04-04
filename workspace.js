@@ -302,18 +302,33 @@ export function flattenWorkspace(tree) {
     return output;
 }
 
-function getCallerName() {
+function getCallerName(currentFunctionName) {
   const stack = new Error().stack;
   if (!stack) return "unknown";
 
-  const line = stack.split("\n")[2];
+  const lines = stack.split("\n").map(l => l.trim());
 
-  const match = line.match(/at (\S+)/);
-  return match ? match[1] : "unknown";
+  // Remove the first line ("Error")
+  lines.shift();
+
+  for (const line of lines) {
+    const match = line.match(/at (\S+)/);
+    const fn = match ? match[1] : null;
+
+    if (!fn) continue;
+
+    // Skip internal / current function
+    if (fn.includes("getCallerName")) continue;
+    if (fn.includes(currentFunctionName)) continue;
+
+    return fn;
+  }
+
+  return "unknown";
 }
 
 export function inflateWorkspace(flatList) {
-    logger.debug("workspace", "Running inflateWorkspace().  CALLED BY: " + getCallerName());
+    logger.debug("workspace", "Running inflateWorkspace().  CALLED BY: " + getCallerName("inflateWorkspace"));
     logger.debug("workspace", "inflateWorkspace input:", flatList);
 
     // Root of the reconstructed tree
