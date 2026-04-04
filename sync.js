@@ -7,7 +7,7 @@ Timestamps are used only for idle-return and auto-save timing.
 
 
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
-import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName } from "./workspace.js";
+import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName, getCallerName } from "./workspace.js";
 import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
 import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
@@ -344,7 +344,7 @@ function updateSyncState() {
 }
 
 async function handleCloudChange(latest, idleReturn) {
-    logger.debug("sync", "Running handleCloudChange()");
+    logger.debug("sync", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
     const now = Date.now();
     const recentlyTyped = (now - lastLocalEditTime) < 30_000;
 
@@ -629,7 +629,7 @@ async function getLatestWorkspaceGistMeta() {
             hash: cloudHash,
             files: Object.keys(data.files)
         };
-        
+
     } catch (err) {
         logger.error("sync: getLatestWorkspaceGistMeta", "Network or fetch error", err);
         return null;
