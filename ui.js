@@ -1,7 +1,7 @@
 import { getToken, getGistId} from "./auth.js";
 import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
 import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState} from "./workspace.js";
-import { logger } from "./logger.js";
+import { logger, getCallerName } from "./logger.js";
 import { EXCLUSION_FILES } from "./sync.js";
 
 let saveTimer = null;
@@ -106,7 +106,7 @@ async function renderPuml(resolvedPuml) {
 
 
 export function initResizers() {
-    logger.debug("ui", "initResizers()");
+    logger.debug("ui", "Running initResizers(). CALLED BY: " + getCallerName("initResizers"));
     const sbResizer = document.getElementById("sidebar-resizer");
     const sidebar = document.getElementById("sidebar");
     const edResizer = document.getElementById("editor-resizer");
@@ -248,7 +248,7 @@ function logNodes(nodes, depth = 0) {
 }
 
 export function renderSidebar() {
-    logger.debug("ui", "renderSidebar()");
+    logger.debug("ui", "Running renderSidebar(). CALLED BY: " + getCallerName("renderSidebar"));
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
@@ -413,7 +413,7 @@ export function copyInternalLink(fileId) {
 
 
 export function duplicateFile(fileId) {
-    logger.debug("ui", "Running duplicateFile()");
+    logger.debug("ui", "Running duplicateFile(). CALLED BY: " + getCallerName("duplicateFile"));
 
     const tree = getWorkspace();
     const result = findNodeAndParent(tree, fileId);
@@ -504,7 +504,7 @@ export function createSubfolder(parentId) {
 
 
 export function loadFile(fileId) {
-    logger.debug("ui", "loadFile()");
+    logger.debug("ui", "Running loadFile(). CALLED BY: " + getCallerName("loadFile"));
     const tree = getWorkspace();
 
     logger.debug("ui", "loadFile searching for id:", fileId);
@@ -548,7 +548,7 @@ export function loadFile(fileId) {
 
 
 function commitWorkspace() {
-    logger.debug("ui", "commitWorkspace()");
+    logger.debug("ui", "Running commitWorkspace(). CALLED BY: " + getCallerName("commitWorkspace"));
     saveState();
     renderSidebar();
 }
@@ -613,7 +613,7 @@ export function deleteFolder(folderId) {
 
 
 export async function updatePreview() {
-    logger.debug("ui", "Running updatePreview()");
+    logger.debug("ui", "Running updatePreview(). CALLED BY: " + getCallerName("updatePreview"));
 
     const tree = getWorkspace();
     const file = findNodeById(tree, activeFileId);
@@ -912,7 +912,7 @@ function extractInlinePumlBlocks(text) {
 
 
 function getPumlRenderUrl(puml) {
-    logger.debug("ui", "Running getPumlRenderUrl()");
+    logger.debug("ui", "Running getPumlRenderUrl(). CALLED BY: " + getCallerName("getPumlRenderUrl"));
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
         logger.debug("ui: getPumlRenderUrl. Pre send to Plant: ",puml.trim());
@@ -928,7 +928,7 @@ function getPumlRenderUrl(puml) {
 async function renderPumlViaKroki(puml) {
     // 'Kroki is excellent because it is extremely stable and often uses the latest official releases rather than beta snapshots.'
     // renering is slower than PlantUML rendering
-    logger.debug("ui", "Running renderPumlViaKroki()");
+    logger.debug("ui", "Running renderPumlViaKroki(). CALLED BY: " + getCallerName("renderPumlViaKroki"));
     let res;
 
     try {
@@ -997,7 +997,7 @@ function openFileById(id) {
 }
 
 function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
-    logger.debug("ui: resolvePumlIncludes", "Starting include resolution");
+    logger.debug("ui: resolvePumlIncludes", "Starting include resolution. CALLED BY: " + getCallerName("resolvePumlIncludes"));
 
     try {
         // Matches any fenced code block: ``` ... ```
@@ -1267,7 +1267,7 @@ export function showNotification(type, text) {
 
 
 export function updateLoginIndicator() {
-    logger.debug("ui", "Running updateLoginIndicator()");
+    logger.debug("ui", "Running updateLoginIndicator(). CALLED BY: " + getCallerName("updateLoginIndicator"));
 
     // Update GitHub login button
     const loginBtn = document.getElementById("github-login");
@@ -1324,7 +1324,7 @@ export function updateLoginIndicator() {
 }
 
 export function bindEditorEvents() {
-    logger.debug("ui", "bindEditorEvents()");
+    logger.debug("ui", "Running bindEditorEvents(). CALLED BY: " + getCallerName("bindEditorEvents"));
     const textarea = document.getElementById("editor-textarea");
     if (!textarea) return;
 
@@ -1495,7 +1495,7 @@ document.getElementById("toggle-editor").addEventListener("click", () => {
 
 
 export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
-    logger.debug("ui", "showCountdownNotification()");
+    logger.debug("ui", "Running showCountdownNotification(). CALLED BY: " + getCallerName("showCountdownNotification"));
     const el = document.getElementById("notification");
     if (!el) {
         logger.info("ui: showCountdownNotification", "Couldn't find element 'notification'");
