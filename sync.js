@@ -13,6 +13,11 @@ import { logger, LOG_LEVELS, formatDateNZ, getCallerName } from "./logger.js";
 import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
 import { updateSyncToggleButton } from "./binding.js";
 
+// Global guard to survive circular imports and module reloads
+if (window.__cloudChangeHandled === undefined) {
+    window.__cloudChangeHandled = false;
+}
+
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
@@ -355,7 +360,7 @@ async function handleCloudChange(latest, idleReturn) {
 
 
     // Prevent duplicate dialogs or duplicate cloud-apply
-    if (cloudChangeHandled) {
+    if (window.__cloudChangeHandled) {
         logger.debug("sync: handleCloudChange", "Skipping handleCloudChange — already handled this session");
         return;
     }
@@ -368,7 +373,7 @@ async function handleCloudChange(latest, idleReturn) {
         countdown,
         onConfirm: async () => {
 
-            cloudChangeHandled = true;   // <-- IMPORTANT
+            window.__cloudChangeHandled = true;   // <-- IMPORTANT
 
             // --- SAFETY GUARD: ensure we have a valid gist reference ---
             if (!latest || !latest.id) {
@@ -408,7 +413,7 @@ async function handleCloudChange(latest, idleReturn) {
         },
 
         onCancel: () => {
-            cloudChangeHandled = true;   // <-- IMPORTANT
+            window.__cloudChangeHandled = true;   // <-- IMPORTANT
             showNotification(
                 "warning",
                 "Cloud version is newer. Saving now will overwrite it."
