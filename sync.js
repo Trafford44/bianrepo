@@ -15,8 +15,12 @@ import { updateSyncToggleButton } from "./binding.js";
 
 // Global guard to survive circular imports and module reloads
 if (window.__cloudChangeHandled === undefined) {
+    logger.warn("sync: guard-init", "__cloudChangeHandled was undefined → initializing to false");
     window.__cloudChangeHandled = false;
+} else {
+    logger.debug("sync: guard-init", `__cloudChangeHandled already exists: ${window.__cloudChangeHandled}`);
 }
+
 
 
 let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
