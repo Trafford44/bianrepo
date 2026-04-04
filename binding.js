@@ -1,14 +1,14 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportFile, deleteFile, addFolder} from "./ui.js";
 import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled } from "./sync.js";
-import { logger } from "./logger.js";
+import { logger, getCallerName } from "./logger.js";
 import { clearToken } from "./auth.js";
 
 logger.debug("binding","binding.js loaded from:", import.meta.url);
 
 export function bindSmartKeyboardEvents(textarea) {
 
-    logger.debug("binding", "bindSmartKeyboardEvents()");
+    logger.debug("binding", "bindSmartKeyboardEvents(). CALLED BY: " + getCallerName("bindSmartKeyboardEvents"));
     textarea.addEventListener("input", (e) => {
         if (e.isTrusted) {  // only true for real user input
             markLocalEdit();
@@ -80,7 +80,7 @@ export function bindSmartKeyboardEvents(textarea) {
 }
 
 export function bindGlobalShortcuts(textarea) {
-    logger.debug("binding", "bindGlobalShortcuts()");
+    logger.debug("binding", "bindGlobalShortcuts(). CALLED BY: " + getCallerName("bindGlobalShortcuts"));
     document.addEventListener("keydown", (e) => {
         const isCmd = e.metaKey || e.ctrlKey;
 
@@ -135,7 +135,7 @@ export function getCurrentLine(textarea) {
 
 
 export function bindScrollSync(textarea) {
-    logger.debug("binding", "bindScrollSync()");
+    logger.debug("binding", "bindScrollSync(). CALLED BY: " + getCallerName("bindScrollSync"));
     textarea.addEventListener("scroll", () => {
         const preview = document.getElementById("preview-pane");
         const maxEditor = textarea.scrollHeight - textarea.clientHeight;
@@ -149,7 +149,7 @@ export function bindScrollSync(textarea) {
 }
 
 export function bindToolbarEvents(textarea) {
-    logger.debug("binding", "bindToolbarEvents()");
+    logger.debug("binding", "bindToolbarEvents(). CALLED BY: " + getCallerName("bindToolbarEvents"));
     // TOOLBAR & POPUP WIRE-UPS
     document.getElementById("add-folder-btn")?.addEventListener("click", () => addFolder());
     document.getElementById("save-btn")?.addEventListener("click", () => saveWorkspaceToGist());
@@ -213,7 +213,7 @@ export function updateSyncToggleButton() {
 }
 
 export function bindPopupEvents(textarea) {
-    logger.debug("binding", "bindPopupEvents()");
+    logger.debug("binding", "bindPopupEvents(). CALLED BY: " + getCallerName("bindPopupEvents"));
     const colorPopup = document.getElementById("md-color-popup");
     if (colorPopup) {
         colorPopup.addEventListener("click", (e) => {
@@ -250,7 +250,7 @@ export function bindPopupEvents(textarea) {
 }
 
 export function hidePopupsIfClickedOutside(e) {
-    logger.debug("binding", "hidePopupsIfClickedOutside()");
+    logger.debug("binding", "hidePopupsIfClickedOutside(). CALLED BY: " + getCallerName("hidePopupsIfClickedOutside"));
     const popups = [
         document.getElementById("md-color-popup"),
         document.getElementById("md-bgcolor-popup"),
@@ -266,7 +266,7 @@ export function hidePopupsIfClickedOutside(e) {
 }
 
 export function bindSidebarEvents() {
-    logger.debug("binding", "bindSidebarEvents()");
+    logger.debug("binding", "bindSidebarEvents(). CALLED BY: " + getCallerName("bindSSidebarEvents"));
     const closeBtn = document.getElementById("close-sidebar-btn");
     if (!closeBtn) return;
 
