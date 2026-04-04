@@ -7,9 +7,9 @@ Timestamps are used only for idle-return and auto-save timing.
 
 
 import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
-import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName, getCallerName } from "./workspace.js";
+import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName } from "./workspace.js";
 import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
-import { logger, LOG_LEVELS, formatDateNZ } from "./logger.js";
+import { logger, LOG_LEVELS, formatDateNZ, getCallerName } from "./logger.js";
 import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
 import { updateSyncToggleButton } from "./binding.js";
 
