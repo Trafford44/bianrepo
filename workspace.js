@@ -434,7 +434,7 @@ function buildMetadataPathMap(metadata) {
     return map;
 }
 
-function logIdAnomaly(context, path, cloudEntry, meta, local) {
+export function logIdAnomaly(context, path, cloudEntry, meta, local) {
     logger.watch("logIdAnomaly", {
         context,
         path,
