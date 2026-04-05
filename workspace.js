@@ -1,4 +1,4 @@
-import { logger, getCallerName } from "./logger.js";
+import { logger, getCallerName, saveEmergencySnapshot, exportSnapshot } from "./logger.js";
 
 let workspace = []
 const STORAGE_KEY = "kb_data";
@@ -443,7 +443,20 @@ function logIdAnomaly(context, path, cloudEntry, meta, local) {
         meta,
         local
     });
+
+    // Capture the snapshot
+    const snapshot = saveEmergencySnapshot("id-anomaly", {
+        context,
+        path,
+        cloudEntry,
+        meta,
+        local
+    });
+
+    // OPTIONAL: export the snapshot as a file
+    exportSnapshot(snapshot);
 }
+
 
 export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
     logger.debug("workspace", "Running mergeWorkspace(). CALLED BY: " + getCallerName("mergeWorkspace"));
