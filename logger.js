@@ -127,9 +127,9 @@ export const logger = {
   },
 
   // semantic highlight channel
-  debugLevel1(source, message, details = null, options = {}) {
-    // use to enable filtering of specific "Level1" debug messages in the console. These are still logged at DEBUG level but have a special source tag.
-    log("DEBUG", LOG_LEVELS.DEBUG, `${source}-LEVEL1`, message, details, options);
+  debugSyncing(source, message, details = null, options = {}) {
+    // use to enable filtering of specific "Syncing" debug messages in the console. These are still logged at DEBUG level but have a special source tag.
+    log("DEBUG", LOG_LEVELS.DEBUG, `${source}-SYNCING`, message, details, options);
   }  
 
 };
