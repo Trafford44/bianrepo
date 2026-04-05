@@ -10,7 +10,7 @@ import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
 import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName } from "./workspace.js";
 import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ, getCallerName } from "./logger.js";
-import { extractMetadata, applyMetadata} from "./workspace-metadata.js";   
+import { extractMetadata, applyMetadata, setMetadata, getMetadata} from "./workspace-metadata.js";   
 import { updateSyncToggleButton } from "./binding.js";
 
 // Global guard to survive circular imports and module reloads
@@ -626,6 +626,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     // CASE 3: Local and cloud match → nothing to do
     // ------------------------------------------------------------
+    // Case 3 should never appear because:  local and cloud representations are structurally different (tree vs flat, ordering differences, migration differences), their hashes will never be identical. However, we keep this case here as a sanity check and safety guard: if the hashes do match, it means the local and cloud workspaces are actually identical in content, so we can safely skip any merging or conflict resolution and just adopt the cloud hash as the new baseline.
     if (hasLocal && localHash === cloudHash) {
         logger.debugSyncing("sync: reconcileLocalAndCloud", "CASE 3: Local and cloud match → nothing to do");
         const migrated = migrateWorkspace(localTree);
@@ -835,6 +836,8 @@ export async function saveWorkspaceToGist() {
 
         // --- 2. Save metadata file ---
         const metadata = extractMetadata(workspace);
+        setMetadata(metadata.nodes);
+
         gistFiles["__workspace.json"] = {
             content: JSON.stringify(metadata, null, 2)
         };
@@ -951,7 +954,27 @@ export async function saveWorkspaceToGist() {
     }
 }
 
+export function saveEmergencySnapshot(reason, extra = {}) {
+    const tree = getWorkspace();
+    const flat = flattenWorkspace(tree);
+    const metadata = getMetadata();
 
+    const snapshot = {
+        reason,
+        timestamp: new Date().toISOString(),
+        tree,
+        flat,
+        metadata,
+        ...extra
+    };
+
+    localStorage.setItem(
+        `emergencySnapshot:${Date.now()}`,
+        JSON.stringify(snapshot, null, 2)
+    );
+
+    return snapshot;
+}
 
 export function markLocalEdit() {
     lastLocalEditTime = Date.now();
@@ -1025,6 +1048,7 @@ export async function loadWorkspaceFromGist() {
         if (!Array.isArray(metadata)) {
             metadata = [metadata];
         }
+        setMetadata(metadata);
 
         logger.debug("sync: loadWorkspaceFromGist", "Parsed metadata:", metadata);
 
