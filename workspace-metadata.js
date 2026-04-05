@@ -1,7 +1,18 @@
 // workspace-metadata.js
 import { logger, getCallerName } from "./logger.js";
+let currentMetadata = null;
 
 logger.debug("workspace-metadata","workspace-metadata.js loaded from:", import.meta.url);
+
+
+export function getMetadata() {
+    return currentMetadata;
+}
+
+export function setMetadata(meta) {
+    currentMetadata = meta;
+}
+
 
 export function extractMetadata(nodes) {
     logger.debug("workspace-metadata", "Running extractMetadata. CALLED BY: " + getCallerName("extractMetadata"));
