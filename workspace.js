@@ -455,8 +455,10 @@ export function logIdAnomaly(context, path, cloudEntry, meta, local) {
         local
     });
 
-    // OPTIONAL: export the snapshot as a file
+    // export the snapshot as a file
     exportSnapshot(snapshot);
+    // Alert the user
+    alert(`Add ID anomaly detected!: ${path}`);
 }
 
 
