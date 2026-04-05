@@ -106,9 +106,6 @@ export const logger = {
     if (source === "createNewID" ) {
       alert(`New UUID generated: ${message}`);
     }
-    if (source === "logIdAnomaly" ) {
-      alert(`Add ID anomaly detected!: ${message}`);
-    }  
     if (source === "mergeWorkspace:id-missing" ) {
       alert(`Missing ID detected!: ${message}`);
     }        
