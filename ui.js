@@ -660,7 +660,7 @@ export async function updatePreview() {
             const resolved = resolvePumlIncludes(content, tree);
 
             // output resolved to console for debugging
-            logger.watch("ui: updatePreview", "Resolved PUML content:\n" + resolved, null, { multiline: true, lineNumbers: true });
+            //logger.watch("ui: updatePreview", "Resolved PUML content:\n" + resolved, null, { multiline: true, lineNumbers: true });
 
             if (!resolved.trim()) {
                 logger.warn("ui: updatePreview", "Resolved PUML is empty");
