@@ -658,6 +658,8 @@ export async function updatePreview() {
 
             // 1. Resolve !include app://file/... inside the PUML file
             const resolved = resolvePumlIncludes(content, tree);
+
+            // output resolved to console for debugging
             logger.watch("ui: updatePreview", "Resolved PUML content:\n" + resolved, null, { multiline: true, lineNumbers: true });
 
             if (!resolved.trim()) {
@@ -1065,11 +1067,25 @@ function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
         const tail = pumlText.slice(lastIndex);
         result += tail.replace(includeRegex, (full, id) => resolveOne(id));
 
+        // write to local storage so avaialble for debugging
+        localStorage.setItem("lastPUMLRender", result);
+
         return result;
 
     } catch (err) {
         logger.error("ui: resolvePumlIncludes", "Top-level failure:", err);
         return `' ERROR: resolvePumlIncludes failed — see console\n${pumlText}`;
+    }
+}
+
+export async function copyRenderedPuml() {
+    const puml = localStorage.getItem("lastPUMLRender");
+    if (!puml) return;
+
+    try {
+        await navigator.clipboard.writeText(puml);
+    } catch (err) {
+        logger.error("ui: copyRenderedPuml", "Failed to copy rendered PUML: " + err);
     }
 }
 
