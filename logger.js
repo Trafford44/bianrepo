@@ -152,7 +152,7 @@ export function formatDateNZ() {
 }
 
 
-export function getCallerName(currentFunctionName) {
+export function getCallerName_old(currentFunctionName) {
   const stack = new Error().stack;
   if (!stack) return "unknown";
 
@@ -176,6 +176,64 @@ export function getCallerName(currentFunctionName) {
 
   return "unknown";
 }
+
+/*
+To remove the call to getCallerName() always:
+
+Change all calls to this:
+logger.debug("workspace.buildMetadataPathMap()", () =>
+  "CALLED BY: " + getCallerName("buildMetadataPathMap")
+);
+
+Change debug (above) to this:
+
+debug(channel, message) {
+    if (!this.debugEnabled) return;
+
+    if (typeof message === "function") {
+        message = message();   // <-- NOW getCallerName() runs
+    }
+
+    console.log(message);
+}
+
+*/
+
+
+export function getCallerName(currentFunctionName = null) {
+  const stack = new Error().stack;
+  if (!stack) return "unknown";
+
+  const lines = stack.split("\n").map(l => l.trim());
+  lines.shift(); // remove "Error"
+
+  const skip = [
+    "getCallerName",
+    "logger",
+    "debug",
+    "info",
+    "warn",
+    "error",
+    "watch"
+  ];
+
+  for (const line of lines) {
+    const match = line.match(/at (\S+)/);
+    const fn = match ? match[1] : null;
+    if (!fn) continue;
+
+    // Skip logger frames
+    if (skip.some(s => fn.includes(s))) continue;
+
+    // Skip the current function
+    if (currentFunctionName && fn.includes(currentFunctionName)) continue;
+
+    return fn;
+  }
+
+  return "unknown";
+}
+
 
 export function exportSnapshot(snapshot) {
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
