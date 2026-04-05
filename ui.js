@@ -1,6 +1,6 @@
 import { getToken, getGistId} from "./auth.js";
 import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
-import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState, flattenWorkspace } from "./workspace.js";
+import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState, flattenWorkspace, logIdAnomaly } from "./workspace.js";
 import { getMetadata } from "./workspace-metadata.js";
 import { logger, getCallerName } from "./logger.js";
 import { EXCLUSION_FILES } from "./sync.js";
@@ -1129,6 +1129,19 @@ export function addFile(folderId) {
     loadFile(newFile.id);
 }
 
+export function testFunctionality() {
+    const fakeCloud = { id: null, name: "fake.md", content: "test" };
+    const fakeMeta = { id: "meta-123" };
+    const fakeLocal = { id: "local-123" };
+
+    logIdAnomaly(
+        "test-anomaly",
+        "/test/path",
+        fakeCloud,
+        fakeMeta,
+        fakeLocal
+    );
+};
 
 export function exportFile() {
     const tree = getWorkspace();
