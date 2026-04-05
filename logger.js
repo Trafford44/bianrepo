@@ -13,7 +13,7 @@ const LOG_LEVELS = {
 let LOG_ENTRY_COUNTER = 0;
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
+let CURRENT_LEVEL = LOG_LEVELS.ERROR;
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
@@ -124,7 +124,14 @@ export const logger = {
 
   debug(source, message, details = null, options = {}) {
     log("DEBUG", LOG_LEVELS.DEBUG, source, message, details, options);
-  }
+  },
+
+  // semantic highlight channel
+  debugLevel1(source, message, details = null, options = {}) {
+    // use to enable filtering of specific "Level1" debug messages in the console. These are still logged at DEBUG level but have a special source tag.
+    log("DEBUG", LOG_LEVELS.DEBUG, `${source}-LEVEL1`, message, details, options);
+  }  
+
 };
 
 export { LOG_LEVELS };
