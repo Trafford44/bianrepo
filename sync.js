@@ -96,23 +96,23 @@ async function getCurrentWorkspaceGist() {
 
 
 export async function startSyncLoop() {
-    logger.debug("sync", "Running startSyncLoop(). CALLED BY: " + getCallerName("startSyncLoop"));
+    logger.debugSyncing("sync", "Running startSyncLoop(). CALLED BY: " + getCallerName("startSyncLoop"));
 
     if (!syncEnabled) {
-        logger.info("sync: startSyncLoop", "startSyncLoop() blocked — sync disabled");
+        logger.debugSyncing("sync: startSyncLoop", "startSyncLoop() blocked — sync disabled");
         return;
     }
 
     if (syncIntervalId !== null) {
-        logger.warn("sync: startSyncLoop", "startSyncLoop() called but loop already running");
+        logger.debugSyncing("sync: startSyncLoop", "startSyncLoop() called but loop already running");
         return;
     }    
     try {
         await runSyncCheck("startup");
-        logger.info("startSyncLoop called");
+        logger.debugSyncing("startSyncLoop called");
         // setup the “sync loop timer” This is the heartbeat that keeps the local and cloud workspaces in sync. It runs every 2 minutes, but only triggers a sync if something has changed in the cloud (or if we’ve been idle for a while and returned).
         syncIntervalId = setInterval(async () => {
-            logger.debug("sync: startSyncLoop", "Periodic sync loop setup that fires runSyncCheck()");
+            logger.debugSyncing("sync: startSyncLoop", "Periodic sync loop setup that fires runSyncCheck()");
             await runSyncCheck("periodic");
         }, syncInterval);
         updateSyncToggleButton();
@@ -133,12 +133,12 @@ export function getSyncEnabled() {
 }
 
 export function stopSyncLoop() {
-    logger.debug("sync", "Running stopSyncLoop(). CALLED BY: " + getCallerName("stopSyncLoop"));
+    logger.debugSyncing("sync", "Running stopSyncLoop(). CALLED BY: " + getCallerName("stopSyncLoop"));
     try {      
         if (syncIntervalId !== null) {
             clearInterval(syncIntervalId);
             syncIntervalId = null;
-            logger.info("stopSyncLoop:", syncIntervalId);
+            logger.debugSyncing("stopSyncLoop:", syncIntervalId);
             updateSyncToggleButton();
         }
     } catch (error) {
@@ -244,106 +244,153 @@ function connectToGitHub() {
 }
 
 export async function runSyncCheck(reason) {
-    logger.info("sync", "Running runSyncCheck. CALLED BY: " + getCallerName("runSyncCheck")," (reason: " + reason + ")");
+    logger.debugSyncing("sync: runSyncCheck", "Running runSyncCheck (start). CALLED BY: " + getCallerName("runSyncCheck")," (reason: " + reason + ")");
 
     if (!syncEnabled) {
-        logger.debug("sync", `runSyncCheck(${reason}) skipped — sync disabled`);
+        logger.debugSyncing("sync.runSyncCheck", `Skipped — sync disabled`);
         return;
     }
 
     const token = getToken();
     let gistId = getGistId();
+    let syncDecision = "unknown";
 
-    // First-time login: token exists but no gistId
+    // ------------------------------------------------------------
+    // LOGIN: token exists but no gistId → adopt or create gist
+    // ------------------------------------------------------------
     if (reason === "login" && token && !gistId) {
-        logger.info("sync: runSyncCheck", "Token exists but no gistId — adopting or creating gist");
+        logger.debugSyncing("sync.runSyncCheck", "Token exists but no gistId — adopting or creating gist");
+
         const newId = await adoptOrCreateGist();
         if (!newId) {
-            logger.error("sync: runSyncCheck", "Failed to adopt or create gist");
+            logger.error("sync.runSyncCheck", "Failed to adopt or create gist");
             return;
         }
+
         gistId = newId;
+        syncDecision = "adopt-cloud-baseline";
     }
     else if (!token || !gistId) {
-        logger.error("sync: runSyncCheck", "Missing token or gistId — likely after suspend/wake. Stopping sync.");
+        logger.error("sync.runSyncCheck", "Missing token or gistId — stopping sync.");
         disconnectFromGitHub("Cloud connection lost.");
         return;
     }
 
-    // If workspace is empty, load from cloud
+    // ------------------------------------------------------------
+    // If local workspace is empty → load cloud
+    // ------------------------------------------------------------
     if (gistId && workspaceIsEmpty()) {
-        logger.info("sync: runSyncCheck", "Workspace empty — loading from cloud");
+        logger.debugSyncing("sync.runSyncCheck", "Workspace empty — loading from cloud");
         await loadWorkspaceFromGist();
+        syncDecision = "load-cloud";
     }
 
     const now = Date.now();
     const idleReturn = now - lastSuccessfulSyncTime > idleReturnThreshold;
 
-    logger.info("sync: runSyncCheck",
-        `Idle return: ${idleReturn} (last successful sync was at ${new Date(lastSuccessfulSyncTime).toISOString()})`
+    logger.debugSyncing("sync.runSyncCheck",
+        `Idle return: ${idleReturn} (last successful sync: ${new Date(lastSuccessfulSyncTime).toISOString()})`
     );
 
-    // --- Load cloud workspace using the flat model ---
+    // ------------------------------------------------------------
+    // Load cloud workspace (flat model)
+    // ------------------------------------------------------------
     const cloudWorkspace = await loadWorkspaceFromGist();
     if (!cloudWorkspace || !Array.isArray(cloudWorkspace.flat)) {
-        logger.error("sync: runSyncCheck", "Cloud workspace invalid");
+        logger.error("sync.runSyncCheck", "Cloud workspace invalid");
         return;
     }
 
-    const flatList = cloudWorkspace.flat;
-    const cloudHash = await computeWorkspaceHash(flatList);
+    const cloudFlat = cloudWorkspace.flat;
+    const cloudHash = await computeWorkspaceHash(cloudFlat);
 
-    logger.info("sync: runSyncCheck",
-        `Computed cloudHash: ${cloudHash}, lastSyncedHash: ${lastSyncedHash}`
-    );
-
-    // --- Load local workspace using the flat model ---
+    // ------------------------------------------------------------
+    // Load local workspace (flat model)
+    // ------------------------------------------------------------
     const localTree = loadState();
     const localFlat = flattenWorkspace(localTree);
     const localHash = await computeWorkspaceHash(localFlat);
 
+    logger.debugSyncing(
+        "sync.runSyncCheck",
+        `Hash comparison → local=${localHash.slice(0,8)}, cloud=${cloudHash.slice(0,8)}, lastSynced=${lastSyncedHash?.slice(0,8)}`
+    );
 
-    // --- First-time sync: adopt cloud hash ---
+    // ------------------------------------------------------------
+    // First-time sync: adopt cloud hash
+    // ------------------------------------------------------------
     if (lastSyncedHash === null) {
-        logger.info("sync: runSyncCheck", "No lastSyncedHash found. Adopting cloud hash as baseline.");
+        logger.debugSyncing("sync.runSyncCheck", "No lastSyncedHash — adopting cloud hash as baseline");
+
         lastSyncedHash = cloudHash;
         localStorage.setItem("lastSyncedHash", cloudHash);
         updateSyncState();
+
+        syncDecision = "adopt-cloud-baseline";
+        logger.debugSyncing(
+            "sync.summary",
+            `cycle → reason=${reason}, local=${localHash.slice(0,8)}, cloud=${cloudHash.slice(0,8)}, lastSynced=${cloudHash.slice(0,8)}, decision=${syncDecision}`
+        );
         return;
     }
 
-    // --- Resume logic: only sync if something changed ---
+    // ------------------------------------------------------------
+    // Resume logic: skip if nothing changed
+    // ------------------------------------------------------------
     if (reason === "resume") {
         const nothingChanged =
             localHash === lastSyncedHash &&
             cloudHash === lastSyncedHash;
 
         if (nothingChanged) {
-            logger.info("sync: runSyncCheck",
-                "Resume detected but no cloud changes or local edits — skipping sync."
-            );
+            logger.debugSyncing("sync.runSyncCheck", "Resume: nothing changed — skipping sync");
+
             updateSyncState();
+            syncDecision = "resume-skip";
+
+            logger.debugSyncing(
+                "sync.summary",
+                `cycle → reason=${reason}, local=${localHash.slice(0,8)}, cloud=${cloudHash.slice(0,8)}, lastSynced=${lastSyncedHash.slice(0,8)}, decision=${syncDecision}`
+            );
             return;
         }
     }
 
-    // --- Cloud is newer ---
-    // Only trigger cloud-change if we have *already* synced once
-    if (lastSyncedHash !== null && cloudHash !== lastSyncedHash) {
-        logger.info("sync: runSyncCheck",
-            "Cloud hash differs from lastSyncedHash. Cloud is newer. Triggering cloud-change handler."
+    // ------------------------------------------------------------
+    // Cloud is newer → trigger cloud-change handler
+    // ------------------------------------------------------------
+    if (cloudHash !== lastSyncedHash) {
+        logger.debugSyncing("sync.runSyncCheck", "Cloud is newer — triggering cloud-change handler");
+
+        syncDecision = "cloud-newer";
+
+        logger.debugSyncing(
+            "sync.summary",
+            `cycle → reason=${reason}, local=${localHash.slice(0,8)}, cloud=${cloudHash.slice(0,8)}, lastSynced=${lastSyncedHash.slice(0,8)}, decision=${syncDecision}`
         );
+
         return handleCloudChange({ id: gistId }, idleReturn);
     }
 
-
-    // --- Everything matches ---
-    logger.info("sync: runSyncCheck",
-        "Cloud hash matches lastSyncedHash. Updating sync timestamp and checking for auto-save."
-    );
+    // ------------------------------------------------------------
+    // Everything matches → update sync timestamp + maybe auto-save
+    // ------------------------------------------------------------
+    logger.debugSyncing("sync.runSyncCheck", "Everything matches — updating sync timestamp");
 
     updateSyncState();
     maybeAutoSave();
+
+    syncDecision = "nothing-changed";
+
+    // ------------------------------------------------------------
+    // FINAL SUMMARY
+    // ------------------------------------------------------------
+    logger.debugSyncing(
+        "sync.summary",
+        `cycle → reason=${reason}, local=${localHash.slice(0,8)}, cloud=${cloudHash.slice(0,8)}, lastSynced=${lastSyncedHash.slice(0,8)}, decision=${syncDecision}`
+    );
+
+    logger.debugSyncing("sync.runSyncCheck", "runSyncCheck end");
 }
 
 
@@ -359,12 +406,12 @@ function updateSyncState() {
 }
 
 async function handleCloudChange(latest, idleReturn) {
-    logger.debug("sync", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
-    logger.debug("sync: handleCloudChange", `cloudChangeHandled = ${window.__cloudChangeHandled}`);
-
+    logger.debugSyncing("sync: handleCloudChange", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
+    logger.debugSyncing("sync: handleCloudChange", `cloudChangeHandled = ${window.__cloudChangeHandled}`);
+    
     // Prevent duplicate dialogs or duplicate cloud-apply
     if (window.__cloudChangeHandled) {
-        logger.debug("sync: handleCloudChange", "Skipping handleCloudChange — already handled this session");
+        logger.debugSyncing("sync: handleCloudChange", "Skipping handleCloudChange — already handled this session");
         return;
     }
 
@@ -412,7 +459,7 @@ async function handleCloudChange(latest, idleReturn) {
             localStorage.setItem("lastSyncedHash", lastSyncedHash);
             lastSuccessfulSyncTime = Date.now();
 
-            logger.info(
+            logger.debugSyncing(
                 "sync: handleCloudChange",
                 `Cloud accepted. Updated lastSyncedHash: ${lastSyncedHash}`
             );
@@ -426,6 +473,9 @@ async function handleCloudChange(latest, idleReturn) {
             );
         }
     });
+
+    logger.debugSyncing("sync: handleCloudChange", "handleCloudChange end");
+
 }
 
 
@@ -503,10 +553,10 @@ export async function computeWorkspaceHash(flat) {
 
 
 export async function reconcileLocalAndCloud(localTree) {
-    logger.debug("sync", "Running reconcileLocalAndCloud(). CALLED BY: " + getCallerName("reconcileLocalAndCloud"));
+    logger.debugSyncing("sync: reconcileLocalAndCloud", "Running reconcileLocalAndCloud(). CALLED BY: " + getCallerName("reconcileLocalAndCloud"));
 
     if (!syncEnabled) {
-        logger.debug("sync: reconcileLocalAndCloud", "reconcileLocalAndCloud() skipped — sync disabled");
+        logger.debugSyncing("sync: reconcileLocalAndCloud", "reconcileLocalAndCloud() skipped — sync disabled");
         return;
     }
 
@@ -522,7 +572,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // CASE 1: No cloud gist exists yet
     // ------------------------------------------------------------
     if (!cloudMeta) {
-        logger.debug("sync: reconcileLocalAndCloud", "CASE 1: No cloud gist exists yet");
+        logger.debugSyncing("sync: reconcileLocalAndCloud", "CASE 1: No cloud gist exists yet");
 
         if (!hasLocal) {
             // No local, no cloud → create empty workspace
@@ -554,7 +604,7 @@ export async function reconcileLocalAndCloud(localTree) {
         logger.error("sync: reconcileLocalAndCloud", "Cloud load failed or returned invalid structure");
         return;
     }
-    logger.debug("sync: reconcileLocalAndCloud", "CASE 2: Cloud exists → load cloud workspace");
+    logger.debugSyncing("sync: reconcileLocalAndCloud", "CASE 2: Cloud exists → load cloud workspace");
 
     const cloudFlat = cloud.flat;
     const cloudTree = inflateWorkspace(cloudFlat);
@@ -567,15 +617,17 @@ export async function reconcileLocalAndCloud(localTree) {
     const localHash = await computeWorkspaceHash(localFlat);
     const cloudHash = await computeWorkspaceHash(cloudFlat);
 
-    logger.debug("sync: reconcileLocalAndCloud", "localHash:", localHash);
-    logger.debug("sync: reconcileLocalAndCloud", "cloudHash:", cloudHash);
-    logger.debug("sync: reconcileLocalAndCloud", "lastSyncedHash:", lastSyncedHash);
+    logger.debugSyncing(
+        "sync: reconcileLocalAndCloud",
+        `Hash comparison → local=${localHash.slice(0,8)}, cloud=${cloudHash.slice(0,8)}, lastSynced=${lastSyncedHash?.slice(0,8)}`
+    );
+
 
     // ------------------------------------------------------------
     // CASE 3: Local and cloud match → nothing to do
     // ------------------------------------------------------------
     if (hasLocal && localHash === cloudHash) {
-        logger.debug("sync: reconcileLocalAndCloud", "CASE 3: Local and cloud match → nothing to do");
+        logger.debugSyncing("sync: reconcileLocalAndCloud", "CASE 3: Local and cloud match → nothing to do");
         const migrated = migrateWorkspace(localTree);
         saveState(migrated);
         localStorage.setItem("lastSyncedHash", localHash);
@@ -586,7 +638,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // CASE 4: Cloud changed since last sync → cloud wins
     // ------------------------------------------------------------
     if (cloudHash !== lastSyncedHash) {
-        logger.debug("sync: reconcileLocalAndCloud", "CASE 4: Cloud changed since last sync → cloud wins");
+        logger.debugSyncing("sync: reconcileLocalAndCloud", "CASE 4: Cloud changed since last sync → cloud wins");
         const merged = mergeWorkspace(localTree || [], cloudTree, cloudMetadata);
         const migrated = migrateWorkspace(merged);
 
@@ -598,7 +650,7 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     // CASE 5: Local changed, cloud didn’t → local wins
     // ------------------------------------------------------------
-    logger.debug("sync: reconcileLocalAndCloud", "CASE 5: Local changed, cloud didn’t → local wins");
+    logger.debugSyncing("sync: reconcileLocalAndCloud", "CASE 5: Local changed, cloud didn’t → local wins");
 
     const merged = mergeWorkspace(localTree || [], cloudTree, cloudMetadata);
     const migrated = migrateWorkspace(merged);
@@ -609,9 +661,10 @@ export async function reconcileLocalAndCloud(localTree) {
     const newFlat = flattenWorkspace(migrated);
     const newHash = await computeWorkspaceHash(newFlat);
     localStorage.setItem("lastSyncedHash", newHash);
+
+    logger.debugSyncing("sync: reconcileLocalAndCloud", "reconcileLocalAndCloud end");
+
 }
-
-
 
 async function getLatestWorkspaceGistMeta() {
     logger.debug("sync", "Running getLatestWorkspaceGistMeta(). CALLED BY: " + getCallerName("getLatestWorkspaceGistMeta"));
