@@ -1,7 +1,9 @@
-import { logger, getCallerName, saveEmergencySnapshot, exportSnapshot } from "./logger.js";
+import { logger, getCallerName, exportSnapshot } from "./logger.js";
+import { saveEmergencySnapshot } from "./sync.js";
 
 let workspace = []
 const STORAGE_KEY = "kb_data";
+
 
 logger.debug("workspace","workspace.js loaded from:", import.meta.url);
 
