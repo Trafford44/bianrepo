@@ -57,9 +57,6 @@ function formatMultiline(text, { lineNumbers = false } = {}) {
   // Normalize newlines
   const lines = text.replace(/\r\n|\r/g, "\n").split("\n");
 
-
-Copy
-
   if (lineNumbers) {
     return lines
       .map((line, i) => `${String(i + 1).padStart(3, " ")} | ${line}`)
@@ -68,6 +65,7 @@ Copy
 
   return lines.join("\n");
 }
+
 
 function printStyledBlock(header, text) {
   // Combine into one string to ensure everything stays together
