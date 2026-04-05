@@ -182,29 +182,6 @@ export function getCallerName(currentFunctionName) {
   return "unknown";
 }
 
-export function saveEmergencySnapshot(reason, extra = {}) {
-    const tree = getWorkspace();
-    const flat = flattenWorkspace(tree);
-    const metadata = loadMetadata();
-
-    const snapshot = {
-        reason,
-        timestamp: new Date().toISOString(),
-        tree,
-        flat,
-        metadata,
-        ...extra
-    };
-
-    localStorage.setItem(
-        `emergencySnapshot:${Date.now()}`,
-        JSON.stringify(snapshot, null, 2)
-    );
-
-    return snapshot;
-}
-
-
 export function exportSnapshot(snapshot) {
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
         type: "application/json"
