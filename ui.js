@@ -387,7 +387,8 @@ function renderFileNode(file, depth) {
             { label: "Rename", action: () => renameFile(file.id) },
             { label: "Duplicate", action: () => duplicateFile(file.id) },
             { label: "Copy internal link", action: () => copyInternalLink(file.id) },
-            { label: "Delete", action: () => deleteFile(file.id) }
+            { label: "Delete", action: () => deleteFile(file.id) },
+            { label: "Export file", action: () => exportFile(file.id) }
         ], e.pageX, e.pageY);
     });
 
@@ -1148,6 +1149,32 @@ export function exportFile() {
     showNotification("success", "File exported");
 }
 
+export function exportAll() {
+    const tree = getWorkspace();
+    const flat = flattenWorkspace(tree);
+    const metadata = loadMetadata();
+
+    const snapshot = {
+        timestamp: new Date().toISOString(),
+        tree,
+        flat,
+        metadata
+    };
+
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
+        type: "application/json"
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `workspace-export-${Date.now()}.json`;
+    a.click();
+
+    showNotification("success", "Workspace exported");
+}
+
 
 export function deleteFile(fileId) {
     const tree = getWorkspace();
@@ -1301,7 +1328,7 @@ export function updateLoginIndicator() {
             "save-btn",
             "load-btn",
             "restore-btn",
-            "export-btn",
+            "exportAll-btn",
             "delete-btn"
         ];
 
