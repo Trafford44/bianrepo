@@ -1,5 +1,5 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
-import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportFile, deleteFile, addFolder} from "./ui.js";
+import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder} from "./ui.js";
 import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled } from "./sync.js";
 import { logger, getCallerName } from "./logger.js";
 import { clearToken } from "./auth.js";
@@ -155,7 +155,7 @@ export function bindToolbarEvents(textarea) {
     document.getElementById("save-btn")?.addEventListener("click", () => saveWorkspaceToGist());
     document.getElementById("load-btn")?.addEventListener("click", () => loadWorkspaceFromGist());
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
-    document.getElementById("export-btn")?.addEventListener("click", () => exportFile());
+    document.getElementById("exportAll-btn")?.addEventListener("click", () => exportAll());
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
     document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
     document.getElementById("sync-toggle-btn")?.addEventListener("click", () => {
