@@ -88,9 +88,14 @@ async function getCurrentWorkspaceGist() {
         return data;
 
     } catch (error) {
+        if (error.message === "TOKEN_INVALID") {
+            throw error; // <-- propagate to sync engine
+        }
+
         logger.error("sync: getCurrentWorkspaceGist", error);
-        return null;
-    }            
+        return null; // swallow only non-auth errors
+    }
+         
 }
 
 export function handleExpiredToken() {
@@ -877,10 +882,16 @@ async function getLatestWorkspaceGistMeta() {
             files: Object.keys(data.files)
         };
 
-    } catch (err) {
+    } catch (error) {
+        if (error.message === "TOKEN_INVALID") {
+            throw error; // <-- propagate to sync engine
+        }
+
         logger.error("sync: getLatestWorkspaceGistMeta", "Network or fetch error", err);
-        return null;
+        return null; // swallow only non-auth errors
     }
+
+
 }
 
 
@@ -1118,16 +1129,16 @@ export async function saveWorkspaceToGist() {
         }
 
         // --- 7. Compute new cloud hash using corrected loader ---     
-        let cloud;   
-        try {
-            cloud = await loadWorkspaceFromGist();
-        } catch (err) {
-            if (err.message === "TOKEN_INVALID") {
+        } catch (error) {
+            if (error.message === "TOKEN_INVALID") {
                 handleExpiredToken();
-                return;
+                return false;
             }
-            throw err;
-        } 
+
+            logger.error("sync: saveWorkspaceToGist", error);
+            return false;
+        }
+
 
         const safeFlat = Array.isArray(cloud?.flat) ? cloud.flat : [];
         lastSyncedHash = await computeWorkspaceHash(safeFlat);
@@ -1145,6 +1156,11 @@ export async function saveWorkspaceToGist() {
         showNotification("success", "Saved to cloud");
 
     } catch (error) {
+        if (error.message === "TOKEN_INVALID") {
+            handleExpiredToken();
+            return false;
+        }
+
         logger.error("sync: saveWorkspaceToGist", error);
         return false;
     } finally {
@@ -1367,12 +1383,18 @@ export async function loadWorkspaceFromGist() {
         };
 
     } catch (error) {
+        if (error.message === "TOKEN_INVALID") {
+            throw error; // <-- LET IT PROPAGATE TO THE SYNC ENGINE
+        }
+
         logger.error("sync: loadWorkspaceFromGist", {
             message: error.message,
             stack: error.stack
         });
-        return null;
+
+        return null; // only swallow NON-auth errors
     }
+
 }
 
 
@@ -1398,10 +1420,17 @@ async function getNewestGistAcrossAccount() {
 
         return list[0]; // newest gist
 
+ 
     } catch (error) {
+        if (error.message === "TOKEN_INVALID") {
+            handleExpiredToken();
+            return false;
+        }
+
         logger.error("sync: getNewestGistAcrossAccount", error);
         return null;
-    }      
+    }
+
 }
 
 export async function listGistRevisions() {
@@ -1426,9 +1455,15 @@ export async function listGistRevisions() {
         return data;
 
     } catch (error) {
+        if (error.message === "TOKEN_INVALID") {
+            handleExpiredToken();
+            return false;
+        }
+
         logger.error("sync: listGistRevisions", error);
         return [];
-    }     
+    }
+
 }
 
 export async function restoreFromGistVersion(versionId) {
@@ -1495,9 +1530,15 @@ export async function restoreFromGistVersion(versionId) {
         showNotification("success", "Workspace restored from previous version");
 
     } catch (error) {
+        if (error.message === "TOKEN_INVALID") {
+            handleExpiredToken();
+            return false;
+        }
+
         logger.error("sync: restoreFromGistVersion", error);
         return;
-    }     
+    }
+
 }
 
 export async function showRestoreDialog() {
@@ -1593,9 +1634,14 @@ async function adoptOrCreateGist() {
         setGistId(data.id);
         return data.id;
 
-    } catch (err) {
+    } catch (error) {
+        if (error.message === "TOKEN_INVALID") {
+            handleExpiredToken();
+            return false;
+        }
         logger.error("sync: adoptOrCreateGist", "Exception while creating gist", err);
         return null;
     }
+
 }
 
