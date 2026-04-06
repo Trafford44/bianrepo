@@ -1139,8 +1139,10 @@ export async function saveWorkspaceToGist() {
         }
 
         // --- 7. Compute new cloud hash using corrected loader ---     
-        const safeFlat = Array.isArray(cloud?.flat) ? cloud.flat : [];
-        lastSyncedHash = await computeWorkspaceHash(safeFlat);
+        // After saving, compute hash from the local workspace we just pushed
+        const newFlat = flattenWorkspace(getWorkspace());
+        lastSyncedHash = await computeWorkspaceHash(newFlat);
+
 
         localStorage.setItem("lastSyncedHash", lastSyncedHash);
         lastSuccessfulSyncTime = Date.now();
