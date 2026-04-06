@@ -61,9 +61,7 @@ async function getCurrentWorkspaceGist() {
     logger.info("sync: getCurrentWorkspaceGist", `Fetching gist with ID: ${gistId}`);
 
     try {
-        const res = await fetch(`${GIST_API}/${gistId}`, {
-            headers: { "Authorization": `token ${githubToken}` }
-        });
+        const res = await githubFetch(`${GIST_API}/${gistId}`);
 
         if (res.status === 401) {
             logger.error("sync: getCurrentWorkspaceGist", "GitHub token invalid or expired. Disconnecting.");
@@ -94,6 +92,27 @@ async function getCurrentWorkspaceGist() {
     }            
 }
 
+async function githubFetch(url, options = {}) {
+    const token = getToken(); // your existing getter
+
+    const headers = {
+        "Authorization": `token ${token}`,
+        ...options.headers
+    };
+
+    const res = await fetch(url, { ...options, headers });
+
+    if (res.status === 401) {
+        throw new Error("TOKEN_INVALID");
+    }
+
+    if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`GITHUB_ERROR ${res.status}: ${text}`);
+    }
+
+    return res;
+}
 
 export async function startSyncLoop() {
     logger.debugSyncing("sync", "Running startSyncLoop(). CALLED BY: " + getCallerName("startSyncLoop"));
@@ -678,9 +697,7 @@ async function getLatestWorkspaceGistMeta() {
     }
 
     try {
-        const res = await fetch(`${GIST_API}/${gistId}`, {
-            headers: { "Authorization": `token ${token}` }
-        });
+        const res = await githubFetch(`${GIST_API}/${gistId}`);
 
         if (res.status === 401) {
             logger.error("sync: getLatestWorkspaceGistMeta", "Token invalid or expired.");
@@ -864,9 +881,7 @@ export async function saveWorkspaceToGist() {
                 `Updating existing gist with ID: ${gistId} using PATCH method.`
             );
 
-            const existing = await fetch(`${GIST_API}/${gistId}`, {
-                headers: { "Authorization": `token ${githubToken}` }
-            }).then(r => r.json());
+            const existing = await githubFetch(`${GIST_API}/${gistId}`).then(r => r.json());
 
             if (existing && existing.files) {
                 const existingNames = Object.keys(existing.files);
@@ -899,14 +914,12 @@ export async function saveWorkspaceToGist() {
         );
 
         // --- 5. Send request ---
-        const res = await fetch(url, {
+        const res = await githubFetch(url, {
             method,
-            headers: {
-                "Authorization": `token ${githubToken}`,
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
+
 
         const data = await res.json();
 
@@ -1010,9 +1023,7 @@ export async function loadWorkspaceFromGist() {
     }
 
     try {
-        const res = await fetch(`${GIST_API}/${gistId}`, {
-            headers: { "Authorization": `token ${githubToken}` }
-        });
+        const res = await githubFetch(`${GIST_API}/${gistId}`);
 
         if (!res.ok) {
             logger.error("sync: loadWorkspaceFromGist", `GitHub returned ${res.status}`);
@@ -1165,9 +1176,7 @@ async function getNewestGistAcrossAccount() {
     try {
         const githubToken = getToken();
 
-        const res = await fetch("https://api.github.com/gists", {
-            headers: { "Authorization": `token ${githubToken}` }
-        });
+        const res = await githubFetch("https://api.github.com/gists");
 
         if (!res.ok) return null;
 
@@ -1201,9 +1210,7 @@ export async function listGistRevisions() {
             return [];
         }
 
-        const res = await fetch(`${GIST_API}/${gistId}/commits`, {
-            headers: { "Authorization": `token ${githubToken}` }
-        });
+        const res = await githubFetch(`${GIST_API}/${gistId}/commits`);
 
         const data = await res.json();
         return data;
@@ -1225,9 +1232,7 @@ export async function restoreFromGistVersion(versionId) {
         const gistId = getGistId();
         const githubToken = getToken();
 
-        const res = await fetch(`${GIST_API}/${gistId}/${versionId}`, {
-            headers: { "Authorization": `token ${githubToken}` }
-        });
+        const res = await githubFetch(`${GIST_API}/${gistId}/${versionId}`);
 
         const data = await res.json();
 
@@ -1340,12 +1345,9 @@ async function adoptOrCreateGist() {
 
     // --- 2. Create a new gist ---
     try {
-        const res = await fetch("https://api.github.com/gists", {
+        const res = await githubFetch("https://api.github.com/gists", {
             method: "POST",
-            headers: {
-                "Authorization": `token ${token}`,
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 description: "Workspace",
                 public: false,
@@ -1378,3 +1380,4 @@ async function adoptOrCreateGist() {
         return null;
     }
 }
+
