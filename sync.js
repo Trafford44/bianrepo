@@ -358,7 +358,7 @@ export async function runSyncCheck(reason) {
             );
 
             if (localHash !== cloudHash) {
-                if (localIsNewer(localFlat, cloudFlat)) {
+                if (localHash !== cloudHash && localHash !== lastSyncedHash) {
                     logger.debugSyncing("sync.runSyncCheck", "Local is newer → pushing to cloud");
                     try {
                         await saveWorkspaceToGist();
