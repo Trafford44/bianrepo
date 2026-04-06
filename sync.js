@@ -698,7 +698,17 @@ export async function reconcileLocalAndCloud(localTree) {
     // Null means "no local workspace exists".
     const hasLocal = Array.isArray(localTree) && localTree.length > 0;
 
-    const cloudMeta = await getLatestWorkspaceGistMeta();
+    let cloudMeta;
+    try {
+        cloudMeta = await getLatestWorkspaceGistMeta();
+    } catch (err) {
+        if (err.message === "TOKEN_INVALID") {
+            handleExpiredToken();
+            return;
+        }
+        throw err;
+    }
+
     const lastSyncedHash = localStorage.getItem("lastSyncedHash");
 
     // ------------------------------------------------------------
