@@ -1129,17 +1129,6 @@ export async function saveWorkspaceToGist() {
         }
 
         // --- 7. Compute new cloud hash using corrected loader ---     
-        } catch (error) {
-            if (error.message === "TOKEN_INVALID") {
-                handleExpiredToken();
-                return false;
-            }
-
-            logger.error("sync: saveWorkspaceToGist", error);
-            return false;
-        }
-
-
         const safeFlat = Array.isArray(cloud?.flat) ? cloud.flat : [];
         lastSyncedHash = await computeWorkspaceHash(safeFlat);
 
