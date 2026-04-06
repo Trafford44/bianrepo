@@ -1041,6 +1041,16 @@ export async function saveWorkspaceToGist() {
         // --- 1. Build flat file list from workspace ---
         const workspace = getWorkspace();
         const files = flattenWorkspace(workspace);
+
+        // 🚫 SAFETY GUARD: Prevent destructive overwrite
+        if (!files || files.length === 0) {
+            logger.warn(
+                "sync: saveWorkspaceToGist",
+                "Workspace is empty — refusing to sync to prevent destructive overwrite."
+            );
+            return;
+        }
+
         const gistFiles = {};
 
         files.forEach(f => {
