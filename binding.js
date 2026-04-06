@@ -284,7 +284,7 @@ export function bindPopupEvents(textarea) {
         hidePopupsIfClickedOutside(e);
     });
 }
-
+ 
 export function hidePopupsIfClickedOutside(e) {
     logger.debug("binding", "hidePopupsIfClickedOutside(). CALLED BY: " + getCallerName("hidePopupsIfClickedOutside"));
     const popups = [
