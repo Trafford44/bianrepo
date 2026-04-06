@@ -556,8 +556,9 @@ async function handleCloudChange(latest, idleReturn) {
             setGistId(latest.id);
 
             // --- Load cloud workspace (flat list) ---
+            let cloudWorkspace;
             try {
-                const cloudWorkspace = await loadWorkspaceFromGist();
+                cloudWorkspace = await loadWorkspaceFromGist();
             } catch (err) {
                 if (err.message === "TOKEN_INVALID") {
                     handleExpiredToken();
@@ -743,8 +744,9 @@ export async function reconcileLocalAndCloud(localTree) {
     // ------------------------------------------------------------
     // CASE 2: Cloud exists → load cloud workspace
     // ------------------------------------------------------------    
+    let cloud;
     try {
-        const cloud = await loadWorkspaceFromGist();
+        cloud = await loadWorkspaceFromGist();
     } catch (err) {
         if (err.message === "TOKEN_INVALID") {
             handleExpiredToken();
@@ -752,9 +754,10 @@ export async function reconcileLocalAndCloud(localTree) {
         }
         throw err;
     }    
+
     if (!cloud || !Array.isArray(cloud.flat)) {
         logger.error("sync: reconcileLocalAndCloud", "Cloud load failed or returned invalid structure");
-        return;saveWorkspaceToGist
+        return;
     }
     logger.debugSyncing("sync: reconcileLocalAndCloud", "CASE 2: Cloud exists → load cloud workspace");
 
@@ -926,8 +929,9 @@ async function cloudHashChanged() {
     }
 
     // Load cloud workspace using the flat model
+    let cloudWorkspace;
     try {
-        const cloudWorkspace = await loadWorkspaceFromGist();
+        cloudWorkspace = await loadWorkspaceFromGist();
     } catch (err) {
         if (err.message === "TOKEN_INVALID") {
             handleExpiredToken();
@@ -969,9 +973,10 @@ window.debugCloud = async () => {
         `Fetched newest gist across account (ID: ${latest.id}, updated_at: ${formatDateNZ(latest.updated_at)}, files: ${Object.keys(latest.files).join(", ")})`
     );
 
-    // Load the workspace using the flat model    
+    // Load the workspace using the flat model
+    let cloudWorkspace;
     try {
-        const cloudWorkspace = await loadWorkspaceFromGist();
+        cloudWorkspace = await loadWorkspaceFromGist();
     } catch (err) {
         if (err.message === "TOKEN_INVALID") {
             handleExpiredToken();
@@ -1111,9 +1116,10 @@ export async function saveWorkspaceToGist() {
             gistId = data.id;
         }
 
-        // --- 7. Compute new cloud hash using corrected loader ---        
+        // --- 7. Compute new cloud hash using corrected loader ---     
+        let cloud;   
         try {
-            const cloud = await loadWorkspaceFromGist();
+            cloud = await loadWorkspaceFromGist();
         } catch (err) {
             if (err.message === "TOKEN_INVALID") {
                 handleExpiredToken();
