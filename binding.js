@@ -1,6 +1,6 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml} from "./ui.js";
-import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled } from "./sync.js";
+import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled, handleExpiredToken } from "./sync.js";
 import { logger, getCallerName } from "./logger.js";
 import { clearToken } from "./auth.js";
 
@@ -108,7 +108,19 @@ export function bindGlobalShortcuts(textarea) {
 
         if (isCmd) {
             const key = e.key.toLowerCase();
-            if (key === "s") { e.preventDefault(); saveWorkspaceToGist(); return; }
+            if (key === "s") {
+                e.preventDefault();
+                try {
+                    await saveWorkspaceToGist();
+                } catch (err) {
+                    if (err.message === "TOKEN_INVALID") {
+                        handleExpiredToken();
+                        return;
+                    }
+                    throw err;
+                }
+                return;
+            }
             if (key === "b") { e.preventDefault(); applyMarkdownFormat("bold", textarea); return; }
             if (key === "i") { e.preventDefault(); applyMarkdownFormat("italic", textarea); return; }
             if (key === "h") { e.preventDefault(); applyMarkdownFormat("h1", textarea); return; }
@@ -152,8 +164,30 @@ export function bindToolbarEvents(textarea) {
     logger.debug("binding", "bindToolbarEvents(). CALLED BY: " + getCallerName("bindToolbarEvents"));
     // TOOLBAR & POPUP WIRE-UPS
     document.getElementById("add-folder-btn")?.addEventListener("click", () => addFolder());
-    document.getElementById("save-btn")?.addEventListener("click", () => saveWorkspaceToGist());
-    document.getElementById("load-btn")?.addEventListener("click", () => loadWorkspaceFromGist());
+    document.getElementById("save-btn")?.addEventListener("click", async () => {
+        try {
+            await saveWorkspaceToGist();
+        } catch (err) {
+            if (err.message === "TOKEN_INVALID") {
+                handleExpiredToken();
+                return;
+            }
+            throw err;
+        }
+    });
+
+    document.getElementById("load-btn")?.addEventListener("click", async () => {
+        try {
+            await loadWorkspaceFromGist();
+        } catch (err) {
+            if (err.message === "TOKEN_INVALID") {
+                handleExpiredToken();
+                return;
+            }
+            throw err;
+        }
+    });
+
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
     document.getElementById("exportAll-btn")?.addEventListener("click", () => exportAll());
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
