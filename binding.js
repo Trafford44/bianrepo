@@ -111,7 +111,7 @@ export function bindGlobalShortcuts(textarea) {
             if (key === "s") {
                 e.preventDefault();
                 try {
-                    await saveWorkspaceToGist();
+                    saveWorkspaceToGist();
                 } catch (err) {
                     if (err.message === "TOKEN_INVALID") {
                         handleExpiredToken();
