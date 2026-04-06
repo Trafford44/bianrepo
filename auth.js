@@ -64,12 +64,22 @@ export function clearToken() {
     logger.debug("auth", "Running clearToken(). CALLED BY: " + getCallerName("clearToken"));
     try {
         localStorage.removeItem(`github_token_${String(deviceId)}`);
-        localStorage.removeItem("gist_id");
+        clearGistId();
         updateLoginIndicator();
         showNotification("info", "Signed out of Cloud");
         stopSyncLoop();
     } catch (error) {
         logger.error("auth: clearToken", error);
+    }
+}
+
+export function clearGistId() {
+    logger.debug("auth", "Running clearGistId()");
+    try {
+        localStorage.removeItem("gist_id");
+        localStorage.removeItem(`gist_id_${String(deviceId)}`);
+    } catch (error) {
+        logger.error("auth: clearGistId", error);
     }
 }
 
