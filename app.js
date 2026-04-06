@@ -106,7 +106,16 @@ async function init() {
         logger.debug("app: init()", "Running sync.reconcileLocalAndCloud()");
         // Second inflate (from reconcileLocalAndCloud) - Used to validate and reconcile the local tree against cloud metadata.
         // This is the safety layer that prevents: drift, corruption, partial loads, stale local state, mismatched IDs, mismatched paths
-        await reconcileLocalAndCloud(migrated);
+        try {
+            await reconcileLocalAndCloud(migrated);
+        } catch (err) {
+            if (err.message === "TOKEN_INVALID") {
+                handleExpiredToken();
+                return;
+            }
+            throw err;
+        }
+
 
         // ------------------------------------------------------------
         // 4.5 Bind visibility + activity events
