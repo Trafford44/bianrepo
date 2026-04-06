@@ -6,7 +6,7 @@ Timestamps are used only for idle-return and auto-save timing.
 */
 
 
-import { getToken, getGistId, setGistId, requireLogin, clearGistId } from "./auth.js";
+import { getToken, getGistId, setGistId, requireLogin, clearGistId, clearToken } from "./auth.js";
 import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName } from "./workspace.js";
 import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ, getCallerName } from "./logger.js";
