@@ -3,7 +3,7 @@ import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolb
 import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState, flattenWorkspace, logIdAnomaly } from "./workspace.js";
 import { getMetadata } from "./workspace-metadata.js";
 import { logger, getCallerName } from "./logger.js";
-import { EXCLUSION_FILES } from "./sync.js";
+import { EXCLUSION_FILES, buildReadableWorkspaceExport } from "./sync.js";
 
 let saveTimer = null;
 let activeFileId = null;
@@ -660,6 +660,7 @@ export async function updatePreview() {
             const resolved = resolvePumlIncludes(content, tree);
 
             // output resolved to console for debugging
+            // turn off - not required now that we have this in local storage
             //logger.watch("ui: updatePreview", "Resolved PUML content:\n" + resolved, null, { multiline: true, lineNumbers: true });
 
             if (!resolved.trim()) {
@@ -1180,31 +1181,18 @@ export function exportFile() {
 }
 
 export function exportAll() {
-    const tree = getWorkspace();
-    const flat = flattenWorkspace(tree);
-    const metadata = getMetadata();
+    const text = buildReadableWorkspaceExport("manual-export");
 
-    const snapshot = {
-        timestamp: new Date().toISOString(),
-        tree,
-        flat,
-        metadata
-    };
-
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
-        type: "application/json"
-    });
-
+    const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = `workspace-export-${Date.now()}.json`;
+    a.download = `workspace-export-${Date.now()}.txt`;
     a.click();
 
     showNotification("success", "Workspace exported");
 }
-
 
 export function deleteFile(fileId) {
     const tree = getWorkspace();
