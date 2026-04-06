@@ -6,7 +6,7 @@ Timestamps are used only for idle-return and auto-save timing.
 */
 
 
-import { getToken, getGistId, setGistId, requireLogin } from "./auth.js";
+import { getToken, getGistId, setGistId, requireLogin, clearGistId } from "./auth.js";
 import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName } from "./workspace.js";
 import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ, getCallerName } from "./logger.js";
@@ -98,9 +98,9 @@ export function handleExpiredToken() {
 
     // 1. Emergency dump local workspace
     try {
-        emergencyDumpWorkspace(); // your existing function
+        saveEmergencySnapshot("token-expired");
     } catch (e) {
-        logger.error("sync.token", "Emergency dump failed", e);
+        logger.error("sync.handleExpiredToken", "Emergency dump failed", e);
     }
 
     // 2. Clear credentials
@@ -112,7 +112,7 @@ export function handleExpiredToken() {
 
     // 4. Update UI
     updateSyncState();
-    showToast("Your GitHub session expired. Please log in again.");
+    showNotification("warning", "Your GitHub session expired. Please log in again.");
 
     // 5. Stop further sync attempts
     disconnectFromGitHub("Token expired");
