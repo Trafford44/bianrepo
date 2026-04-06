@@ -137,6 +137,14 @@ async function init() {
         // ------------------------------------------------------------
         // 5. Start sync loop ONLY if token + gistId exist
         // ------------------------------------------------------------
+
+        // SAFETY: If workspace is still empty here, do NOT start sync
+        const current = getWorkspace();
+        if (!current || current.length === 0) {
+            logger.warn("app: init()", "Workspace still empty after load — skipping sync loop");
+            // Continue with UI setup, but do NOT sync (in saveWorkspaceToGist)
+        }
+
         const token = getToken();
         const gistId = getGistId();
         if (token && gistId) {
