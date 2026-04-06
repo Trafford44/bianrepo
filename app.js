@@ -59,7 +59,15 @@ async function init() {
 
             // 3.1 Try to load CLOUD workspace
             // First inflate - Used to bootstrap the in-memory tree so the app can render UI and have something to work with.
-            const cloud = await loadWorkspaceFromGist();
+            try {
+                const cloud = await loadWorkspaceFromGist();
+            } catch (err) {
+                if (err.message === "TOKEN_INVALID") {
+                    handleExpiredToken();
+                    return;
+                }
+                throw err;
+            }
 
             if (cloud && Array.isArray(cloud.flat) && cloud.flat.length > 0) {
                 logger.debug("app: init()", "Cloud workspace FOUND → inflating");
