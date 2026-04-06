@@ -12,6 +12,7 @@ import { renderSidebar, setSyncStatus, showNotification, showCountdownNotificati
 import { logger, LOG_LEVELS, formatDateNZ, getCallerName } from "./logger.js";
 import { extractMetadata, applyMetadata, setMetadata, getMetadata} from "./workspace-metadata.js";   
 import { updateSyncToggleButton } from "./binding.js";
+import { deviceId } from "./device.js";
 
 // Global guard to survive circular imports and module reloads
 if (window.__cloudChangeHandled === undefined) {
@@ -1152,25 +1153,50 @@ export async function saveWorkspaceToGist() {
 }
 
 export function saveEmergencySnapshot(reason, extra = {}) {
+    const text = buildReadableWorkspaceExport(reason, extra);
+
+    localStorage.setItem(
+        `emergencySnapshot:${Date.now()}`,
+        text
+    );
+
+    return text;
+}
+
+export function buildReadableWorkspaceExport(reason = "manual-export", extra = {}) {
     const tree = getWorkspace();
     const flat = flattenWorkspace(tree);
     const metadata = getMetadata();
 
-    const snapshot = {
-        reason,
-        timestamp: new Date().toISOString(),
-        tree,
-        flat,
-        metadata,
-        ...extra
-    };
+    let output = "";
 
-    localStorage.setItem(
-        `emergencySnapshot:${Date.now()}`,
-        JSON.stringify(snapshot, null, 2)
-    );
+    // Header
+    output += "===== WORKSPACE EXPORT =====\n";
+    output += `Reason: ${reason}\n`;
+    output += `Timestamp: ${new Date().toISOString()}\n`;
+    output += `Device: ${deviceId}\n`;
+    output += `Gist: ${getGistId() || "null"}\n`;
+    output += `LastSyncedHash: ${lastSyncedHash || "null"}\n`;
+    output += `SyncEnabled: ${syncEnabled}\n`;
 
-    return snapshot;
+    // Extra anomaly/debug context
+    for (const [key, value] of Object.entries(extra)) {
+        output += `${key}: ${JSON.stringify(value)}\n`;
+    }
+
+    output += "\n";
+
+    // Metadata block
+    output += "===== METADATA =====\n";
+    output += JSON.stringify(metadata, null, 2) + "\n\n";
+
+    // Files
+    for (const file of flat) {
+        output += `===== FILE: ${file.path} =====\n`;
+        output += file.content + "\n\n";
+    }
+
+    return output;
 }
 
 export function markLocalEdit() {
