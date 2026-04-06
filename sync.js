@@ -1170,12 +1170,19 @@ export async function saveWorkspaceToGist() {
 }
 
 export function saveEmergencySnapshot(reason, extra = {}) {
+    // Build the human‑readable export text
     const text = buildReadableWorkspaceExport(reason, extra);
 
-    localStorage.setItem(
-        `emergencySnapshot:${Date.now()}`,
-        text
-    );
+    // Download it as a .txt file
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `emergency-${reason}-${Date.now()}.txt`;
+    a.click();
+
+    URL.revokeObjectURL(url);
 
     return text;
 }
