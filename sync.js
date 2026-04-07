@@ -1180,12 +1180,12 @@ export async function saveWorkspaceToGist() {
 }
 
 export function saveEmergencySnapshot(reason, extra = {}) {
-    logger.debug("sync", "Running saveEmergencySnapshot(). CALLED BY: " + getCallerName("saveEmergencySnapshot"));
+    //logger.debug("sync", "Running saveEmergencySnapshot(). CALLED BY: " + getCallerName("saveEmergencySnapshot"));
     exportWorkspace(reason, extra);
 }
 
 export function buildReadableWorkspaceExport(reason = "manual-export", extra = {}) {
-    logger.debug("sync", "Running buildReadableWorkspaceExport(). CALLED BY: " + getCallerName("buildReadableWorkspaceExport"));
+    //logger.debug("sync", "Running buildReadableWorkspaceExport(). CALLED BY: " + getCallerName("buildReadableWorkspaceExport"));
     const tree = getWorkspace();
     const flat = flattenWorkspace(tree);
 
