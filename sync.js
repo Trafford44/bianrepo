@@ -8,7 +8,7 @@ Timestamps are used only for idle-return and auto-save timing.
 
 import { getToken, getGistId, setGistId, requireLogin, clearGistId, clearToken } from "./auth.js";
 import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName } from "./workspace.js";
-import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification} from "./ui.js";
+import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification, exportWorkspace} from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ, getCallerName } from "./logger.js";
 import { extractMetadata, applyMetadata, setMetadata, getMetadata} from "./workspace-metadata.js";   
 import { updateSyncToggleButton } from "./binding.js";
@@ -1180,24 +1180,12 @@ export async function saveWorkspaceToGist() {
 }
 
 export function saveEmergencySnapshot(reason, extra = {}) {
-    // Build the human‑readable export text
-    const text = buildReadableWorkspaceExport(reason, extra);
-
-    // Download it as a .txt file
-    const blob = new Blob([text], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `emergency-${reason}-${Date.now()}.txt`;
-    a.click();
-
-    URL.revokeObjectURL(url);
-
-    return text;
+    logger.debug("sync", "Running saveEmergencySnapshot(). CALLED BY: " + getCallerName("saveEmergencySnapshot"));
+    exportWorkspace(reason, extra);
 }
 
 export function buildReadableWorkspaceExport(reason = "manual-export", extra = {}) {
+    logger.debug("sync", "Running buildReadableWorkspaceExport(). CALLED BY: " + getCallerName("buildReadableWorkspaceExport"));
     const tree = getWorkspace();
     const flat = flattenWorkspace(tree);
 
