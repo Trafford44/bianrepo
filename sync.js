@@ -1200,11 +1200,21 @@ export function saveEmergencySnapshot(reason, extra = {}) {
 export function buildReadableWorkspaceExport(reason = "manual-export", extra = {}) {
     const tree = getWorkspace();
     const flat = flattenWorkspace(tree);
-    const metadata = getMetadata();
+
+    // --- METADATA (with fallback) ---
+    let metadata = getMetadata();
+    if (!metadata) {
+        try {
+            const raw = localStorage.getItem("__workspace_metadata");
+            metadata = raw ? JSON.parse(raw) : { error: "metadata unavailable during emergency dump" };
+        } catch (e) {
+            metadata = { error: "metadata unavailable during emergency dump" };
+        }
+    }
 
     let output = "";
 
-    // Header
+    // --- HEADER ---
     output += "===== WORKSPACE EXPORT =====\n";
     output += `Reason: ${reason}\n`;
     output += `Timestamp: ${new Date().toISOString()}\n`;
@@ -1220,11 +1230,48 @@ export function buildReadableWorkspaceExport(reason = "manual-export", extra = {
 
     output += "\n";
 
-    // Metadata block
+    // --- METADATA BLOCK ---
     output += "===== METADATA =====\n";
     output += JSON.stringify(metadata, null, 2) + "\n\n";
 
-    // Files
+    // --- FOLDERS BLOCK ---
+    output += "===== FOLDERS =====\n";
+
+    // Extract folder paths from the tree
+    const folderPaths = [];
+
+    function walk(node, parentPath = "") {
+        if (node.type === "folder") {
+            const folderPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+            folderPaths.push(folderPath);
+
+            if (Array.isArray(node.children)) {
+                for (const childId of node.children) {
+                    const child = tree.find(n => n.id === childId);
+                    if (child) walk(child, folderPath);
+                }
+            }
+        }
+    }
+
+    // Walk all root-level nodes
+    for (const node of tree) {
+        if (node.type === "folder" && !node.parentId) {
+            walk(node, "");
+        }
+    }
+
+    // Output folder paths
+    if (folderPaths.length === 0) {
+        output += "(none)\n\n";
+    } else {
+        for (const folderPath of folderPaths) {
+            output += folderPath + "\n";
+        }
+        output += "\n";
+    }
+
+    // --- FILES BLOCK ---
     for (const file of flat) {
         output += `===== FILE: ${file.path} =====\n`;
         output += file.content + "\n\n";
