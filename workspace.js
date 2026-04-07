@@ -399,7 +399,7 @@ export function inflateWorkspace(flatList) {
 
 
 function buildLocalPathMap(tree, prefix = "") {
-    logger.debug("workspace", "buildLocalPathMap(). CALLED BY: " + getCallerName("buildLocalPathMap"));
+    //logger.debug("workspace", "buildLocalPathMap(). CALLED BY: " + getCallerName("buildLocalPathMap"));
     const map = {};
 
     for (const node of tree) {
@@ -416,7 +416,7 @@ function buildLocalPathMap(tree, prefix = "") {
 }
 
 function buildMetadataPathMap(metadata) {
-    logger.debug("workspace", "buildMetadataPathMap(). CALLED BY: " + getCallerName("buildMetadataPathMap"));
+    //logger.debug("workspace", "buildMetadataPathMap(). CALLED BY: " + getCallerName("buildMetadataPathMap"));
     const map = {};
 
     function walk(nodes, prefix = "") {
