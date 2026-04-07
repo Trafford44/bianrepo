@@ -1181,17 +1181,119 @@ export function exportFile() {
 }
 
 export function exportAll() {
-    const text = buildReadableWorkspaceExport("manual-export");
-
-    const blob = new Blob([text], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `workspace-export-${Date.now()}.txt`;
-    a.click();
-
+    exportWorkspace("manual-export");
     showNotification("success", "Workspace exported");
+}
+
+
+export function exportWorkspace(reason = "manual-export", extra = {}) {
+    // Readable export
+    const readable = buildReadableWorkspaceExport(reason, extra);
+    const readableBlob = new Blob([readable], { type: "text/plain" });
+    const readableUrl = URL.createObjectURL(readableBlob);
+
+    const a1 = document.createElement("a");
+    a1.href = readableUrl;
+    a1.download = `workspace-${reason}-${Date.now()}.txt`;
+    a1.click();
+
+    // JSON export
+    const json = buildJsonWorkspaceExport(reason, extra);
+    const jsonBlob = new Blob([JSON.stringify(json, null, 2)], {
+        type: "application/json"
+    });
+    const jsonUrl = URL.createObjectURL(jsonBlob);
+
+    const a2 = document.createElement("a");
+    a2.href = jsonUrl;
+    a2.download = `workspace-${reason}-${Date.now()}.json`;
+    a2.click();
+}
+
+export async function importWorkspace(json) {
+    try {
+        // Validate basic structure
+        if (!json || !json.folders || !json.files) {
+            throw new Error("Invalid workspace import format");
+        }
+
+        logger.debug("import", "Starting workspace import");
+
+        // --- 1. Clear current workspace ---
+        clearWorkspace(); // You already have this helper
+
+        const newTree = [];
+
+        // --- 2. Rebuild folders (parent-first) ---
+        // Sort so parents come before children
+        const sortedFolders = [...json.folders].sort((a, b) => {
+            const depthA = a.name.split("/").length;
+            const depthB = b.name.split("/").length;
+            return depthA - depthB;
+        });
+
+        for (const folder of sortedFolders) {
+            newTree.push({
+                id: folder.id,
+                type: "folder",
+                name: folder.name,
+                parentId: folder.parentId || null,
+                children: []
+            });
+        }
+
+        // --- 3. Rebuild files ---
+        for (const file of json.files) {
+            newTree.push({
+                id: file.id,
+                type: "file",
+                name: file.name,
+                parentId: findParentIdFromPath(file.path, newTree),
+                content: file.content
+            });
+        }
+
+        // --- 4. Rebuild folder children arrays ---
+        for (const node of newTree) {
+            if (node.parentId) {
+                const parent = newTree.find(n => n.id === node.parentId);
+                if (parent && parent.children) {
+                    parent.children.push(node.id);
+                }
+            }
+        }
+
+        // --- 5. Save workspace tree ---
+        setWorkspace(newTree);
+        saveState();
+
+        // --- 6. Restore metadata ---
+        if (json.metadata) {
+            localStorage.setItem("__workspace_metadata", JSON.stringify(json.metadata));
+        }
+
+        logger.debug("import", "Workspace import complete");
+
+        // --- 7. Refresh UI ---
+        refreshWorkspaceUI(); // whatever your UI refresh hook is
+
+        alert("Workspace imported successfully");
+
+    } catch (err) {
+        console.error("Workspace import failed:", err);
+        alert("Workspace import failed: " + err.message);
+    }
+}
+
+function findParentIdFromPath(path, tree) {
+    const parts = path.split("/");
+    parts.pop(); // remove filename
+
+    if (parts.length === 0) return null;
+
+    const folderName = parts.join("/");
+    const folder = tree.find(n => n.type === "folder" && n.name === folderName);
+    return folder ? folder.id : null;
 }
 
 export function deleteFile(fileId) {
