@@ -239,7 +239,7 @@ export function getCallerName(currentFunctionName = null) {
 
 
 export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
-  logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));  
+  //logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));  
   const tree = getWorkspace();
   const flat = flattenWorkspace(tree);
 
