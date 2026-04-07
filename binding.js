@@ -1,5 +1,5 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
-import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml} from "./ui.js";
+import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml, importWorkspace} from "./ui.js";
 import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled, handleExpiredToken } from "./sync.js";
 import { logger, getCallerName } from "./logger.js";
 import { clearToken } from "./auth.js";
@@ -190,6 +190,7 @@ export function bindToolbarEvents(textarea) {
 
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
     document.getElementById("exportAll-btn")?.addEventListener("click", () => exportAll());
+    document.getElementById("importAll-btn")?.addEventListener("click", () => importWorkspace());
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
     document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
     document.getElementById("copy-rendered-puml-btn")?.addEventListener("click", () => copyRenderedPuml());
@@ -284,7 +285,7 @@ export function bindPopupEvents(textarea) {
         hidePopupsIfClickedOutside(e);
     });
 }
- 
+
 export function hidePopupsIfClickedOutside(e) {
     logger.debug("binding", "hidePopupsIfClickedOutside(). CALLED BY: " + getCallerName("hidePopupsIfClickedOutside"));
     const popups = [
