@@ -180,7 +180,7 @@ export function getCallerName_old(currentFunctionName) {
 /*
 To remove the call to getCallerName() always:
 
-Change all calls to this:
+Change all calls to this, which is passing a function to call via "() =>".  getCallerName determines if it needs to be called. 
 logger.debug("workspace.buildMetadataPathMap()", () =>
   "CALLED BY: " + getCallerName("buildMetadataPathMap")
 );
@@ -197,10 +197,13 @@ debug(channel, message) {
     console.log(message);
 }
 
+This is a 'lazy' approch where the caller name is only computed if the log level is enabled, and the message is a function. This way we avoid the overhead of computing the caller name when it's not needed.
+
 */
 
 
 export function getCallerName(currentFunctionName = null) {
+  logger.debug("logger", "Running getCallerName(). CALLED BY: " + getCallerName("getCallerName"));
   const stack = new Error().stack;
   if (!stack) return "unknown";
 
@@ -235,16 +238,52 @@ export function getCallerName(currentFunctionName = null) {
 }
 
 
-export function exportSnapshot(snapshot) {
-    const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
-        type: "application/json"
-    });
+export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
+  logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));  
+  const tree = getWorkspace();
+  const flat = flattenWorkspace(tree);
 
-    const url = URL.createObjectURL(blob);
+  // machine-readable for re-import
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `emergency-${snapshot.reason}-${Date.now()}.json`;
-    a.click();
+  // Metadata with fallback
+  let metadata = getMetadata();
+  if (!metadata) {
+      try {
+          const raw = localStorage.getItem("__workspace_metadata");
+          metadata = raw ? JSON.parse(raw) : { error: "metadata unavailable during export" };
+      } catch (e) {
+          metadata = { error: "metadata unavailable during export" };
+      }
+  }
+
+  // Extract folders
+  const folders = tree
+      .filter(n => n.type === "folder")
+      .map(n => ({
+          id: n.id,
+          name: n.name,
+          parentId: n.parentId || null
+      }));
+
+  // Extract files
+  const files = flat.map(f => ({
+      id: f.id,
+      name: f.name,
+      path: f.path,
+      content: f.content
+  }));
+
+  return {
+      reason,
+      timestamp: new Date().toISOString(),
+      device: deviceId,
+      gist: getGistId() || null,
+      lastSyncedHash: lastSyncedHash || null,
+      syncEnabled,
+      extra,
+      metadata,
+      folders,
+      files
+  };
 }
 
