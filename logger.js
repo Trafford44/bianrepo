@@ -203,7 +203,6 @@ This is a 'lazy' approch where the caller name is only computed if the log level
 
 
 export function getCallerName(currentFunctionName = null) {
-  logger.debug("logger", "Running getCallerName(). CALLED BY: " + getCallerName("getCallerName"));
   const stack = new Error().stack;
   if (!stack) return "unknown";
 
@@ -239,7 +238,7 @@ export function getCallerName(currentFunctionName = null) {
 
 
 export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
-  //logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));  
+  logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));  
   const tree = getWorkspace();
   const flat = flattenWorkspace(tree);
 
