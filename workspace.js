@@ -1,4 +1,4 @@
-import { logger, getCallerName, exportSnapshot } from "./logger.js";
+import { logger, getCallerName } from "./logger.js";
 import { saveEmergencySnapshot } from "./sync.js";
 
 let workspace = []
