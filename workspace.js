@@ -446,8 +446,8 @@ export function logIdAnomaly(context, path, cloudEntry, meta, local) {
         local
     });
 
-    // Capture the snapshot
-    const snapshot = saveEmergencySnapshot("id-anomaly", {
+    // Capture the snapshot (readable + JSON)
+    saveEmergencySnapshot("id-anomaly", {
         context,
         path,
         cloudEntry,
@@ -455,8 +455,6 @@ export function logIdAnomaly(context, path, cloudEntry, meta, local) {
         local
     });
 
-    // export the snapshot as a file
-    exportSnapshot(snapshot);
     // Alert the user
     alert(`Add ID anomaly detected!: ${path}`);
 }
