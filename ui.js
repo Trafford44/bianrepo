@@ -984,7 +984,8 @@ async function renderPumlViaKroki(puml) {
 function getPumlHref(puml) {
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
-        return `https://www.plantuml.com/plantuml/uml/${encoded}`; 
+        //return `https://www.plantuml.com/plantuml/uml/${encoded}`; //small editor window with no edit capabilities - this is the latest beta release - flakey.  Changing away from this will change the rendering
+        return `https://editor.plantuml.com/uml/${encoded}`; // large editor window with edit capabilities - this is the latest beta release - flakey.  Changing away from this will change the rendering
     } catch (e) {
         console.error("Encoding error:", e);
         return "";
