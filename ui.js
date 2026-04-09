@@ -1030,56 +1030,31 @@ export function resolvePumlIncludeNames(pumlText, tree) {
 
 export function resolvePumlIncludeNames(pumlText, tree) {
     logger.debug("ui: resolvePumlIncludeNames", "Starting include by name resolution. CALLED BY: " + getCallerName("resolvePumlIncludeNames"));
-    logger.debug("ui: resolvePumlIncludeNames", "Incoming PUML text:\n" + pumlText);
-    logger.debug("ui: resolvePumlIncludeNames", "ARGUMENTS:", {
-        pumlText,
-        tree
-    });
 
-    // 1. Try to find the mapping file
     const mapFileName = "_name_ID_Mapping.puml";
     const mapFile = findNodeByName(tree, mapFileName);
 
     if (!mapFile) {
         logger.warn("ui: resolvePumlIncludeNames", `Mapping file NOT FOUND: ${mapFileName}`);
-        logger.warn("ui: resolvePumlIncludeNames", "Returning original PUML text unchanged.");
         return pumlText;
     }
 
-    logger.debug("ui: resolvePumlIncludeNames", `Mapping file FOUND: ${mapFile.name}`);
-    logger.debug("ui: resolvePumlIncludeNames", "Mapping file content:\n" + mapFile.content);
-
-    // 2. Parse the mapping file
     const mapping = parseMapping(mapFile.content);
-    logger.debug("ui: resolvePumlIncludeNames", "Parsed mapping keys: " + Object.keys(mapping).join(", "));
 
-    // 3. Regex for name-based includes
     const regex = /!include\s+name:([A-Za-z0-9_.-]+)/g;
 
-    // 4. Perform replacements with detailed logging
-    let replacementCount = 0;
-
     const rewritten = pumlText.replace(regex, (full, name) => {
-        logger.debug("ui: resolvePumlIncludeNames", `Found include-by-name: ${name}`);
-
         const resolved = mapping[name];
         if (!resolved) {
-            logger.error("ui: resolvePumlIncludeNames", `ERROR: No mapping found for name '${name}'`);
+            logger.error("ui: resolvePumlIncludeNames", `No mapping found for '${name}'`);
             return `!error Unknown include name: ${name}`;
         }
-
-        logger.debug("ui: resolvePumlIncludeNames", `Resolved '${name}' → ${resolved}`);
-        replacementCount += 1;
-
         return `!include ${resolved}`;
     });
 
-    logger.debug("ui: resolvePumlIncludeNames", `Total replacements made: ${replacementCount}`);
-    logger.debug("ui: resolvePumlIncludeNames", "Rewritten PUML text:\n" + rewritten);
-    logger.debug("ui: resolvePumlIncludeNames", "=== EXIT resolvePumlIncludeNames ===");
-
     return rewritten;
 }
+
 
 /*
 function findNodeByName(tree, name) {
@@ -1106,30 +1081,17 @@ function findNodeByName(tree, name) {
 }
 */
 function findNodeByName(tree, name) {
-    logger.debug("ui: findNodeByName", `SEARCHING FOR: "${name}"`);
-
     if (!tree) {
-        logger.error("ui: findNodeByName", "ERROR: tree is null or undefined");
+        logger.error("ui: findNodeByName", "Tree is null or undefined");
         return null;
     }
 
     const stack = Array.isArray(tree) ? [...tree] : [tree];
-    let count = 0;
 
     while (stack.length > 0) {
         const node = stack.pop();
-        count++;
-
-        logger.debug(
-            "ui: findNodeByName",
-            `CHECKING node #${count}: type=${node.type}, name="${node.name}", id=${node.id}`
-        );
 
         if (node.name === name) {
-            logger.debug(
-                "ui: findNodeByName",
-                `MATCH FOUND: name="${node.name}", id=${node.id}`
-            );
             return node;
         }
 
@@ -1140,16 +1102,9 @@ function findNodeByName(tree, name) {
         }
     }
 
-    logger.warn(
-        "ui: findNodeByName",
-        `NO MATCH FOUND for "${name}" after checking ${count} nodes`
-    );
-
+    logger.warn("ui: findNodeByName", `No match for '${name}'`);
     return null;
 }
-
-
-
 
 
 /*
@@ -1166,55 +1121,27 @@ function parseMapping(text) {
 }
 */
 function parseMapping(text) {
-    logger.debug("ui: parseMapping", "=== ENTER parseMapping ===");
-    logger.debug("ui: parseMapping", "Raw mapping file content:\n" + text);
-
     const map = {};
     const lines = text.split("\n");
 
-    logger.debug("ui: parseMapping", `Total lines: ${lines.length}`);
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith("#")) continue;
 
-    for (let i = 0; i < lines.length; i++) {
-        const rawLine = lines[i];
-        logger.debug("ui: parseMapping", `Line ${i}: '${rawLine}'`);
-
-        // Skip empty lines
-        if (!rawLine.trim()) {
-            logger.debug("ui: parseMapping", `Line ${i} is empty → skip`);
-            continue;
-        }
-
-        // Skip comment lines
-        if (rawLine.trim().startsWith("#")) {
-            logger.debug("ui: parseMapping", `Line ${i} is a comment → skip`);
-            continue;
-        }
-
-        // Split on '='
-        const parts = rawLine.split("=");
-        if (parts.length !== 2) {
-            logger.warn("ui: parseMapping", `Line ${i} does NOT contain exactly one '=' → skip`);
-            continue;
-        }
+        const parts = line.split("=");
+        if (parts.length !== 2) continue;
 
         const key = parts[0].trim();
         const value = parts[1].trim();
 
-        logger.debug("ui: parseMapping", `Parsed key='${key}' value='${value}'`);
-
-        if (!key || !value) {
-            logger.warn("ui: parseMapping", `Line ${i} has empty key or value → skip`);
-            continue;
+        if (key && value) {
+            map[key] = value;
         }
-
-        map[key] = value;
     }
-
-    logger.debug("ui: parseMapping", "Final parsed mapping keys: " + Object.keys(map).join(", "));
-    logger.debug("ui: parseMapping", "=== EXIT parseMapping ===");
 
     return map;
 }
+
 
 function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
     logger.debug("ui: resolvePumlIncludes", "Starting include resolution. CALLED BY: " + getCallerName("resolvePumlIncludes"));
