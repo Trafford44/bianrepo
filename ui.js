@@ -1025,6 +1025,29 @@ export function resolvePumlIncludeNames(pumlText, tree) {
     });
 }
 
+function findNodeByName(tree, name) {
+    if (!tree) return null;
+
+    // Depth-first search
+    const stack = [tree];
+
+    while (stack.length > 0) {
+        const node = stack.pop();
+
+        if (node.name === name) {
+            return node;
+        }
+
+        if (node.children && node.children.length > 0) {
+            for (const child of node.children) {
+                stack.push(child);
+            }
+        }
+    }
+
+    return null;
+}
+
 function parseMapping(text) {
     const map = {};
     const lines = text.split("\n");
