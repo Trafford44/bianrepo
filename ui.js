@@ -1113,13 +1113,7 @@ function findNodeByName(tree, name) {
         return null;
     }
 
-    // Log the root node
-    logger.debug(
-        "ui: findNodeByName",
-        `ROOT NODE: type=${tree.type}, name="${tree.name}", id=${tree.id}`
-    );
-
-    const stack = [tree];
+    const stack = Array.isArray(tree) ? [...tree] : [tree];
     let count = 0;
 
     while (stack.length > 0) {
@@ -1153,6 +1147,7 @@ function findNodeByName(tree, name) {
 
     return null;
 }
+
 
 
 
