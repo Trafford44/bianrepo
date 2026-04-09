@@ -1008,8 +1008,10 @@ function openFileById(id) {
     updatePreview();
 }
 
+/*
 export function resolvePumlIncludeNames(pumlText, tree) {
-    const mapFile = findNodeByName(tree, "_classNameID_Mapping.puml");
+    logger.debug("ui: resolvePumlIncludeNames", "Starting include by name resolution. CALLED BY: " + getCallerName("resolvePumlIncludeNames"));
+    const mapFile = findNodeByName(tree, "puml-mapping.md");
     if (!mapFile) return pumlText;
 
     const mapping = parseMapping(mapFile.content);
@@ -1024,6 +1026,57 @@ export function resolvePumlIncludeNames(pumlText, tree) {
         return `!include ${resolved}`;
     });
 }
+*/
+
+export function resolvePumlIncludeNames(pumlText, tree) {
+    logger.debug("ui: resolvePumlIncludeNames", "Starting include by name resolution. CALLED BY: " + getCallerName("resolvePumlIncludeNames"));
+    logger.debug("ui: resolvePumlIncludeNames", "Incoming PUML text:\n" + pumlText);
+
+    // 1. Try to find the mapping file
+    const mapFileName = "_classNameID_Mapping.puml";
+    const mapFile = findNodeByName(tree, mapFileName);
+
+    if (!mapFile) {
+        logger.warn("ui: resolvePumlIncludeNames", `Mapping file NOT FOUND: ${mapFileName}`);
+        logger.warn("ui: resolvePumlIncludeNames", "Returning original PUML text unchanged.");
+        return pumlText;
+    }
+
+    logger.debug("ui: resolvePumlIncludeNames", `Mapping file FOUND: ${mapFile.name}`);
+    logger.debug("ui: resolvePumlIncludeNames", "Mapping file content:\n" + mapFile.content);
+
+    // 2. Parse the mapping file
+    const mapping = parseMapping(mapFile.content);
+    logger.debug("ui: resolvePumlIncludeNames", "Parsed mapping keys: " + Object.keys(mapping).join(", "));
+
+    // 3. Regex for name-based includes
+    const regex = /!include\s+name:([A-Za-z0-9_.-]+)/g;
+
+    // 4. Perform replacements with detailed logging
+    let replacementCount = 0;
+
+    const rewritten = pumlText.replace(regex, (full, name) => {
+        logger.debug("ui: resolvePumlIncludeNames", `Found include-by-name: ${name}`);
+
+        const resolved = mapping[name];
+        if (!resolved) {
+            logger.error("ui: resolvePumlIncludeNames", `ERROR: No mapping found for name '${name}'`);
+            return `!error Unknown include name: ${name}`;
+        }
+
+        logger.debug("ui: resolvePumlIncludeNames", `Resolved '${name}' → ${resolved}`);
+        replacementCount += 1;
+
+        return `!include ${resolved}`;
+    });
+
+    logger.debug("ui: resolvePumlIncludeNames", `Total replacements made: ${replacementCount}`);
+    logger.debug("ui: resolvePumlIncludeNames", "Rewritten PUML text:\n" + rewritten);
+    logger.debug("ui: resolvePumlIncludeNames", "=== EXIT resolvePumlIncludeNames ===");
+
+    return rewritten;
+}
+
 
 function findNodeByName(tree, name) {
     if (!tree) return null;
@@ -1047,7 +1100,7 @@ function findNodeByName(tree, name) {
 
     return null;
 }
-
+/*
 function parseMapping(text) {
     const map = {};
     const lines = text.split("\n");
@@ -1056,6 +1109,57 @@ function parseMapping(text) {
         const [key, value] = line.split("=").map(s => s.trim());
         if (key && value) map[key] = value;
     }
+
+    return map;
+}
+*/
+function parseMapping(text) {
+    logger.debug("ui: parseMapping", "=== ENTER parseMapping ===");
+    logger.debug("ui: parseMapping", "Raw mapping file content:\n" + text);
+
+    const map = {};
+    const lines = text.split("\n");
+
+    logger.debug("ui: parseMapping", `Total lines: ${lines.length}`);
+
+    for (let i = 0; i < lines.length; i++) {
+        const rawLine = lines[i];
+        logger.debug("ui: parseMapping", `Line ${i}: '${rawLine}'`);
+
+        // Skip empty lines
+        if (!rawLine.trim()) {
+            logger.debug("ui: parseMapping", `Line ${i} is empty → skip`);
+            continue;
+        }
+
+        // Skip comment lines
+        if (rawLine.trim().startsWith("#")) {
+            logger.debug("ui: parseMapping", `Line ${i} is a comment → skip`);
+            continue;
+        }
+
+        // Split on '='
+        const parts = rawLine.split("=");
+        if (parts.length !== 2) {
+            logger.warn("ui: parseMapping", `Line ${i} does NOT contain exactly one '=' → skip`);
+            continue;
+        }
+
+        const key = parts[0].trim();
+        const value = parts[1].trim();
+
+        logger.debug("ui: parseMapping", `Parsed key='${key}' value='${value}'`);
+
+        if (!key || !value) {
+            logger.warn("ui: parseMapping", `Line ${i} has empty key or value → skip`);
+            continue;
+        }
+
+        map[key] = value;
+    }
+
+    logger.debug("ui: parseMapping", "Final parsed mapping keys: " + Object.keys(map).join(", "));
+    logger.debug("ui: parseMapping", "=== EXIT parseMapping ===");
 
     return map;
 }
