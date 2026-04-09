@@ -1011,7 +1011,7 @@ function openFileById(id) {
 /*
 export function resolvePumlIncludeNames(pumlText, tree) {
     logger.debug("ui: resolvePumlIncludeNames", "Starting include by name resolution. CALLED BY: " + getCallerName("resolvePumlIncludeNames"));
-    const mapFile = findNodeByName(tree, "puml-mapping.md");
+    const mapFile = findNodeByName(tree, "_name_ID_Mapping.puml");
     if (!mapFile) return pumlText;
 
     const mapping = parseMapping(mapFile.content);
@@ -1033,7 +1033,7 @@ export function resolvePumlIncludeNames(pumlText, tree) {
     logger.debug("ui: resolvePumlIncludeNames", "Incoming PUML text:\n" + pumlText);
 
     // 1. Try to find the mapping file
-    const mapFileName = "_classNameID_Mapping.puml";
+    const mapFileName = "_name_ID_Mapping.puml";
     const mapFile = findNodeByName(tree, mapFileName);
 
     if (!mapFile) {
@@ -1077,7 +1077,7 @@ export function resolvePumlIncludeNames(pumlText, tree) {
     return rewritten;
 }
 
-
+/*
 function findNodeByName(tree, name) {
     if (!tree) return null;
 
@@ -1100,6 +1100,50 @@ function findNodeByName(tree, name) {
 
     return null;
 }
+*/
+function findNodeByName(tree, name) {
+    if (!tree) {
+        logger.warn("ui: findNodeByName", "Tree is null/undefined");
+        return null;
+    }
+
+    logger.debug("ui: findNodeByName", `SEARCHING FOR: "${name}"`);
+
+    // Depth-first search
+    const stack = [tree];
+    let count = 0;
+
+    while (stack.length > 0) {
+        const node = stack.pop();
+        count++;
+
+        // Log every node we inspect
+        logger.debug(
+            "ui: findNodeByName",
+            `CHECKING node #${count}: type=${node.type}, name="${node.name}", id=${node.id}`
+        );
+
+        if (node.name === name) {
+            logger.debug(
+                "ui: findNodeByName",
+                `MATCH FOUND: name="${node.name}", id=${node.id}`
+            );
+            return node;
+        }
+
+        if (node.children && node.children.length > 0) {
+            for (const child of node.children) {
+                stack.push(child);
+            }
+        }
+    }
+
+    logger.warn("ui: findNodeByName", `NO MATCH FOUND for "${name}" after checking ${count} nodes`);
+    return null;
+}
+
+
+
 /*
 function parseMapping(text) {
     const map = {};
