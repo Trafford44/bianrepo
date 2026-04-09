@@ -656,8 +656,10 @@ export async function updatePreview() {
                 </div>
             `;
 
+            // 0. Resolve !include name:... inside the PUML file
+            const withNames = resolvePumlIncludeNames(content, tree);
             // 1. Resolve !include app://file/... inside the PUML file
-            const resolved = resolvePumlIncludes(content, tree);
+            const resolved = resolvePumlIncludes(withNames, tree);
 
             // output resolved to console for debugging
             // turn off - not required now that we have this in local storage
@@ -779,7 +781,11 @@ export async function updatePreview() {
         const renderedPumlBlocks = [];
         for (let i = 0; i < pumlBlocks.length; i++) {
             const block = pumlBlocks[i];
-            const resolvedBlock = resolvePumlIncludes(block, tree);
+
+            // Resolve !include name:... inside the PUML file
+            const withNames = resolvePumlIncludeNames(block, tree);
+            // Resolve !include app://file/... inside the PUML file
+            const resolvedBlock = resolvePumlIncludes(withNames, tree);
 
             try {
                 const rendered = await renderPuml(resolvedBlock);
@@ -1000,6 +1006,35 @@ function openFileById(id) {
 
     document.getElementById("editor-textarea").value = file.content;
     updatePreview();
+}
+
+export function resolvePumlIncludeNames(pumlText, tree) {
+    const mapFile = findNodeByName(tree, "_classNameID_Mapping.puml");
+    if (!mapFile) return pumlText;
+
+    const mapping = parseMapping(mapFile.content);
+
+    const regex = /!include\s+name:([A-Za-z0-9_.-]+)/g;
+
+    return pumlText.replace(regex, (full, name) => {
+        const resolved = mapping[name];
+        if (!resolved) {
+            return `!error Unknown include name: ${name}`;
+        }
+        return `!include ${resolved}`;
+    });
+}
+
+function parseMapping(text) {
+    const map = {};
+    const lines = text.split("\n");
+
+    for (const line of lines) {
+        const [key, value] = line.split("=").map(s => s.trim());
+        if (key && value) map[key] = value;
+    }
+
+    return map;
 }
 
 function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
