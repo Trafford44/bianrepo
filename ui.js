@@ -1102,14 +1102,19 @@ function findNodeByName(tree, name) {
 }
 */
 function findNodeByName(tree, name) {
+    logger.debug("ui: findNodeByName", `SEARCHING FOR: "${name}"`);
+
     if (!tree) {
-        logger.warn("ui: findNodeByName", "Tree is null/undefined");
+        logger.error("ui: findNodeByName", "ERROR: tree is null or undefined");
         return null;
     }
 
-    logger.debug("ui: findNodeByName", `SEARCHING FOR: "${name}"`);
+    // Log the root node
+    logger.debug(
+        "ui: findNodeByName",
+        `ROOT NODE: type=${tree.type}, name="${tree.name}", id=${tree.id}`
+    );
 
-    // Depth-first search
     const stack = [tree];
     let count = 0;
 
@@ -1117,7 +1122,6 @@ function findNodeByName(tree, name) {
         const node = stack.pop();
         count++;
 
-        // Log every node we inspect
         logger.debug(
             "ui: findNodeByName",
             `CHECKING node #${count}: type=${node.type}, name="${node.name}", id=${node.id}`
@@ -1138,9 +1142,14 @@ function findNodeByName(tree, name) {
         }
     }
 
-    logger.warn("ui: findNodeByName", `NO MATCH FOUND for "${name}" after checking ${count} nodes`);
+    logger.warn(
+        "ui: findNodeByName",
+        `NO MATCH FOUND for "${name}" after checking ${count} nodes`
+    );
+
     return null;
 }
+
 
 
 
