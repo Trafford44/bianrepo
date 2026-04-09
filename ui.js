@@ -1031,6 +1031,10 @@ export function resolvePumlIncludeNames(pumlText, tree) {
 export function resolvePumlIncludeNames(pumlText, tree) {
     logger.debug("ui: resolvePumlIncludeNames", "Starting include by name resolution. CALLED BY: " + getCallerName("resolvePumlIncludeNames"));
     logger.debug("ui: resolvePumlIncludeNames", "Incoming PUML text:\n" + pumlText);
+    logger.debug("ui: resolvePumlIncludeNames", "ARGUMENTS:", {
+        pumlText,
+        tree
+    });
 
     // 1. Try to find the mapping file
     const mapFileName = "_name_ID_Mapping.puml";
