@@ -28,7 +28,7 @@ let lastSuccessfulSyncTime = 0;          // Local wall-clock time of last sync
 let lastLocalEditTime = 0;     // Last time user typed anything
 let syncInterval = 2 * 60 * 1000; // 2 minutes
 let idleReturnThreshold = syncInterval * 2; // 4 minutes = “user returned”
-let lastSyncedHash = localStorage.getItem("lastSyncedHash") || null;
+export let lastSyncedHash = localStorage.getItem("lastSyncedHash") || null;
 let syncEnabled = JSON.parse(localStorage.getItem("syncEnabled") ?? "true");
 export let syncIntervalId = null;
 let isSaving = false;
