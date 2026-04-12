@@ -4,6 +4,7 @@ import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFold
 import { getMetadata } from "./workspace-metadata.js";
 import { logger, getCallerName } from "./logger.js";
 import { EXCLUSION_FILES, buildReadableWorkspaceExport } from "./sync.js";
+import { deviceId } from "./device.js";
 
 let saveTimer = null;
 let activeFileId = null;
