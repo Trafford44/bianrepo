@@ -1379,28 +1379,33 @@ export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
 }
 
 export function exportWorkspace(reason = "manual-export", extra = {}) {
-    // Readable export
-    const readable = buildReadableWorkspaceExport(reason, extra);
-    const readableBlob = new Blob([readable], { type: "text/plain" });
-    const readableUrl = URL.createObjectURL(readableBlob);
+    try {    
+        // Readable export
+        const readable = buildReadableWorkspaceExport(reason, extra);
+        const readableBlob = new Blob([readable], { type: "text/plain" });
+        const readableUrl = URL.createObjectURL(readableBlob);
 
-    const a1 = document.createElement("a");
-    a1.href = readableUrl;
-    a1.download = `workspace-${reason}-${Date.now()}.txt`;
-    a1.click();
+        const a1 = document.createElement("a");
+        a1.href = readableUrl;
+        a1.download = `workspace-${reason}-${Date.now()}.txt`;
+        a1.click();
 
-    // JSON export
-    const json = buildJsonWorkspaceExport(reason, extra);
-    logger.debug("ui", "Exporting workspace with metadata:", json.metadata);
-    const jsonBlob = new Blob([JSON.stringify(json, null, 2)], {
-        type: "application/json"
-    });
-    const jsonUrl = URL.createObjectURL(jsonBlob);
+        // JSON export
 
-    const a2 = document.createElement("a");
-    a2.href = jsonUrl;
-    a2.download = `workspace-${reason}-${Date.now()}.json`;
-    a2.click();
+        const json = buildJsonWorkspaceExport(reason, extra);
+        const jsonBlob = new Blob([JSON.stringify(json, null, 2)], {
+            type: "application/json"
+        });
+        const jsonUrl = URL.createObjectURL(jsonBlob);
+
+        const a2 = document.createElement("a");
+        a2.href = jsonUrl;
+        a2.download = `workspace-${reason}-${Date.now()}.json`;
+        a2.click();
+    } catch (e) {
+        logger.error("ui: exportWorkspace", "Export failed: " + e);
+    }
+
 }
 
 export async function importWorkspace(json) {
