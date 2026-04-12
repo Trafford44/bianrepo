@@ -2,7 +2,7 @@ import { getToken, getGistId} from "./auth.js";
 import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
 import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState, flattenWorkspace, logIdAnomaly } from "./workspace.js";
 import { getMetadata } from "./workspace-metadata.js";
-import { logger, getCallerName, buildJsonWorkspaceExport } from "./logger.js";
+import { logger, getCallerName } from "./logger.js";
 import { EXCLUSION_FILES, buildReadableWorkspaceExport } from "./sync.js";
 
 let saveTimer = null;
@@ -1327,6 +1327,55 @@ export function exportAll() {
     showNotification("success", "Workspace exported");
 }
 
+
+export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
+  logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));  
+  const tree = getWorkspace();
+  const flat = flattenWorkspace(tree);
+
+  // machine-readable for re-import
+
+  // Metadata with fallback
+  let metadata = getMetadata();
+  if (!metadata) {
+      try {
+          const raw = localStorage.getItem("__workspace_metadata");
+          metadata = raw ? JSON.parse(raw) : { error: "metadata unavailable during export" };
+      } catch (e) {
+          metadata = { error: "metadata unavailable during export" };
+      }
+  }
+
+  // Extract folders
+  const folders = tree
+      .filter(n => n.type === "folder")
+      .map(n => ({
+          id: n.id,
+          name: n.name,
+          parentId: n.parentId || null
+      }));
+
+  // Extract files
+  const files = flat.map(f => ({
+      id: f.id,
+      name: f.name,
+      path: f.path,
+      content: f.content
+  }));
+
+  return {
+      reason,
+      timestamp: new Date().toISOString(),
+      device: deviceId,
+      gist: getGistId() || null,
+      lastSyncedHash: lastSyncedHash || null,
+      syncEnabled,
+      extra,
+      metadata,
+      folders,
+      files
+  };
+}
 
 export function exportWorkspace(reason = "manual-export", extra = {}) {
     // Readable export
