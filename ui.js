@@ -1363,13 +1363,24 @@ export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
             content: f.content
         }));
 
+        let gistValue, lastHashValue, syncEnabledValue;
+
+        try { gistValue = getGistId(); }
+        catch (e) { logger.error("buildJsonWorkspaceExport", "getGistId() failed: " + e); }
+
+        try { lastHashValue = lastSyncedHash; }
+        catch (e) { logger.error("buildJsonWorkspaceExport", "lastSyncedHash failed: " + e); }
+
+        try { syncEnabledValue = getSyncEnabled(); }
+        catch (e) { logger.error("buildJsonWorkspaceExport", "getSyncEnabled() failed: " + e); }
+
         return {
             reason,
             timestamp: new Date().toISOString(),
             device: deviceId,
-            gist: getGistId() || null,
-            lastSyncedHash: lastSyncedHash || null,
-            syncEnabled: getSyncEnabled(),  
+            gist: gistValue || null,
+            lastSyncedHash: lastHashValue || null,
+            syncEnabled: syncEnabledValue,
             extra,
             metadata,
             folders,
