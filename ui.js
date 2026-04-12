@@ -1391,6 +1391,7 @@ export function exportWorkspace(reason = "manual-export", extra = {}) {
 
     // JSON export
     const json = buildJsonWorkspaceExport(reason, extra);
+    logger.debug("ui", "Exporting workspace with metadata:", json.metadata);
     const jsonBlob = new Blob([JSON.stringify(json, null, 2)], {
         type: "application/json"
     });
