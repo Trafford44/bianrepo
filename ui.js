@@ -1328,55 +1328,60 @@ export function exportAll() {
     showNotification("success", "Workspace exported");
 }
 
-
 export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
-  logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));  
-  const tree = getWorkspace();
-  const flat = flattenWorkspace(tree);
+    logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));
 
-  // machine-readable for re-import
+    try {
+        const tree = getWorkspace();
+        const flat = flattenWorkspace(tree);
 
-  // Metadata with fallback
-  let metadata = getMetadata();
-  if (!metadata) {
-      try {
-          const raw = localStorage.getItem("__workspace_metadata");
-          metadata = raw ? JSON.parse(raw) : { error: "metadata unavailable during export" };
-      } catch (e) {
-          metadata = { error: "metadata unavailable during export" };
-      }
-  }
+        // Metadata with fallback
+        let metadata = getMetadata();
+        if (!metadata) {
+            try {
+                const raw = localStorage.getItem("__workspace_metadata");
+                metadata = raw ? JSON.parse(raw) : { error: "metadata unavailable during export" };
+            } catch (e) {
+                metadata = { error: "metadata unavailable during export" };
+            }
+        }
 
-  // Extract folders
-  const folders = tree
-      .filter(n => n.type === "folder")
-      .map(n => ({
-          id: n.id,
-          name: n.name,
-          parentId: n.parentId || null
-      }));
+        // Extract folders
+        const folders = tree
+            .filter(n => n.type === "folder")
+            .map(n => ({
+                id: n.id,
+                name: n.name,
+                parentId: n.parentId || null
+            }));
 
-  // Extract files
-  const files = flat.map(f => ({
-      id: f.id,
-      name: f.name,
-      path: f.path,
-      content: f.content
-  }));
+        // Extract files
+        const files = flat.map(f => ({
+            id: f.id,
+            name: f.name,
+            path: f.path,
+            content: f.content
+        }));
 
-  return {
-      reason,
-      timestamp: new Date().toISOString(),
-      device: deviceId,
-      gist: getGistId() || null,
-      lastSyncedHash: lastSyncedHash || null,
-      getSyncEnabled,
-      extra,
-      metadata,
-      folders,
-      files
-  };
+        return {
+            reason,
+            timestamp: new Date().toISOString(),
+            device: deviceId,
+            gist: getGistId() || null,
+            lastSyncedHash: lastSyncedHash || null,
+            syncEnabled: getSyncEnabled(),  
+            extra,
+            metadata,
+            folders,
+            files
+        };
+
+    } catch (err) {
+        logger.error("logger: buildJsonWorkspaceExport", "buildJsonWorkspaceExport FAILED: " + err);
+        return { error: "buildJsonWorkspaceExport failed", details: String(err) };
+    }
 }
+
 
 export function exportWorkspace(reason = "manual-export", extra = {}) {
     try {    
@@ -1390,8 +1395,7 @@ export function exportWorkspace(reason = "manual-export", extra = {}) {
         a1.download = `workspace-${reason}-${Date.now()}.txt`;
         a1.click();
 
-        // JSON export
-
+        // JSON export (for re-import)
         const json = buildJsonWorkspaceExport(reason, extra);
         const jsonBlob = new Blob([JSON.stringify(json, null, 2)], {
             type: "application/json"
