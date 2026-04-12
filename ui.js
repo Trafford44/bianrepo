@@ -2,7 +2,7 @@ import { getToken, getGistId} from "./auth.js";
 import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolbarEvents, bindPopupEvents, bindSidebarEvents} from "./binding.js";
 import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState, flattenWorkspace, logIdAnomaly } from "./workspace.js";
 import { getMetadata } from "./workspace-metadata.js";
-import { logger, getCallerName } from "./logger.js";
+import { logger, getCallerName, buildJsonWorkspaceExport } from "./logger.js";
 import { EXCLUSION_FILES, buildReadableWorkspaceExport } from "./sync.js";
 
 let saveTimer = null;
