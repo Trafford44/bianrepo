@@ -1411,9 +1411,20 @@ export function exportWorkspace(reason = "manual-export", extra = {}) {
         const json = buildJsonWorkspaceExport(reason, extra);
         logger.debug("ui: exportWorkspace", "buildJsonWorkspaceExport() returned:", json);
 
-        const jsonBlob = new Blob([JSON.stringify(json, null, 2)], {
+
+        let jsonString;
+        try {
+            jsonString = JSON.stringify(json, null, 2);
+            logger.debug("ui: exportWorkspace", "JSON.stringify succeeded, length:", jsonString.length);
+        } catch (e) {
+            logger.error("ui: exportWorkspace", "JSON.stringify FAILED: " + e);
+            return; // stop export, nothing else to do
+        }
+
+        const jsonBlob = new Blob([jsonString], {
             type: "application/json"
         });
+
         const jsonUrl = URL.createObjectURL(jsonBlob);
 
         const a2 = document.createElement("a");
