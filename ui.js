@@ -1387,6 +1387,7 @@ export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
             files
         };
 
+
     } catch (err) {
         logger.error("logger: buildJsonWorkspaceExport", "buildJsonWorkspaceExport FAILED: " + err);
         return { error: "buildJsonWorkspaceExport failed", details: String(err) };
@@ -1408,6 +1409,8 @@ export function exportWorkspace(reason = "manual-export", extra = {}) {
 
         // JSON export (for re-import)
         const json = buildJsonWorkspaceExport(reason, extra);
+        logger.debug("ui: exportWorkspace", "buildJsonWorkspaceExport() returned:", json);
+
         const jsonBlob = new Blob([JSON.stringify(json, null, 2)], {
             type: "application/json"
         });
