@@ -3,7 +3,7 @@ import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolb
 import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState, flattenWorkspace, logIdAnomaly } from "./workspace.js";
 import { getMetadata } from "./workspace-metadata.js";
 import { logger, getCallerName } from "./logger.js";
-import { EXCLUSION_FILES, buildReadableWorkspaceExport } from "./sync.js";
+import { EXCLUSION_FILES, buildReadableWorkspaceExport, lastSyncedHash } from "./sync.js";
 import { deviceId } from "./device.js";
 
 let saveTimer = null;
