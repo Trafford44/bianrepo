@@ -190,7 +190,7 @@ export function bindToolbarEvents(textarea) {
 
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
     document.getElementById("exportAll-btn")?.addEventListener("click", () => exportAll());
-    document.getElementById("importAll-btn")?.addEventListener("click", () => importWorkspace());
+    document.getElementById("importAll-btn")?.addEventListener("click", () => { document.getElementById("workspace-import-file").click();});
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
     document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
     document.getElementById("copy-rendered-puml-btn")?.addEventListener("click", () => copyRenderedPuml());
@@ -202,6 +202,24 @@ export function bindToolbarEvents(textarea) {
         updateSyncToggleButton();  // update UI
     });
 
+    document.getElementById("workspace-import-file") ?.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+
+            logger.debug("binding.importFile", "Loaded JSON file:", file.name);
+            logger.debug("binding.importFile", "JSON keys:", Object.keys(json));
+
+            await importWorkspace(json);
+
+        } catch (err) {
+            console.error("Import failed:", err);
+            alert("Import failed: " + err.message);
+        }
+    });
 
 
     // Zoom Buttons
