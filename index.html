@@ -1186,7 +1186,7 @@
                 <button id="github-login" class="btn-tool">Sign in with GitHub</button>
                 <button id="save-btn" class="btn-tool">Save to Cloud</button>
                 <button id="load-btn" class="btn-tool">Load from Cloud</button>
-                <button id="restore-btn" class="btn-tool">Restore</button>
+                <button id="restore-btn" title="Restore from cloud" class="btn-tool">Restore</button>
                 <button id="exportAll-btn" class="btn-tool">Export All</button>
                 <button id="importAll-btn" class="btn-tool">Import All</button>
                 <button id="delete-btn" class="btn-tool btn-danger">Delete</button>
@@ -1279,6 +1279,12 @@
             </div> <!-- closes #editor-container -->
 
         </div> <!-- closes workspace-grid -->
+        <input 
+            type="file" 
+            id="workspace-import-file" 
+            accept="application/json" 
+            style="display:none"
+        />
         <button id="zoom-reset-btn" class="btn-tool" title="Reset zoom">⟲</button>
         <div id="search-bar" class="search-bar hidden">
             <div class="search-group">
