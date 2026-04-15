@@ -1404,7 +1404,7 @@ export function exportWorkspace(reason = "manual-export", extra = {}) {
 
         const a1 = document.createElement("a");
         a1.href = readableUrl;
-        a1.download = `workspace-${reason}-${Date.now()}.txt`;
+        a1.download = `workspace-${reason}-${getReadableTimestamp()}.txt`;
         a1.click();
 
         // JSON export (for re-import)
@@ -1429,7 +1429,7 @@ export function exportWorkspace(reason = "manual-export", extra = {}) {
 
         const a2 = document.createElement("a");
         a2.href = jsonUrl;
-        a2.download = `workspace-${reason}-${Date.now()}.json`;
+        a2.download = `workspace-${reason}-${getReadableTimestamp()}.json`;
         a2.click();
     } catch (e) {
         logger.error("ui: exportWorkspace", "Export failed: " + e);
@@ -1437,80 +1437,85 @@ export function exportWorkspace(reason = "manual-export", extra = {}) {
 
 }
 
+function getReadableTimestamp() {
+    const d = new Date();
+
+    const pad = (n) => String(n).padStart(2, "0");
+
+    const yyyy = d.getFullYear();
+    const mm = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+
+    const hh = pad(d.getHours());
+    const min = pad(d.getMinutes());
+    const ss = pad(d.getSeconds());
+
+    return `${yyyy}-${mm}-${dd}_${hh}-${min}-${ss}`;
+}
+
 export async function importWorkspace(json) {
     try {
-        // Validate basic structure
-        if (!json || !json.folders || !json.files) {
-            throw new Error("Invalid workspace import format");
+        logger.debug("ui.importWorkspace", "Starting workspace import. CALLED BY: " + getCallerName("importWorkspace"));
+
+        if (!json || !Array.isArray(json.metadata)) {
+            throw new Error("Invalid workspace import format: missing metadata");
         }
 
-        logger.debug("import", "Starting workspace import");
+        const tree = JSON.parse(JSON.stringify(json.metadata)); // deep clone
 
-        // --- 1. Clear current workspace ---
-        clearWorkspace(); // You already have this helper
+        logger.debug("ui.importWorkspace", "Metadata nodes:", tree.length);
 
-        const newTree = [];
-
-        // --- 2. Rebuild folders (parent-first) ---
-        // Sort so parents come before children
-        const sortedFolders = [...json.folders].sort((a, b) => {
-            const depthA = a.name.split("/").length;
-            const depthB = b.name.split("/").length;
-            return depthA - depthB;
-        });
-
-        for (const folder of sortedFolders) {
-            newTree.push({
-                id: folder.id,
-                type: "folder",
-                name: folder.name,
-                parentId: folder.parentId || null,
-                children: []
-            });
-        }
-
-        // --- 3. Rebuild files ---
-        for (const file of json.files) {
-            newTree.push({
-                id: file.id,
-                type: "file",
-                name: file.name,
-                parentId: findParentIdFromPath(file.path, newTree),
-                content: file.content
-            });
-        }
-
-        // --- 4. Rebuild folder children arrays ---
-        for (const node of newTree) {
-            if (node.parentId) {
-                const parent = newTree.find(n => n.id === node.parentId);
-                if (parent && parent.children) {
-                    parent.children.push(node.id);
+        // Attach file contents
+        if (Array.isArray(json.files)) {
+            for (const fileNode of tree) {
+                if (fileNode.type === "file") {
+                    const match = json.files.find(f => f.id === fileNode.id);
+                    if (match) {
+                        fileNode.content = match.content;
+                    } else {
+                        logger.error("import", "Missing file content for:", fileNode.id, fileNode.name);
+                        fileNode.content = "";
+                    }
                 }
             }
         }
 
-        // --- 5. Save workspace tree ---
-        setWorkspace(newTree);
+        logger.debug("ui.importWorkspace", "Tree after attaching content:", tree);
+
+        return; // stop here for testing
+
+        // Save workspace
+        setWorkspace(tree);
         saveState();
 
-        // --- 6. Restore metadata ---
-        if (json.metadata) {
-            localStorage.setItem("__workspace_metadata", JSON.stringify(json.metadata));
+        // Restore sync metadata
+        if (json.lastSyncedHash) {
+            localStorage.setItem("lastSyncedHash", json.lastSyncedHash);
+        }
+        if (json.syncEnabled !== undefined) {
+            localStorage.setItem("syncEnabled", json.syncEnabled);
         }
 
-        logger.debug("import", "Workspace import complete");
+        // Refresh UI
+        refreshUIAfterImport();
 
-        // --- 7. Refresh UI ---
-        refreshWorkspaceUI(); // whatever your UI refresh hook is
-
-        alert("Workspace imported successfully");
+        showNotification("info", "Workspace imported successfully");
 
     } catch (err) {
         console.error("Workspace import failed:", err);
         alert("Workspace import failed: " + err.message);
     }
 }
+
+
+
+function refreshUIAfterImport() {
+    // Whatever you normally call after setWorkspace()
+    renderSidebar();
+    // Optionally: load the first file or clear the editor
+}
+
+
 
 function findParentIdFromPath(path, tree) {
     const parts = path.split("/");
