@@ -1525,8 +1525,8 @@ export async function importWorkspace(json) {
         showNotification("info", "Workspace imported successfully");
 
     } catch (err) {
-        console.error("Workspace import failed:", err);
-        alert("Workspace import failed: " + err.message);
+        logger.error("ui: importWorkspace", "Workspace import failed:", err);
+        showNotification("error", "Workspace import failed: " + err.message);
     }
 }
 
