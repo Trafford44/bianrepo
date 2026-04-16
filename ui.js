@@ -1491,6 +1491,19 @@ export async function importWorkspace(json) {
             return;
         }
 
+
+        // Inflate flat metadata into nested tree
+        const byId = new Map(tree.map(n => [n.id, n]));
+
+        for (const node of tree) {
+            if (node.type === "folder" && Array.isArray(node.children)) {
+                node.children = node.children
+                    .map(id => byId.get(id))
+                    .filter(Boolean);
+            }
+        }
+
+
         // Save workspace
         setWorkspace(tree);
         saveState();
