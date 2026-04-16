@@ -1499,9 +1499,12 @@ export async function importWorkspace(json) {
         if (json.lastSyncedHash) {
             localStorage.setItem("lastSyncedHash", json.lastSyncedHash);
         }
+        // leave syncEnabled as it was prior to import
+        /*
         if (json.syncEnabled !== undefined) {
             localStorage.setItem("syncEnabled", json.syncEnabled);
         }
+        */
 
         // Refresh UI
         refreshUIAfterImport();
