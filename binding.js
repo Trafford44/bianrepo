@@ -202,24 +202,38 @@ export function bindToolbarEvents(textarea) {
         updateSyncToggleButton();  // update UI
     });
 
-    document.getElementById("workspace-import-file") ?.addEventListener("change", async (event) => {
+    document.getElementById("workspace-import-file")?.addEventListener("change", async (event) => {
+        logger.debug("binding.importFile", "=== CHANGE EVENT FIRED ===");
+
         const file = event.target.files[0];
-        if (!file) return;
+        logger.debug("binding.importFile", "file =", file);
+
+        if (!file) {
+            logger.debug("binding.importFile", "NO FILE → EARLY RETURN");
+            return;
+        }
 
         try {
+            logger.debug("binding.importFile", "ABOUT TO READ FILE:", file.name);
+
             const text = await file.text();
+            logger.debug("binding.importFile", "FILE READ OK, LENGTH:", text.length);
+
+            logger.debug("binding.importFile", "ABOUT TO PARSE JSON");
             const json = JSON.parse(text);
+            logger.debug("binding.importFile", "JSON PARSED OK, KEYS:", Object.keys(json));
 
-            logger.debug("binding.importFile", "Loaded JSON file:", file.name);
-            logger.debug("binding.importFile", "JSON keys:", Object.keys(json));
-
+            logger.debug("binding.importFile", "CALLING importWorkspace()");
             await importWorkspace(json);
 
+            logger.debug("binding.importFile", "importWorkspace() COMPLETED");
+
         } catch (err) {
-            console.error("Import failed:", err);
-            alert("Import failed: " + err.message);
+            logger.error("binding: workspace-import-file", "Workspace import failed:", err);
+            showNotification("error", "Workspace import failed: " + err.message);
         }
     });
+
 
 
     // Zoom Buttons
