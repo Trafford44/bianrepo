@@ -190,7 +190,11 @@ export function bindToolbarEvents(textarea) {
 
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
     document.getElementById("exportAll-btn")?.addEventListener("click", () => exportAll());
-    document.getElementById("importAll-btn")?.addEventListener("click", () => { document.getElementById("workspace-import-file").click();});
+    document.getElementById("importAll-btn")?.addEventListener("click", () => {
+        const input = document.getElementById("workspace-import-file");
+        input.value = "";   // ← critical fix
+        input.click();
+    });
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
     document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
     document.getElementById("copy-rendered-puml-btn")?.addEventListener("click", () => copyRenderedPuml());
