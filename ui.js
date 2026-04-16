@@ -1480,8 +1480,12 @@ export async function importWorkspace(json) {
             }
         }
 
+        // gets a couple of samples, since teh structure is so big
+        logger.debug("import", "Sample folder:", tree.find(n => n.type === "folder"));
+        logger.debug("import", "Sample file:", tree.find(n => n.type === "file"));
+        
         logger.debug("ui.importWorkspace", "Tree after attaching content:", tree);
-
+        
         return; // stop here for testing
 
         // Save workspace
