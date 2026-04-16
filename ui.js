@@ -1485,8 +1485,11 @@ export async function importWorkspace(json) {
         logger.debug("ui.importWorkspace", "Sample file:", tree.find(n => n.type === "file"));
         
         logger.debug("ui.importWorkspace", "Tree after attaching content:", tree);
-        
-        return; // stop here for testing
+
+        if (!confirm("This will replace your entire workspace. Continue?")) {
+            showNotification("info", "Import cancelled");
+            return;
+        }
 
         // Save workspace
         setWorkspace(tree);
