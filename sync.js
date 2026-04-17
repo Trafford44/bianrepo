@@ -150,6 +150,9 @@ async function githubFetch(url, options = {}) {
 export async function startSyncLoop() {
     logger.debugSyncing("sync", "Running startSyncLoop(). CALLED BY: " + getCallerName("startSyncLoop"));
 
+    // temporarily disable starting sync loop if sync is disabled, to prevent any unexpected behavior while we work on the new sync engine
+    return;
+
     if (!syncEnabled) {
         logger.debugSyncing("sync: startSyncLoop", "startSyncLoop() blocked — sync disabled");
         return;
