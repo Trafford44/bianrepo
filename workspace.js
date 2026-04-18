@@ -37,7 +37,7 @@ export function setWorkspace(tree) {
 }
 
 
-function sortTree(nodes) {
+export function sortTree(nodes) {
     logger.debug("workspace", "Running sortTree(). CALLED BY: " + getCallerName("sortTree"));
     nodes.sort((a, b) =>
         a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
