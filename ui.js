@@ -255,7 +255,8 @@ export function renderSidebar() {
     if (!container) return;
 
     let tree = getWorkspace();
-
+    sortTree(tree);
+    
     // testing purposes
     // logNodes(tree);
 
