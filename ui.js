@@ -255,8 +255,9 @@ export function renderSidebar() {
     if (!container) return;
 
     let tree = getWorkspace();
+    logger.debug("ui.renderSidebar()", "renderSidebar workspace root snapshot:", JSON.stringify(tree, null, 2));
     sortTree(tree);
-    
+
     // testing purposes
     // logNodes(tree);
 
