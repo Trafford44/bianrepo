@@ -281,7 +281,6 @@ export function renderSidebar() {
         container.appendChild(el);
     });
 
-    // After all nodes have been rendered
     logger.debug(
         "ui.renderSidebar()",
         "FINAL SIDEBAR DOM:",
@@ -323,15 +322,7 @@ function renderFolderNode(folder, depth) {
         { label: "Rename", action: () => renameFolder(folder.id) },
         { label: "Delete", action: () => deleteFolder(folder.id) }
     ];
-    tree.forEach(node => {
-        logger.debug("ui", "renderSidebar node", {
-            name: node.name,
-            id: node.id
-        });
 
-        const el = renderNode(node, 0);
-        container.appendChild(el);
-    });
     header.querySelector(".item-menu-btn").addEventListener("click", e => {
         e.stopPropagation();
         showContextMenu(folder, folderMenuItems, e.pageX, e.pageY);
