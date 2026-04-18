@@ -10,7 +10,8 @@ logger.debug("workspace","workspace.js loaded from:", import.meta.url);
 export function getWorkspace() {
     logger.debug("workspace", "Running getWorkspace(). CALLED BY: " + getCallerName("getWorkspace"));
     // ensure workspace is always sorted
-    sortTree(workspace); // root stays in user-defined order
+    // commented out since may not be neccessary
+    //sortTree(workspace); // root stays in user-defined order
     return workspace;
 }
 
