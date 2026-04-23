@@ -1525,7 +1525,7 @@ export async function importWorkspace(json) {
         
 
         // Save workspace
-        setWorkspace(tree);
+        setWorkspace(rootNodes);
         saveState();
 
         // Restore sync metadata
