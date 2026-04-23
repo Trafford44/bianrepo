@@ -1512,6 +1512,17 @@ export async function importWorkspace(json) {
             }
         }
 
+        //FIX for flat files added to tree - hopefully
+        // Build a set of root folder IDs from json.folders
+        const rootIds = new Set(
+            json.folders
+                .filter(f => f.parentId === null)
+                .map(f => f.id)
+        );
+
+        // Extract only the root nodes from the inflated tree
+        const rootNodes = tree.filter(n => rootIds.has(n.id));
+        
 
         // Save workspace
         setWorkspace(tree);
