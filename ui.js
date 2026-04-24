@@ -566,6 +566,7 @@ function commitWorkspace() {
 }
 
 export function updateToolbar() {
+    logger.debug("ui", "Running updateToolbar(). CALLED BY: " + getCallerName("updateToolbar"));
     const tree = getWorkspace();
     const file = findNodeById(tree, activeFileId);
 
@@ -573,6 +574,7 @@ export function updateToolbar() {
     const show = file && file.name.endsWith(".puml");
 
     pumlButtons.forEach(btn => {
+        logger.debug("ui.updateToolbar", "Setting button visibility to.  Button name: ", btn.name);
         btn.style.display = show ? "inline-flex" : "none";
     });
 }
