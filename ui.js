@@ -7,7 +7,7 @@ import { EXCLUSION_FILES, buildReadableWorkspaceExport, lastSyncedHash, getSyncE
 import { deviceId } from "./device.js";
 
 let saveTimer = null;
-let activeFileId = null;
+export let activeFileId = null;
 let notificationTimeout = null;
 let countdownInterval = null;
 const contextMenu = document.getElementById("context-menu");
@@ -585,7 +585,8 @@ export function updateToolbarVisibility() {
         "zoom-editor-in",
         "zoom-editor-out",
         "zoom-reset-btn",
-        "copy-rendered-puml-btn"
+        "copy-rendered-puml-btn",
+        "puml-external-link"
     ];
 
     fileButtons.forEach(id => {
@@ -1600,6 +1601,7 @@ export async function importWorkspace(json) {
 function refreshUIAfterImport() {
     // Whatever you normally call after setWorkspace()
     renderSidebar();
+    updateToolbarVisibility();
     // Optionally: load the first file or clear the editor
 }
 
@@ -1764,7 +1766,7 @@ export function updateLoginIndicator() {
         }
 
         updateToolbarVisibility();
-        
+
         // Cloud‑action buttons to toggle
         const cloudButtons = [
             "save-btn",
