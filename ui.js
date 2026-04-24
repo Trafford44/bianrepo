@@ -574,7 +574,7 @@ export function updateToolbar() {
     const show = file && file.name.endsWith(".puml");
 
     pumlButtons.forEach(btn => {
-        logger.debug("ui.updateToolbar", "Setting button visibility to.  Button name: ", btn.name);
+        logger.debug("ui.updateToolbar", "Setting button visibility to.  Button name: ", btn.classList);
         btn.style.display = show ? "inline-flex" : "none";
     });
 }
@@ -1725,7 +1725,6 @@ export function updateLoginIndicator() {
             "save-btn",
             "load-btn",
             "restore-btn",
-            "exportAll-btn",
             "delete-btn"
         ];
 
