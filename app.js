@@ -152,11 +152,6 @@ async function init() {
             startSyncLoop();
         } else {
             logger.debug("app: init()", "Not starting sync loop — missing token or gistId");
-
-            const editorActions = document.getElementById("editor-actions");
-            if (editorActions) {
-                editorActions.classList.remove("hidden");
-            }
         }
 
         // ------------------------------------------------------------
