@@ -534,7 +534,6 @@ export function loadFile(fileId) {
 
     document.getElementById("empty-state").classList.add("hidden");
     document.getElementById("workspace-grid").classList.remove("hidden");
-    document.getElementById("editor-actions").classList.remove("hidden");
 
     const textarea = document.getElementById("editor-textarea");
     textarea.value = file.content;
@@ -551,11 +550,55 @@ export function loadFile(fileId) {
         document.getElementById("md-toolbar").classList.add("hidden");
     }
 
+    updateToolbarVisibility();
     updatePreview();
     updateToolbar();
     renderSidebar();
 }
 
+export function updateToolbarVisibility() {
+    logger.debug("ui", "Running updateToolbarVisibility(). CALLED BY: " + getCallerName("updateToolbarVisibility"));
+    const fileLoaded = !!activeFileId;
+    const loggedIn = !!getToken() && !!getGistId();
+
+    // Group A: Always visible
+    const alwaysVisible = [
+        "github-login",
+        "save-btn",
+        "load-btn",
+        "restore-btn",
+        "exportAll-btn",
+        "importAll-btn",
+        "delete-btn",
+        "sync-toggle-btn",
+        "logout-btn"
+    ];
+
+    alwaysVisible.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = "inline-flex";
+    });
+
+    // Group B: Visible only when a file is loaded
+    const fileButtons = [
+        "toggle-editor",
+        "zoom-editor-in",
+        "zoom-editor-out",
+        "zoom-reset-btn",
+        "copy-rendered-puml-btn"
+    ];
+
+    fileButtons.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = fileLoaded ? "inline-flex" : "none";
+    });
+
+    // Group C: Test button always hidden
+    const testBtn = document.getElementById("test-btn");
+    if (testBtn) testBtn.style.display = "none";
+
+    // PUML button handled separately by updateToolbar()
+}
 
 
 
@@ -618,9 +661,9 @@ export function deleteFolder(folderId) {
         activeFileId = null;
         document.getElementById("workspace-grid").classList.add("hidden");
         document.getElementById("empty-state").classList.remove("hidden");
-        document.getElementById("editor-actions").classList.add("hidden");
     }
 
+    updateToolbarVisibility();
     saveState();
     renderSidebar();
 }
@@ -1589,9 +1632,9 @@ export function deleteFile(fileId) {
         activeFileId = null;
         document.getElementById("workspace-grid").classList.add("hidden");
         document.getElementById("empty-state").classList.remove("hidden");
-        document.getElementById("editor-actions").classList.add("hidden");
     }
 
+    updateToolbarVisibility();
     setWorkspace(tree);
     saveState();
     renderSidebar();
@@ -1720,6 +1763,8 @@ export function updateLoginIndicator() {
             }
         }
 
+        updateToolbarVisibility();
+        
         // Cloud‑action buttons to toggle
         const cloudButtons = [
             "save-btn",
