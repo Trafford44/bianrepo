@@ -569,7 +569,6 @@ export function updateToolbarVisibility() {
         "restore-btn",
         "exportAll-btn",
         "importAll-btn",
-        "delete-btn",
         "sync-toggle-btn",
         "logout-btn"
     ];
@@ -586,6 +585,7 @@ export function updateToolbarVisibility() {
         "zoom-editor-out",
         "zoom-reset-btn",
         "copy-rendered-puml-btn",
+        "delete-btn",        
         "puml-external-link"
     ];
 
