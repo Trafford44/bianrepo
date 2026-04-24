@@ -1,5 +1,5 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
-import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml, importWorkspace} from "./ui.js";
+import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml, importWorkspace, activeFileId } from "./ui.js";
 import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled, handleExpiredToken } from "./sync.js";
 import { logger, getCallerName } from "./logger.js";
 import { clearToken } from "./auth.js";
@@ -195,7 +195,7 @@ export function bindToolbarEvents(textarea) {
         input.value = "";   // ← critical fix
         input.click();
     });
-    document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile());
+    document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile(activeFileId));
     document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
     document.getElementById("copy-rendered-puml-btn")?.addEventListener("click", () => copyRenderedPuml());
     document.getElementById("test-btn")?.addEventListener("click", () => testFunctionality());
