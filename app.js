@@ -1,5 +1,5 @@
 import { handleOAuthRedirect, bindLoginButton, getToken, getGistId } from "./auth.js";
-import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, loadFile } from "./ui.js";
+import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, loadFile, applyReadonlyUI } from "./ui.js";
 import { loadState, migrateWorkspace, setWorkspace, getWorkspace, saveState, inflateWorkspace, createEmptyWorkspace } from "./workspace.js";
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud, loadWorkspaceFromGist, getSyncEnabled, isReadOnlyDevice } from "./sync.js";
@@ -37,7 +37,7 @@ async function init() {
 
         // determine early if we're on a read-only device and add a class, ready for later styling
         if (isReadOnlyDevice()) {
-            document.body.classList.add("readonly-mode");
+            applyReadonlyUI();
         }
 
         // 1. Markdown renderer must be ready before any preview happens
