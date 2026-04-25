@@ -167,6 +167,12 @@ export function findNodeAndParent(nodeList, id, parent = null) {
 
 export function createFolder(name) {
     logger.debug("workspace", "Running createFolder(). CALLED BY: " + getCallerName("createFolder"));
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Creating folder not allowed on read-only device");
+        return;
+    }
+        
     return {
         id: createNewID("Creating folder"),
         type: "folder",
