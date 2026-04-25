@@ -676,10 +676,11 @@ export function updateToolbarVisibility() {
             "delete-btn",
             "restore-btn",
             "importAll-btn",
-            "exportAll-btn" // optional: export is safe
+            "copy-rendered-puml-btn",
+            "sync-toggle-btn"
         ].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.disabled = true;
+            if (el) el.style.display = "none";
         });
     }
 
