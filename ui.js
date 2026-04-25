@@ -3,7 +3,7 @@ import { bindSmartKeyboardEvents, bindGlobalShortcuts, bindScrollSync, bindToolb
 import { getWorkspace, setWorkspace, findNodeById, findNodeAndParent, createFolder, createFile, saveState, flattenWorkspace, logIdAnomaly, sortTree } from "./workspace.js";
 import { getMetadata } from "./workspace-metadata.js";
 import { logger, getCallerName } from "./logger.js";
-import { EXCLUSION_FILES, buildReadableWorkspaceExport, lastSyncedHash, getSyncEnabled } from "./sync.js";
+import { EXCLUSION_FILES, buildReadableWorkspaceExport, lastSyncedHash, getSyncEnabled, isReadOnlyDevice } from "./sync.js";
 import { deviceId } from "./device.js";
 
 let saveTimer = null;
@@ -16,6 +16,11 @@ let currentContextTarget = null;
 const USE_KROKI = false;
 
 logger.debug("ui","ui.js loaded from:", import.meta.url);
+
+function isReadOnly() {
+    return typeof isReadOnlyDevice === "function" && isReadOnlyDevice();
+}
+
 
 export function showContextMenu(target, items, x, y) {
     currentContextTarget = target;
@@ -290,16 +295,11 @@ export function renderSidebar() {
 }
 
 
-function renderNode(node, depth) {
-    return node.type === "folder"
-        ? renderFolderNode(node, depth)
-        : renderFileNode(node, depth);
-}
-
 function renderFolderNode(folder, depth) {
     const wrapper = document.createElement("div");
     wrapper.className = "sidebar-folder";
 
+    const readonly = isReadOnly();
     const isOpen = folder.isOpen ?? true;
 
     const header = document.createElement("div");
@@ -312,7 +312,7 @@ function renderFolderNode(folder, depth) {
         </span>
         <span class="folder-name">${folder.name.replace(/^_+/, "")}</span>
         <span class="folder-actions">
-            <button class="item-menu-btn" title="Actions">⋯</button>
+            ${readonly ? "" : `<button class="item-menu-btn" title="Actions">⋯</button>`}
         </span>
     `;
 
@@ -323,26 +323,40 @@ function renderFolderNode(folder, depth) {
         { label: "Delete", action: () => deleteFolder(folder.id) }
     ];
 
-    header.querySelector(".item-menu-btn").addEventListener("click", e => {
-        e.stopPropagation();
-        showContextMenu(folder, folderMenuItems, e.pageX, e.pageY);
-    });
+    if (!readonly) {
+        // NORMAL MODE: context menu button
+        const btn = header.querySelector(".item-menu-btn");
+        if (btn) {
+            btn.addEventListener("click", e => {
+                e.stopPropagation();
+                showContextMenu(folder, folderMenuItems, e.pageX, e.pageY);
+            });
+        }
 
-    header.addEventListener("contextmenu", e => {
-        e.preventDefault();
-        e.stopPropagation();
-        showContextMenu(folder, folderMenuItems, e.pageX, e.pageY);
-    });
+        // NORMAL MODE: right-click opens context menu
+        header.addEventListener("contextmenu", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(folder, folderMenuItems, e.pageX, e.pageY);
+        });
 
-    // Expand/collapse
+    } else {
+        // READ-ONLY MODE: block right-click entirely
+        header.addEventListener("contextmenu", e => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    }
+
+    // Expand/collapse always allowed
     header.querySelector(".folder-toggle").addEventListener("click", e => {
         e.stopPropagation();
 
         const newState = !(folder.isOpen ?? true);
         folder.isOpen = newState;
 
-        saveState();      // persists workspace + metadata
-        renderSidebar();  // re-renders with updated isOpen
+        saveState();
+        renderSidebar();
     });
 
     wrapper.appendChild(header);
@@ -364,10 +378,13 @@ function renderFolderNode(folder, depth) {
 
 
 
+
 function renderFileNode(file, depth) {
     const el = document.createElement("div");
     el.className = `file-item sidebar-file ${file.id === activeFileId ? "active" : ""}`;
     el.style.paddingLeft = `${depth * 16}px`;
+
+    const readonly = isReadOnly();
 
     el.innerHTML = `
         <div class="file-main" style="display: flex; align-items: center; overflow: hidden; flex: 1;">
@@ -377,7 +394,7 @@ function renderFileNode(file, depth) {
             </span>
         </div>
         <div class="file-actions">
-            <button class="item-menu-btn" title="Actions">⋯</button>
+            ${readonly ? "" : `<button class="item-menu-btn" title="Actions">⋯</button>`}
         </div>
     `;
 
@@ -391,20 +408,46 @@ function renderFileNode(file, depth) {
         }
     });
 
-    el.querySelector(".item-menu-btn").addEventListener("click", e => {
-        e.stopPropagation();
+    if (!readonly) {
+        // NORMAL MODE: enable context menu button
+        const btn = el.querySelector(".item-menu-btn");
+        if (btn) {
+            btn.addEventListener("click", e => {
+                e.stopPropagation();
+                showContextMenu(file, [
+                    { label: "Rename", action: () => renameFile(file.id) },
+                    { label: "Duplicate", action: () => duplicateFile(file.id) },
+                    { label: "Copy internal link", action: () => copyInternalLink(file.id) },
+                    { label: "Delete", action: () => deleteFile(file.id) },
+                    { label: "Export file", action: () => exportFile(file.id) }
+                ], e.pageX, e.pageY);
+            });
+        }
 
-        showContextMenu(file, [
-            { label: "Rename", action: () => renameFile(file.id) },
-            { label: "Duplicate", action: () => duplicateFile(file.id) },
-            { label: "Copy internal link", action: () => copyInternalLink(file.id) },
-            { label: "Delete", action: () => deleteFile(file.id) },
-            { label: "Export file", action: () => exportFile(file.id) }
-        ], e.pageX, e.pageY);
-    });
+        // NORMAL MODE: right-click opens context menu
+        el.addEventListener("contextmenu", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(file, [
+                { label: "Rename", action: () => renameFile(file.id) },
+                { label: "Duplicate", action: () => duplicateFile(file.id) },
+                { label: "Copy internal link", action: () => copyInternalLink(file.id) },
+                { label: "Delete", action: () => deleteFile(file.id) },
+                { label: "Export file", action: () => exportFile(file.id) }
+            ], e.pageX, e.pageY);
+        });
+
+    } else {
+        // READ-ONLY MODE: block right-click entirely
+        el.addEventListener("contextmenu", e => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    }
 
     return el;
 }
+
 
 export function getInternalLink(fileId) {
     return `app://file/${fileId}`;
@@ -426,6 +469,11 @@ export function copyInternalLink(fileId) {
 
 export function duplicateFile(fileId) {
     logger.debug("ui", "Running duplicateFile(). CALLED BY: " + getCallerName("duplicateFile"));
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Duplicate not allowed on read-only device");
+        return;
+    }  
 
     const tree = getWorkspace();
     const result = findNodeAndParent(tree, fileId);
@@ -478,6 +526,12 @@ function generateCopyName(name, siblings) {
 
 
 export function createFileInFolder(parentFolder) {
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Creating file not allowed on read-only device");
+        return;
+    }  
+        
     const name = prompt("New file name:");
     if (!name || !name.trim()) return;
 
@@ -492,6 +546,12 @@ export function createFileInFolder(parentFolder) {
 
 
 export function createSubfolder(parentId) {
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Creating folder not allowed on read-only device");
+        return;
+    }
+        
     const name = prompt("New Folder Name:");
     if (!name || !name.trim()) return;
 
@@ -545,7 +605,9 @@ export function loadFile(fileId) {
             : '<span class="type-label-puml">PUML</span>';
 
     if (file.name.endsWith(".md")) {
-        document.getElementById("md-toolbar").classList.remove("hidden");
+        if (!isReadOnlyDevice()) {
+            document.getElementById("md-toolbar").classList.remove("hidden");
+        }
     } else {
         document.getElementById("md-toolbar").classList.add("hidden");
     }
@@ -599,6 +661,23 @@ export function updateToolbarVisibility() {
     if (testBtn) testBtn.style.display = "none";
 
     // PUML button handled separately by updateToolbar()
+
+    //make sure to disable write buttons if we're on a read-only device, regardless of file loaded or login state
+    if (isReadOnlyDevice()) {
+        // Disable all write buttons
+        [
+            "save-btn",
+            "delete-btn",
+            "restore-btn",
+            "importAll-btn",
+            "exportAll-btn" // optional: export is safe
+        ].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = true;
+        });
+    }
+
+
 }
 
 
@@ -641,6 +720,12 @@ export function renameFolder(folderId) {
 }
 
 export function deleteFolder(folderId) {
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Delete not allowed on read-only device");
+        return;
+    } 
+
     const tree = getWorkspace();
     const result = findNodeAndParent(tree, folderId);
 
@@ -1289,6 +1374,12 @@ export async function copyRenderedPuml() {
 }
 
 export function addFolder() {
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Creating folder not allowed on read-only device");
+        return;
+    }
+
     const name = prompt("New Folder Name:");
     if (!name || !name.trim()) return;
 
@@ -1302,6 +1393,12 @@ export function addFolder() {
 
 
 export function addFile(folderId) {
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Creating file not allowed on read-only device");
+        return;
+    }
+
     const name = prompt("File Name:");
     if (!name || !name.trim()) return;
 
@@ -1619,6 +1716,12 @@ function findParentIdFromPath(path, tree) {
 }
 
 export function deleteFile(fileId) {
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Delete not allowed on read-only device");
+        return;
+    }  
+
     const tree = getWorkspace();
     const result = findNodeAndParent(tree, fileId);
 
@@ -1644,6 +1747,12 @@ export function deleteFile(fileId) {
 
 
 export function renameFile(fileId) {
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Rename not allowed on read-only device");
+        return;
+    }  
+
     const tree = getWorkspace();
     const file = findNodeById(tree, fileId);
 
