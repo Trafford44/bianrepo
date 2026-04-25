@@ -35,6 +35,7 @@ let isSaving = false;
 let lastActivityTime = Date.now(); 
 const IDLE_THRESHOLD = 30_000; // 30 seconds
 let cloudChangeHandled = false;
+const MOBILE_READONLY = true;
 
 // When we have paths populated, chane to using paths, so as to avoind duplicate files. So wil lbecome EXCLUSION_PATHS
 export const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
@@ -42,6 +43,20 @@ export const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
 const GIST_API = "https://api.github.com/gists";
 
 logger.debug("sync","sync.js loaded from:", import.meta.url);
+
+// mobile update ability functionality
+const settings = {
+    mobileReadOnly: true
+};
+
+function isMobileDevice() {
+    return /Mobi|Android/i.test(navigator.userAgent);
+}
+
+export function isReadOnlyDevice() {
+    return settings.mobileReadOnly && isMobileDevice();
+}
+
 
 async function getCurrentWorkspaceGist() {
     logger.debug("sync", "Running getCurrentWorkspaceGist(). CALLED BY: " + getCallerName("getCurrentWorkspaceGist"));
@@ -150,7 +165,13 @@ async function githubFetch(url, options = {}) {
 export async function startSyncLoop() {
     logger.debugSyncing("sync", "Running startSyncLoop(). CALLED BY: " + getCallerName("startSyncLoop"));
 
+    if (isMobileDevice()) {
+        logger.info("sync: startSyncLoop", "Start sync loop attempted on readonly device — ignoring");
+        return;
+    }  
+
     // temporarily disable starting sync loop if sync is disabled, to prevent any unexpected behavior while we work on the new sync engine
+    showNotification("info", "Sync loop is currently disabled");
     return;
 
     if (!syncEnabled) {
@@ -179,6 +200,11 @@ export async function startSyncLoop() {
 
 export function setSyncEnabled(value) {
     logger.debug("sync", "Running setSyncEnabled(). CALLED BY: " + getCallerName("setSyncEnabled") + "  value: ", value);
+
+    if (isMobileDevice()) {
+        logger.info("sync: setSyncEnabled", "Set sync enabled attempted on readonly device — ignoring");
+        return;
+    }      
     syncEnabled = value;
     localStorage.setItem("syncEnabled", JSON.stringify(value));
 }
@@ -188,6 +214,10 @@ export function getSyncEnabled() {
 }
 
 export function stopSyncLoop() {
+    if (isMobileDevice()) {
+        logger.info("sync: stopSyncLoop", "Stop sync toggle attempted on readonly device — ignoring");
+        return;
+    }    
     logger.debugSyncing("sync", "Running stopSyncLoop(). CALLED BY: " + getCallerName("stopSyncLoop"));
     try {      
         if (syncIntervalId !== null) {
@@ -203,6 +233,11 @@ export function stopSyncLoop() {
 }
 
 export function toggleSyncLoop() {
+    if (isMobileDevice()) {
+        logger.info("sync: toggleSyncLoop", "Sync toggle attempted on readonly device — ignoring");
+        return;
+    }
+
     logger.debug("sync", "Running toggleSyncLoop(). CALLED BY: " + getCallerName("toggleSyncLoop"));
     if (syncIntervalId === null) {
         startSyncLoop();
@@ -1024,6 +1059,11 @@ export async function saveWorkspaceToGist() {
     logger.debug("sync", "Running saveWorkspaceToGist(). CALLED BY: " + getCallerName("saveWorkspaceToGist"));
     if (!requireLogin()) return;
 
+    if (isReadOnlyDevice()) {
+        logger.info("sync: saveWorkspaceToGist", "Save skipped — read-only device.");
+        return;
+    }
+
     if (isSaving) {
         logger.info("sync: saveWorkspaceToGist", "Save skipped — already in progress.");
         return;
@@ -1526,6 +1566,11 @@ export async function restoreFromGistVersion(versionId) {
     logger.debug("sync", "Running restoreFromGistVersion(). CALLED BY: " + getCallerName("restoreFromGistVersion"));
     if (!requireLogin()) {
         logger.info("sync: restoreFromGistVersion", "Login not required")
+        return;
+    }
+
+    if (isReadOnlyDevice()) {
+        logger.info("sync: restoreFromGistVersion", "Restore skipped — read-only device.");
         return;
     }
 
