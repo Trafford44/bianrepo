@@ -790,7 +790,16 @@
         #test-btn {
             display: none;
         }
-        
+
+        .readonly-mode #editor-textarea {
+            background: #f5f5f5;
+        }
+        .readonly-mode .folder-actions,
+        .readonly-mode .file-actions {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
         /* 
         #reconnect-link {
             padding: 2px 6px;
