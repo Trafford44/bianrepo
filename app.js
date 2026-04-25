@@ -132,33 +132,33 @@ async function init() {
         bindActivityEvents();
 
         // ------------------------------------------------------------
-        // 4.5.5 Sync disabled? Update UI and skip starting loop
+        // 5. Syncing
         // ------------------------------------------------------------
+        // 1. Sync disabled? Stop here.
         if (!getSyncEnabled()) {
             logger.info("app: init()", "Sync disabled at startup — skipping sync loop");
             updateSyncToggleButton();
-            // Do NOT return — continue with UI setup
-        } 
-
-        // ------------------------------------------------------------
-        // 5. Start sync loop ONLY if token + gistId exist
-        // ------------------------------------------------------------
-
-        // SAFETY: If workspace is still empty here, do NOT start sync
-        const current = getWorkspace();
-        if (!current || current.length === 0) {
-            logger.warn("app: init()", "Workspace still empty after load — skipping sync loop");
-            // Continue with UI setup, but do NOT sync (in saveWorkspaceToGist)
-        }
-
-        const token = getToken();
-        const gistId = getGistId();
-        if (token && gistId) {
-            logger.debug("app: init()", "Starting sync loop (token + gistId present)");
-            startSyncLoop();
         } else {
-            logger.debug("app: init()", "Not starting sync loop — missing token or gistId");
+
+            // 2. Workspace empty? Stop here.
+            const current = getWorkspace();
+            if (!current || current.length === 0) {
+                logger.warn("app: init()", "Workspace empty — skipping sync loop");
+            } else {
+
+                // 3. Token + gistId required
+                const token = getToken();
+                const gistId = getGistId();
+
+                if (token && gistId) {
+                    logger.debug("app: init()", "Starting sync loop (token + gistId present)");
+                    startSyncLoop();
+                } else {
+                    logger.debug("app: init()", "Not starting sync loop — missing token or gistId");
+                }
+            }
         }
+
 
         // ------------------------------------------------------------
         // 6. Render UI
