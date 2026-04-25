@@ -294,6 +294,12 @@ export function renderSidebar() {
 
 }
 
+function renderNode(node, depth) {
+    return node.type === "folder"
+        ? renderFolderNode(node, depth)
+        : renderFileNode(node, depth);
+}
+
 
 function renderFolderNode(folder, depth) {
     const wrapper = document.createElement("div");
