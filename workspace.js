@@ -1,5 +1,5 @@
 import { logger, getCallerName } from "./logger.js";
-import { saveEmergencySnapshot } from "./sync.js";
+import { saveEmergencySnapshot, isReadOnlyDevice } from "./sync.js";
 
 let workspace = []
 const STORAGE_KEY = "kb_data";
@@ -172,7 +172,7 @@ export function createFolder(name) {
         showNotification("info", "Creating folder not allowed on read-only device");
         return;
     }
-        
+
     return {
         id: createNewID("Creating folder"),
         type: "folder",
@@ -193,6 +193,12 @@ export function createFolder(name) {
 
 export function createFile(name, content = "") {
     logger.debug("workspace", "Running createFile(). CALLED BY: " + getCallerName("createFile"));
+
+    if (isReadOnlyDevice()) {
+        showNotification("info", "Creating file not allowed on read-only device");
+        return;
+    }
+
     return {
         id: createNewID("Creating file"),
         type: "file",
