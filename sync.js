@@ -35,7 +35,11 @@ let isSaving = false;
 let lastActivityTime = Date.now(); 
 const IDLE_THRESHOLD = 30_000; // 30 seconds
 let cloudChangeHandled = false;
-const MOBILE_READONLY = true;
+// mobile update ability functionality
+const settings = {
+    mobileReadOnly: true,
+    syncOverride: true
+};
 
 // When we have paths populated, chane to using paths, so as to avoind duplicate files. So wil lbecome EXCLUSION_PATHS
 export const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
@@ -43,11 +47,6 @@ export const EXCLUSION_FILES = new Set(["__workspace.json", "workspace.json"]);
 const GIST_API = "https://api.github.com/gists";
 
 logger.debug("sync","sync.js loaded from:", import.meta.url);
-
-// mobile update ability functionality
-const settings = {
-    mobileReadOnly: true
-};
 
 function isMobileDevice() {
     return /Mobi|Android/i.test(navigator.userAgent);
@@ -165,14 +164,16 @@ async function githubFetch(url, options = {}) {
 export async function startSyncLoop() {
     logger.debugSyncing("sync", "Running startSyncLoop(). CALLED BY: " + getCallerName("startSyncLoop"));
 
-    if (isMobileDevice()) {
+    if (isReadOnlyDevice()) {
         logger.info("sync: startSyncLoop", "Start sync loop attempted on readonly device — ignoring");
         return;
     }  
 
-    // temporarily disable starting sync loop if sync is disabled, to prevent any unexpected behavior while we work on the new sync engine
-    showNotification("info", "Sync loop is currently disabled");
-    return;
+    // temporarily disable starting sync loop if sync is disabled, to prevent any unexpected behavior while we work fixing the sync engine
+    if (settings.syncOverride) {
+        showNotification("info", "Sync loop is currently disabled");
+        return;
+    }
 
     if (!syncEnabled) {
         logger.debugSyncing("sync: startSyncLoop", "startSyncLoop() blocked — sync disabled");
@@ -201,10 +202,18 @@ export async function startSyncLoop() {
 export function setSyncEnabled(value) {
     logger.debug("sync", "Running setSyncEnabled(). CALLED BY: " + getCallerName("setSyncEnabled") + "  value: ", value);
 
-    if (isMobileDevice()) {
+    if (isReadOnlyDevice()) {
         logger.info("sync: setSyncEnabled", "Set sync enabled attempted on readonly device — ignoring");
         return;
-    }      
+    }
+
+    // temporarily disable starting sync loop if sync is disabled, to prevent any unexpected behavior while we work fixing the sync engine
+    if (settings.syncOverride) {
+        syncEnabled = false;
+        showNotification("info", "Sync loop is currently disabled");
+        return;
+    }
+
     syncEnabled = value;
     localStorage.setItem("syncEnabled", JSON.stringify(value));
 }
@@ -214,11 +223,13 @@ export function getSyncEnabled() {
 }
 
 export function stopSyncLoop() {
-    if (isMobileDevice()) {
+    logger.debugSyncing("sync", "Running stopSyncLoop(). CALLED BY: " + getCallerName("stopSyncLoop"));
+        
+    if (isReadOnlyDevice()) {
         logger.info("sync: stopSyncLoop", "Stop sync toggle attempted on readonly device — ignoring");
         return;
     }    
-    logger.debugSyncing("sync", "Running stopSyncLoop(). CALLED BY: " + getCallerName("stopSyncLoop"));
+
     try {      
         if (syncIntervalId !== null) {
             clearInterval(syncIntervalId);
@@ -233,12 +244,19 @@ export function stopSyncLoop() {
 }
 
 export function toggleSyncLoop() {
-    if (isMobileDevice()) {
+    logger.debug("sync", "Running toggleSyncLoop(). CALLED BY: " + getCallerName("toggleSyncLoop")); 
+
+    if (isReadOnlyDevice()) {
         logger.info("sync: toggleSyncLoop", "Sync toggle attempted on readonly device — ignoring");
         return;
     }
 
-    logger.debug("sync", "Running toggleSyncLoop(). CALLED BY: " + getCallerName("toggleSyncLoop"));
+    // temporarily disable starting sync loop if sync is disabled, to prevent any unexpected behavior while we work fixing the sync engine
+    if (settings.syncOverride) {
+        stopSyncLoop();
+        return;
+    }
+
     if (syncIntervalId === null) {
         startSyncLoop();
         logger.info("sync", "toggleSyncLoop → started");
