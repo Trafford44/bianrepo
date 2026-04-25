@@ -687,6 +687,19 @@ export function updateToolbarVisibility() {
 
 }
 
+export function applyReadonlyUI() {
+    // Global styling hook
+    document.body.classList.add("readonly-mode");
+
+    // Hide the editor immediately
+    const grid = document.querySelector(".workspace-grid");
+    grid.classList.add("editor-hidden");
+
+    // Disable the toggle button - disable this for now
+/*     const btn = document.getElementById("toggle-editor");
+    btn.disabled = true;
+    btn.textContent = "Editor Hidden (Read‑only)"; */
+}
 
 
 function commitWorkspace() {
