@@ -36,7 +36,7 @@ let lastActivityTime = Date.now();
 const IDLE_THRESHOLD = 30_000; // 30 seconds
 let cloudChangeHandled = false;
 // mobile update ability functionality
-const settings = {
+export const settings = {
     mobileReadOnly: true,
     syncOverride: true
 };
@@ -219,12 +219,16 @@ export function setSyncEnabled(value) {
 }
 
 export function getSyncEnabled() {
-    return syncEnabled;
+    if (settings.syncOverride) {
+        return false;
+    } else {
+        return syncEnabled;
+    }
 }
 
 export function stopSyncLoop() {
     logger.debugSyncing("sync", "Running stopSyncLoop(). CALLED BY: " + getCallerName("stopSyncLoop"));
-        
+
     if (isReadOnlyDevice()) {
         logger.info("sync: stopSyncLoop", "Stop sync toggle attempted on readonly device — ignoring");
         return;
