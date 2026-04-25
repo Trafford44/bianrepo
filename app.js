@@ -2,7 +2,7 @@ import { handleOAuthRedirect, bindLoginButton, getToken, getGistId } from "./aut
 import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, updateLoginIndicator, loadFile } from "./ui.js";
 import { loadState, migrateWorkspace, setWorkspace, getWorkspace, saveState, inflateWorkspace, createEmptyWorkspace } from "./workspace.js";
 import { setupMarked } from "./md-editor.js";
-import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud, loadWorkspaceFromGist, getSyncEnabled } from "./sync.js";
+import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud, loadWorkspaceFromGist, getSyncEnabled, isReadOnlyDevice } from "./sync.js";
 import { logger } from "./logger.js";
 import { updateSyncToggleButton } from "./binding.js";
 
@@ -34,6 +34,12 @@ export function hasOAuthCode() {
 async function init() {
     logger.debug("app: init()", "Running init()");
     try {
+
+        // determine early if we're on a read-only device and add a class, ready for later styling
+        if (isReadOnlyDevice()) {
+            document.body.classList.add("readonly-mode");
+        }
+
         // 1. Markdown renderer must be ready before any preview happens
         logger.debug("md-editor", "setupMarked()");
         setupMarked();
