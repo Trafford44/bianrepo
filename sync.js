@@ -1338,7 +1338,7 @@ export function markLocalEdit() {
     //logger.debug("sync: markLocalEdit", `Local edit detected at ${new Date(lastLocalEditTime).toISOString()}`);
 }
 
-function showSyncState(state) {
+export function showSyncState(state) {
     logger.debug("sync", "Running showSyncState(). CALLED BY: " + getCallerName("showSyncState"));
 
     const map = {
