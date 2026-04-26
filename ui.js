@@ -670,14 +670,15 @@ export function updateToolbarVisibility() {
 
     //make sure to disable write buttons if we're on a read-only device, regardless of file loaded or login state
     if (isReadOnlyDevice()) {
-        // Disable all write buttons
+        // Hide all write buttons
         [
             "save-btn",
             "delete-btn",
             "restore-btn",
             "importAll-btn",
             "copy-rendered-puml-btn",
-            "sync-toggle-btn"
+            "sync-toggle-btn",
+            "add-folder-btn"
         ].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = "none";
@@ -693,6 +694,7 @@ export function applyReadonlyUI() {
 
     // Hide the editor immediately
     hideEditor();
+    showSyncState("readonly");
 
     // Disable the toggle button - disable this for now
 /*     const btn = document.getElementById("toggle-editor");
