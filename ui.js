@@ -1907,11 +1907,11 @@ export function updateLoginIndicator() {
             if (loggedIn) {
                 loginBtn.classList.remove("github-login-needed");
                 loginBtn.classList.add("github-logged-in");
-                loginBtn.textContent = "GitHub Connected";
+                loginBtn.textContent = "Connected to Cloud";
             } else {
                 loginBtn.classList.remove("github-logged-in");
                 loginBtn.classList.add("github-login-needed");
-                loginBtn.textContent = "Sign in with GitHub";
+                loginBtn.textContent = "Sign in to cloud";
             }
         }
 
@@ -2110,8 +2110,8 @@ function toggleEditorVisibility() {
     grid.classList.toggle("editor-hidden");
 
     btn.textContent = grid.classList.contains("editor-hidden")
-        ? "Show Editor"
-        : "Hide Editor";
+        ? "Show Source"
+        : "Hide Source";
 }
 
 function hideEditor() {
