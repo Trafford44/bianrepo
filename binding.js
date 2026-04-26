@@ -1,6 +1,6 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml, importWorkspace, activeFileId } from "./ui.js";
-import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled, handleExpiredToken } from "./sync.js";
+import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled, handleExpiredToken, isReadOnlyDevice } from "./sync.js";
 import { logger, getCallerName } from "./logger.js";
 import { clearToken } from "./auth.js";
 
@@ -9,6 +9,9 @@ logger.debug("binding","binding.js loaded from:", import.meta.url);
 export function bindSmartKeyboardEvents(textarea) {
 
     logger.debug("binding", "bindSmartKeyboardEvents(). CALLED BY: " + getCallerName("bindSmartKeyboardEvents"));
+
+    if (isReadOnlyDevice()) return;
+
     textarea.addEventListener("input", (e) => {
         if (e.isTrusted) {  // only true for real user input
             markLocalEdit();
@@ -81,6 +84,9 @@ export function bindSmartKeyboardEvents(textarea) {
 
 export function bindGlobalShortcuts(textarea) {
     logger.debug("binding", "bindGlobalShortcuts(). CALLED BY: " + getCallerName("bindGlobalShortcuts"));
+
+    if (isReadOnlyDevice()) return;
+
     document.addEventListener("keydown", (e) => {
         const isCmd = e.metaKey || e.ctrlKey;
 
@@ -162,6 +168,9 @@ export function bindScrollSync(textarea) {
 
 export function bindToolbarEvents(textarea) {
     logger.debug("binding", "bindToolbarEvents(). CALLED BY: " + getCallerName("bindToolbarEvents"));
+
+    if (isReadOnlyDevice()) return;
+
     // TOOLBAR & POPUP WIRE-UPS
     document.getElementById("add-folder-btn")?.addEventListener("click", () => addFolder());
     document.getElementById("save-btn")?.addEventListener("click", async () => {
@@ -251,6 +260,7 @@ export function bindToolbarEvents(textarea) {
 
     // Markdown Toolbar delegation
     document.getElementById("md-toolbar").addEventListener("click", (e) => {
+        
         const type = e.target.dataset.md;
         if (!type) return;
 
