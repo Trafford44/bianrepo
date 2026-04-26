@@ -696,13 +696,30 @@ export function applyReadonlyUI() {
     showSyncState("readonly");
 
     // Disable the toggle button - disable this for now
-/*     const btn = document.getElementById("toggle-editor");
+    /* const btn = document.getElementById("toggle-editor");
     btn.disabled = true;
     btn.textContent = "Editor Hidden (Read‑only)"; */
 
-   // Hide sidebar write buttons
+    // Hide sidebar write buttons
     const addFolder = document.getElementById("add-folder-btn");
-    if (addFolder) addFolder.style.display = "none";    
+    if (addFolder) addFolder.style.display = "none"; 
+    
+    // Hide and disable the editor
+    const textarea = document.getElementById("editor-textarea");
+    if (textarea) {
+        textarea.readOnly = true;
+        textarea.classList.add("readonly-editor");
+
+        textarea.addEventListener("paste", e => {
+            if (isReadOnlyDevice()) e.preventDefault();
+        });
+
+        textarea.addEventListener("drop", e => {
+            if (isReadOnlyDevice()) e.preventDefault();
+        });
+
+    }    
+
 }
 
 
@@ -2107,6 +2124,9 @@ function hideEditor() {
 
 export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
     logger.debug("ui", "Running showCountdownNotification(). CALLED BY: " + getCallerName("showCountdownNotification"));
+
+    if (isReadOnlyDevice()) { return; }
+        
     const el = document.getElementById("notification");
     if (!el) {
         logger.info("ui: showCountdownNotification", "Couldn't find element 'notification'");
@@ -2173,9 +2193,9 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
 
 
 // for testing purposes
-if (location.hostname === "localhost") {
-    window.showCountdownNotification = showCountdownNotification;
-}
+//if (location.hostname === "localhost") {
+//    window.showCountdownNotification = showCountdownNotification;
+//}
 /* Use with:
 From Console:
 showCountdownNotification({
