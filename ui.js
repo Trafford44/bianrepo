@@ -626,6 +626,8 @@ export function loadFile(fileId) {
 
 export function updateToolbarVisibility() {
     logger.debug("ui", "Running updateToolbarVisibility(). CALLED BY: " + getCallerName("updateToolbarVisibility"));
+
+    // this function applies to the toolbar buttons only, not the sidebar buttons.  The sidebar buttons are currently in applyReadonlyUI()
     const fileLoaded = !!activeFileId;
     const loggedIn = !!getToken() && !!getGistId();
 
@@ -677,20 +679,17 @@ export function updateToolbarVisibility() {
             "restore-btn",
             "importAll-btn",
             "copy-rendered-puml-btn",
-            "sync-toggle-btn",
-            "add-folder-btn"
+            "sync-toggle-btn"
         ].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = "none";
         });
     }
-
-
 }
 
 export function applyReadonlyUI() {
     // Global styling hook
-    document.body.classList.add("readonly-mode");
+    document.body.classList.add(applyReadonlyUI"readonly-mode");
 
     // Hide the editor immediately
     hideEditor();
@@ -700,6 +699,10 @@ export function applyReadonlyUI() {
 /*     const btn = document.getElementById("toggle-editor");
     btn.disabled = true;
     btn.textContent = "Editor Hidden (Read‑only)"; */
+
+   // Hide sidebar write buttons
+    const addFolder = document.getElementById("add-folder-btn");
+    if (addFolder) addFolder.style.display = "none";    
 }
 
 
