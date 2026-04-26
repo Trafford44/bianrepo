@@ -256,7 +256,7 @@ export function toggleSyncLoop() {
     }
 
     // temporarily disable starting sync loop if sync is disabled, to prevent any unexpected behavior while we work fixing the sync engine
-    if (settings.syncOverride) {
+    if (getSyncEnabled() === false) {
         stopSyncLoop();
         return;
     }
@@ -366,7 +366,7 @@ export async function runSyncCheck(reason) {
         logger.debugSyncing("sync.runSyncCheck", `Skipped — sync disabled`);
         return;
     }
-    if (isReadOnlyDevice()) { return; }
+    if (isReadOnlyDevice() || !getSyncEnabled()) { return; }
 
     try {    
         const token = getToken();
@@ -597,7 +597,7 @@ async function handleCloudChange(latest, idleReturn) {
     logger.debugSyncing("sync: handleCloudChange", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
     logger.debugSyncing("sync: handleCloudChange", `cloudChangeHandled = ${window.__cloudChangeHandled}`);
 
-    if (isReadOnlyDevice()) { return; }    
+    if (isReadOnlyDevice() || !getSyncEnabled()) { return; }    
     
     // Prevent duplicate dialogs or duplicate cloud-apply
     if (window.__cloudChangeHandled) {
@@ -1088,8 +1088,8 @@ export async function saveWorkspaceToGist() {
     logger.debug("sync", "Running saveWorkspaceToGist(). CALLED BY: " + getCallerName("saveWorkspaceToGist"));
     if (!requireLogin()) return;
 
-    if (isReadOnlyDevice()) {
-        logger.info("sync: saveWorkspaceToGist", "Save skipped — read-only device.");
+    if (isReadOnlyDevice() || !getSyncEnabled()) {
+        logger.info("sync: saveWorkspaceToGist", "Save skipped — read-only device or sync disabled.");
         return;
     }
 
@@ -1604,8 +1604,8 @@ export async function restoreFromGistVersion(versionId) {
         return;
     }
 
-    if (isReadOnlyDevice()) {
-        logger.info("sync: restoreFromGistVersion", "Restore skipped — read-only device.");
+    if (isReadOnlyDevice() || !getSyncEnabled()) {
+        logger.info("sync: restoreFromGistVersion", "Restore skipped — read-only device or sync disabled.");
         return;
     }
 
