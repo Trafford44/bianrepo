@@ -1340,13 +1340,19 @@ export function markLocalEdit() {
 
 function showSyncState(state) {
     logger.debug("sync", "Running showSyncState(). CALLED BY: " + getCallerName("showSyncState"));
+
     const map = {
-        saving: ["saving", "Saving…"],
-        synced: ["synced", "Synced"],
-        error: ["error", "Error"]
+        saving:   ["saving",   "Saving…"],
+        synced:   ["synced",   "Synced"],
+        error:    ["error",    "Error"],
+        readonly: ["readonly", "Read‑only"]
     };
-    setSyncStatus(...map[state]);
+
+    if (map[state]) {
+        setSyncStatus(...map[state]);
+    }
 }
+
 
 export async function loadWorkspaceFromGist() {
     logger.debug("sync", "Running loadWorkspaceFromGist. CALLED BY: " + getCallerName("loadWorkspaceFromGist"));
