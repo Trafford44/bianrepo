@@ -692,8 +692,7 @@ export function applyReadonlyUI() {
     document.body.classList.add("readonly-mode");
 
     // Hide the editor immediately
-    const grid = document.querySelector(".workspace-grid");
-    grid.classList.add("editor-hidden");
+    hideEditor();
 
     // Disable the toggle button - disable this for now
 /*     const btn = document.getElementById("toggle-editor");
@@ -2079,19 +2078,27 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 document.getElementById("toggle-editor").addEventListener("click", () => {
+    toggleEditorVisibility();
+});
+
+function toggleEditorVisibility() {
     const grid = document.querySelector(".workspace-grid");
     const btn = document.getElementById("toggle-editor");
 
     grid.classList.toggle("editor-hidden");
 
-    // Update button label
-    if (grid.classList.contains("editor-hidden")) {
-        btn.textContent = "Show Editor";
-    } else {
-        btn.textContent = "Hide Editor";
-    }
-});
+    btn.textContent = grid.classList.contains("editor-hidden")
+        ? "Show Editor"
+        : "Hide Editor";
+}
 
+function hideEditor() {
+    const grid = document.querySelector(".workspace-grid");
+    const btn = document.getElementById("toggle-editor");
+
+    grid.classList.add("editor-hidden");
+    btn.textContent = "Show Editor";
+}
 
 export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
     logger.debug("ui", "Running showCountdownNotification(). CALLED BY: " + getCallerName("showCountdownNotification"));
