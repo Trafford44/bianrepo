@@ -627,7 +627,7 @@ export function loadFile(fileId) {
 export function updateToolbarVisibility() {
     logger.debug("ui", "Running updateToolbarVisibility(). CALLED BY: " + getCallerName("updateToolbarVisibility"));
 
-    // this function applies to the toolbar buttons only, not the sidebar buttons.  The sidebar buttons are currently in applyReadonlyUI()
+    // this function applies to the toolbar buttons only, not the sidebar buttons.  The sidebar buttons are currently in applyReadonlyUI
     const fileLoaded = !!activeFileId;
     const loggedIn = !!getToken() && !!getGistId();
 
@@ -689,7 +689,7 @@ export function updateToolbarVisibility() {
 
 export function applyReadonlyUI() {
     // Global styling hook
-    document.body.classList.add(applyReadonlyUI"readonly-mode");
+    document.body.classList.add("readonly-mode");
 
     // Hide the editor immediately
     hideEditor();
