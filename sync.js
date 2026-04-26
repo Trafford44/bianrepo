@@ -285,7 +285,7 @@ export async function bindVisibilityEvents() {
 export function bindActivityEvents() {
     logger.debug("sync", "Running bindActivityEvents(). CALLED BY: " + getCallerName("bindActivityEvents"));
     if (isReadOnlyDevice()) return;
-    
+
     document.addEventListener("keydown", markActivity);
     document.addEventListener("mousemove", markActivity);
     document.addEventListener("mousedown", markActivity);
@@ -294,6 +294,8 @@ export function bindActivityEvents() {
 }
 
 function markActivity() {
+    if (isReadOnlyDevice()) return;
+    
     const now = Date.now();
     const wasIdle = (now - lastActivityTime) > IDLE_THRESHOLD;
     lastActivityTime = now;
@@ -364,6 +366,7 @@ export async function runSyncCheck(reason) {
         logger.debugSyncing("sync.runSyncCheck", `Skipped — sync disabled`);
         return;
     }
+    if (isReadOnlyDevice()) { return; }
 
     try {    
         const token = getToken();
@@ -593,6 +596,8 @@ function updateSyncState() {
 async function handleCloudChange(latest, idleReturn) {
     logger.debugSyncing("sync: handleCloudChange", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
     logger.debugSyncing("sync: handleCloudChange", `cloudChangeHandled = ${window.__cloudChangeHandled}`);
+
+    if (isReadOnlyDevice()) { return; }    
     
     // Prevent duplicate dialogs or duplicate cloud-apply
     if (window.__cloudChangeHandled) {
