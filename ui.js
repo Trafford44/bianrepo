@@ -1434,7 +1434,7 @@ export function addFolder() {
     renderSidebar();
 }
 
-export function collapseAllFolders() {
+/* export function collapseAllFolders() {
     document.querySelectorAll(".sidebar-folder-header .chevron.open").forEach(el => {
         el.classList.remove("open");
     });
@@ -1442,6 +1442,22 @@ export function collapseAllFolders() {
         el.classList.add("hidden");
     });
 }
+ */
+export function collapseAllFolders() {
+    collapseFolderRecursive(workspace.root);
+    saveState();
+    renderSidebar();
+}
+
+function collapseFolderRecursive(node) {
+    if (node.type === "folder") {
+        node.isOpen = false;
+        for (const child of node.children) {
+            collapseFolderRecursive(child);
+        }
+    }
+}
+
 
 export function addFile(folderId) {
 
