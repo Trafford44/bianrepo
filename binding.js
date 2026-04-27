@@ -1,5 +1,5 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
-import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml, importWorkspace, activeFileId } from "./ui.js";
+import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml, importWorkspace, activeFileId, collapseAllFolders } from "./ui.js";
 import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled, handleExpiredToken, isReadOnlyDevice } from "./sync.js";
 import { logger, getCallerName } from "./logger.js";
 import { clearToken } from "./auth.js";
@@ -173,6 +173,16 @@ export function bindToolbarEvents(textarea) {
 
     // TOOLBAR & POPUP WIRE-UPS
     document.getElementById("add-folder-btn")?.addEventListener("click", () => addFolder());
+
+    const collapseAllBtn = document.getElementById("collapse-all-btn");
+    if (collapseAllBtn) {
+        collapseAllBtn.addEventListener("click", e => {
+            e.stopPropagation();
+            collapseAllFolders();
+        });
+    }
+
+
     document.getElementById("save-btn")?.addEventListener("click", async () => {
         try {
             await saveWorkspaceToGist();
