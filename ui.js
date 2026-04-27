@@ -708,6 +708,7 @@ export function applyReadonlyUI() {
     const textarea = document.getElementById("editor-textarea");
     if (textarea) {
         textarea.readOnly = true;
+        //use both the readOnly property and the readonly attribute for maximum compatibility with different browsers and assistive technologies
         textarea.setAttribute("readonly", "readonly");
         textarea.classList.add("readonly-editor");
 
@@ -1433,6 +1434,14 @@ export function addFolder() {
     renderSidebar();
 }
 
+export function collapseAllFolders() {
+    document.querySelectorAll(".sidebar-folder-header .chevron.open").forEach(el => {
+        el.classList.remove("open");
+    });
+    document.querySelectorAll(".sidebar-folder-children").forEach(el => {
+        el.classList.add("hidden");
+    });
+}
 
 export function addFile(folderId) {
 
