@@ -1443,10 +1443,14 @@ export function addFolder() {
     });
 }
  */
+
 export function collapseAllFolders() {
-    workspace.forEach(node => collapseFolderRecursive(node));
-    saveWorkspace(); // or whatever your persistence function is
-    renderSidebar();
+    const ws = getWorkspace(); // this returns your array of root nodes
+
+    ws.forEach(node => collapseFolderRecursive(node));
+
+    setWorkspace(ws);   // persist the updated state
+    renderSidebar();    // rebuild UI
 }
 
 function collapseFolderRecursive(node) {
