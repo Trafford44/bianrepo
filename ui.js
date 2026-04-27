@@ -708,6 +708,7 @@ export function applyReadonlyUI() {
     const textarea = document.getElementById("editor-textarea");
     if (textarea) {
         textarea.readOnly = true;
+        textarea.setAttribute("readonly", "readonly");
         textarea.classList.add("readonly-editor");
 
         textarea.addEventListener("paste", e => {
