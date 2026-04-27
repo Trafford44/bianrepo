@@ -1086,7 +1086,10 @@ window.debugCloud = async () => {
 
 export async function saveWorkspaceToGist() {
     logger.debug("sync", "Running saveWorkspaceToGist(). CALLED BY: " + getCallerName("saveWorkspaceToGist"));
-    if (!requireLogin()) return;
+    if (!requireLogin()) {
+        logger.info("sync: saveWorkspaceToGist", "Save skipped — need to login.");
+        return;
+    }
 
     if (isReadOnlyDevice() || !getSyncEnabled()) {
         logger.info("sync: saveWorkspaceToGist", "Save skipped — read-only device or sync disabled.");
