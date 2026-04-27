@@ -1091,8 +1091,8 @@ export async function saveWorkspaceToGist() {
         return;
     }
 
-    if (isReadOnlyDevice() || !getSyncEnabled()) {
-        logger.info("sync: saveWorkspaceToGist", "Save skipped — read-only device or sync disabled.");
+    if (isReadOnlyDevice()) {
+        logger.info("sync: saveWorkspaceToGist", "Save skipped — read-only device.");
         return;
     }
 
