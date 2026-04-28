@@ -806,14 +806,16 @@
             pointer-events: none;
         }
 
-        /* Make disabled checkboxes behave like normal ones */
-        .markdown-body input[type="checkbox"][disabled] {
-            pointer-events: none;      /* still non-interactive */
-            opacity: 1;                /* remove the faded look */
-            filter: none;
-            accent-color: #000;        /* now works */
+        .mobile-debug-btn {
+            display: none;
         }
 
+        .mobile-debug-active .mobile-debug-btn {
+            display: inline-block;
+            background: #0f2b89;
+            color: white;
+            font-weight: bold;
+        }
 
         /* 
         #reconnect-link {
@@ -1207,6 +1209,8 @@
                 <div id="notification" class="notification"></div>
             </div>            
             <div id="editor-actions" class="toolbar-actions">
+                <button id="purge-logs-btn" class="btn-tool mobile-debug-btn">Purge Logs</button>
+                <button id="dump-logs-btn" class="btn-tool mobile-debug-btn">Dump Logs</button>
                 <button id="toggle-editor" class="btn-tool">Hide Source</button>
                 <button id="github-login" class="btn-tool">Sign in to cloud</button>
                 <button id="save-btn" class="btn-tool">Save to Cloud</button>
