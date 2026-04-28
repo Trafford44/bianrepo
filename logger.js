@@ -1,6 +1,11 @@
 // logger.js
 
+// mobile logging
+const MOBILE_LOG_DUMP_ENABLED = true; // or false by default
+const IS_MOBILE = /Android|iPhone|iPad/i.test(navigator.userAgent);
+const fullLog = [];
 
+// all else
 const LOG_LEVELS = {
   NONE: 0,
   WATCH: 1,  
@@ -13,7 +18,11 @@ const LOG_LEVELS = {
 let LOG_ENTRY_COUNTER = 0;
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
+let CURRENT_LEVEL = LOG_LEVELS.ERROR;
+
+export function isMobileLogDumpActive() {
+    return IS_MOBILE && MOBILE_LOG_DUMP_ENABLED;
+}
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
@@ -33,18 +42,31 @@ function log(levelName, levelValue, source, message, details, options = {}) {
   const style = colours[levelName] || "color: inherit";
   const header = `#${++LOG_ENTRY_COUNTER} [${timestamp}] [${levelName}] [${source}]`;
 
+  // mobile logging
+  const entry = details !== undefined
+      ? `${header} ${message} ${JSON.stringify(details)}`
+      : `${header} ${message}`;
+  if (MOBILE_LOG_DUMP_ENABLED && IS_MOBILE) {
+      fullLog.push(entry);
+  }
+
 
   // If multiline formatting is requested
   if (options.multiline) {
     const formatted = formatMultiline(message, {
       lineNumbers: options.lineNumbers
     });
+
+    if (MOBILE_LOG_DUMP_ENABLED && IS_MOBILE) {
+        fullLog.push(`${header}\n${formatted}`);
+    }
+
     printStyledBlock(header, formatted);
     return;
   }
 
   // Normal logging
-  if (details !== undefined) {
+  if (details !== undefined && details !== null) {
     console.log("%c" + header + " " + message, style, details);
   } else {
     console.log("%c" + header + " " + message, style);
@@ -237,4 +259,29 @@ export function getCallerName(currentFunctionName = null) {
 }
 
 
+export function dumpMobileLogs() {
+    const blob = new Blob([fullLog.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "mobile-debug-log.txt";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+export function purgeMobileLogs() {
+    fullLog.length = 0;
+}
+
+if (MOBILE_LOG_DUMP_ENABLED && IS_MOBILE) {
+    window.onerror = function(message, source, lineno, colno, error) {
+        fullLog.push(`#${++LOG_ENTRY_COUNTER} [${formatDateNZ()}] [ERROR] [window.onerror] ${message} at ${source}:${lineno}:${colno}`);
+    };
+
+    window.onunhandledrejection = function(event) {
+        fullLog.push(`#${++LOG_ENTRY_COUNTER} [${formatDateNZ()}] [ERROR] [unhandledrejection] ${event.reason}`);
+    };
+}
 
