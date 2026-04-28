@@ -1445,6 +1445,10 @@ export function addFolder() {
  */
 
 export function collapseAllFolders() {
+    logger.debug("ui: collapseAllFolders", "Starting collapse all folders. CALLED BY: " + getCallerName("collapseAllFolders"));
+
+    logger.debug("ui: collapseAllFolders: removed open chevrons", { count: document.querySelectorAll(".sidebar-folder-header .chevron.open").length   });
+
     const ws = getWorkspace(); // this returns your array of root nodes
 
     ws.forEach(node => collapseFolderRecursive(node));
