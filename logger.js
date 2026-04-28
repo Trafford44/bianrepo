@@ -2,7 +2,11 @@
 
 // mobile logging
 const MOBILE_LOG_DUMP_ENABLED = true; // or false by default
-const IS_MOBILE = /Android|iPhone|iPad/i.test(navigator.userAgent);
+const IS_MOBILE =
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.userAgent.includes("Mac") && "ontouchend" in document) ||
+    ("ontouchstart" in window && navigator.maxTouchPoints > 0);
+
 const fullLog = [];
 
 // all else
