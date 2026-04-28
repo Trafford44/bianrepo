@@ -1,8 +1,5 @@
 // logger.js
 
-import { isMobile } from "./device.js";
-
-
 // mobile logging
 const MOBILE_LOG_DUMP_ENABLED = true; // or false by default
 const fullLog = [];
@@ -21,6 +18,12 @@ let LOG_ENTRY_COUNTER = 0;
 
 // Change this per module if you want different log levels for different parts of the app
 let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
+
+function isMobile() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+        || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+        || ("ontouchstart" in window && navigator.maxTouchPoints > 0);
+}
 
 export function isMobileLogDumpActive() {
     return MOBILE_LOG_DUMP_ENABLED && isMobile();
