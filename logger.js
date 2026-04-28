@@ -1,12 +1,10 @@
 // logger.js
 
+import { isMobile } from "./device.js";
+
+
 // mobile logging
 const MOBILE_LOG_DUMP_ENABLED = true; // or false by default
-const IS_MOBILE =
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-    (navigator.userAgent.includes("Mac") && "ontouchend" in document) ||
-    ("ontouchstart" in window && navigator.maxTouchPoints > 0);
-
 const fullLog = [];
 
 // all else
@@ -25,16 +23,8 @@ let LOG_ENTRY_COUNTER = 0;
 let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
 export function isMobileLogDumpActive() {
-    const active = IS_MOBILE && MOBILE_LOG_DUMP_ENABLED;
-
-    // TEMPORARY DIAGNOSTIC
-    fullLog.push(
-        `TEST isMobileLogDumpActive(): IS_MOBILE=${IS_MOBILE}, MOBILE_LOG_DUMP_ENABLED=${MOBILE_LOG_DUMP_ENABLED}, RESULT=${active}`
-    );
-
-    return active;
+    return MOBILE_LOG_DUMP_ENABLED && isMobile();
 }
-
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
@@ -58,7 +48,7 @@ function log(levelName, levelValue, source, message, details, options = {}) {
   const entry = details !== undefined
       ? `${header} ${message} ${JSON.stringify(details)}`
       : `${header} ${message}`;
-  if (MOBILE_LOG_DUMP_ENABLED && IS_MOBILE) {
+  if (MOBILE_LOG_DUMP_ENABLED && isMobile()) {
       fullLog.push(entry);
   }
 
@@ -69,7 +59,7 @@ function log(levelName, levelValue, source, message, details, options = {}) {
       lineNumbers: options.lineNumbers
     });
 
-    if (MOBILE_LOG_DUMP_ENABLED && IS_MOBILE) {
+    if (MOBILE_LOG_DUMP_ENABLED && isMobile()) {
         fullLog.push(`${header}\n${formatted}`);
     }
 
@@ -287,7 +277,7 @@ export function purgeMobileLogs() {
     fullLog.length = 0;
 }
 
-if (MOBILE_LOG_DUMP_ENABLED && IS_MOBILE) {
+if (MOBILE_LOG_DUMP_ENABLED && isMobile()) {
     window.onerror = function(message, source, lineno, colno, error) {
         fullLog.push(`#${++LOG_ENTRY_COUNTER} [${formatDateNZ()}] [ERROR] [window.onerror] ${message} at ${source}:${lineno}:${colno}`);
     };
