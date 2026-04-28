@@ -17,10 +17,4 @@ if (!deviceId || deviceId === "undefined" || deviceId === "null" || deviceId.tri
 
 export { deviceId };
 
-export function isMobile() {
-    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-        || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
-        || ("ontouchstart" in window && navigator.maxTouchPoints > 0);
-}
-
 
