@@ -166,6 +166,19 @@ export function bindScrollSync(textarea) {
     });
 }
 
+// used to bind tap events that should work reliably on both desktop and mobile, especially inside scrollable containers where "click" can be delayed or missed
+// i.e. some buttons, in scrollable toolbar or containters don;t work on mobile because the "click" event is not firing reliably. This function ensures that the handler is called on both "click" and "touchend", with appropriate handling to prevent double-fires.
+export function bindTap(el, handler) {
+    // Desktop + mobile fallback
+    el.addEventListener("click", handler);
+
+    // Mobile primary path (reliable even inside scrollable containers)
+    el.addEventListener("touchend", e => {
+        e.preventDefault();   // prevents double‑fires
+        handler(e);           // manually trigger the action
+    });
+}
+
 export function bindToolbarEvents(textarea) {
     logger.debug("binding", "bindToolbarEvents(). CALLED BY: " + getCallerName("bindToolbarEvents"));
 
@@ -176,7 +189,7 @@ export function bindToolbarEvents(textarea) {
 
     const collapseAllBtn = document.getElementById("collapse-all-btn");
     if (collapseAllBtn) {
-        collapseAllBtn.addEventListener("click", e => {
+        bindTap(collapseAllBtn, e => {
             e.stopPropagation();
             collapseAllFolders();
         });
