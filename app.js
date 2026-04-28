@@ -3,7 +3,7 @@ import { initResizers, renderSidebar, bindEditorEvents, bindPaneFocusEvents, upd
 import { loadState, migrateWorkspace, setWorkspace, getWorkspace, saveState, inflateWorkspace, createEmptyWorkspace } from "./workspace.js";
 import { setupMarked } from "./md-editor.js";
 import { startSyncLoop, bindVisibilityEvents, bindActivityEvents, reconcileLocalAndCloud, loadWorkspaceFromGist, getSyncEnabled, isReadOnlyDevice } from "./sync.js";
-import { logger } from "./logger.js";
+import { logger, isMobileLogDumpActive, dumpMobileLogs, purgeMobileLogs } from "./logger.js";
 import { updateSyncToggleButton } from "./binding.js";
 
 // Debug helpers (only used in DevTools)
@@ -38,6 +38,14 @@ async function init() {
         // determine early if we're on a read-only device and add a class, ready for later styling
         if (isReadOnlyDevice()) {
             applyReadonlyUI();
+        }
+
+        // mobile logging if turned on
+        if (isMobileLogDumpActive()) {
+            document.body.classList.add("mobile-debug-active");
+
+            document.getElementById("dump-logs-btn").onclick = dumpMobileLogs;
+            document.getElementById("purge-logs-btn").onclick = purgeMobileLogs;
         }
 
         // 1. Markdown renderer must be ready before any preview happens
