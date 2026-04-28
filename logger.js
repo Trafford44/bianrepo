@@ -25,8 +25,16 @@ let LOG_ENTRY_COUNTER = 0;
 let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
 export function isMobileLogDumpActive() {
-    return IS_MOBILE && MOBILE_LOG_DUMP_ENABLED;
+    const active = IS_MOBILE && MOBILE_LOG_DUMP_ENABLED;
+
+    // TEMPORARY DIAGNOSTIC
+    fullLog.push(
+        `TEST isMobileLogDumpActive(): IS_MOBILE=${IS_MOBILE}, MOBILE_LOG_DUMP_ENABLED=${MOBILE_LOG_DUMP_ENABLED}, RESULT=${active}`
+    );
+
+    return active;
 }
+
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
