@@ -189,11 +189,22 @@ export function bindToolbarEvents(textarea) {
 
     const collapseAllBtn = document.getElementById("collapse-all-btn");
     if (collapseAllBtn) {
+        logger.debug("binding.bindToolbarEvents", "Attaching collapse-all handler to #collapse-all-btn");
+
         bindTap(collapseAllBtn, e => {
+            logger.debug("sidebar", "Collapse All button tapped or clicked", {
+                eventType: e.type,
+                target: e.target?.id || e.target?.className
+            });
+
             e.stopPropagation();
+
+            logger.debug("sidebar", "Calling collapseAllFolders()");
             collapseAllFolders();
+            logger.debug("sidebar", "collapseAllFolders() completed");
         });
     }
+
 
 
     document.getElementById("save-btn")?.addEventListener("click", async () => {
