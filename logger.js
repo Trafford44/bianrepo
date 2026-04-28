@@ -13,7 +13,7 @@ const LOG_LEVELS = {
 let LOG_ENTRY_COUNTER = 0;
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.INFO;
+let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
 // use like:  logger.debug("PUML", pumlText, null, { multiline: true, lineNumbers: true });
 function log(levelName, levelValue, source, message, details, options = {}) {
