@@ -18,7 +18,7 @@ const LOG_LEVELS = {
 let LOG_ENTRY_COUNTER = 0;
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.ERROR;
+let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
 
 export function isMobileLogDumpActive() {
     return IS_MOBILE && MOBILE_LOG_DUMP_ENABLED;
