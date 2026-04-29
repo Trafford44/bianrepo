@@ -441,7 +441,7 @@ export async function runSyncCheck(reason) {
 
                 } else {
                     logger.debugSyncing("sync.runSyncCheck", "Cloud is newer → pulling to local");
-                    await loadWorkspaceFromGist();
+                    await applyCloudWorkspace();
                 }
             } else {
                 logger.debugSyncing("sync.runSyncCheck", "Login reconciliation: hashes match — no action needed");
@@ -463,7 +463,7 @@ export async function runSyncCheck(reason) {
         // ------------------------------------------------------------
         if (gistId && workspaceIsEmpty()) {
             logger.debugSyncing("sync.runSyncCheck", "Workspace empty — loading from cloud");
-            await loadWorkspaceFromGist();
+            await applyCloudWorkspace();
             syncDecision = "load-cloud";
         }
 
@@ -1790,4 +1790,3 @@ async function adoptOrCreateGist() {
     }
 
 }
-
