@@ -17,7 +17,7 @@ const LOG_LEVELS = {
 let LOG_ENTRY_COUNTER = 0;
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
+let CURRENT_LEVEL = LOG_LEVELS.INFO;
 
 // needs to be a function, rathat than be stored in a const - somethign to do with how the module is imported and used in app.js.  If we try to determine "isMobile" at the top level, it doesn't work because of the way the module is loaded.  By making it a function, we can check at runtime when it's actually called.
 function isMobile() {
