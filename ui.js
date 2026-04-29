@@ -2220,9 +2220,6 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
     
 }
 
-
-
-
 // for testing purposes
 //if (location.hostname === "localhost") {
 //    window.showCountdownNotification = showCountdownNotification;
