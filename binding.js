@@ -242,7 +242,7 @@ export function bindToolbarEvents(textarea) {
         logger.debug("binding.bindToolbarEvents", "Attaching collapse-all handler to #collapse-all-btn");
 
         bindTap(collapseAllBtn, e => {
-            logger.debug("sidebar", "Collapse All button tapped or clicked", {
+            logger.debug("binding.bindToolbarEvents", "Collapse All button tapped or clicked", {
                 eventType: e.type,
                 target: e.target?.id || e.target?.className
             });
@@ -263,7 +263,7 @@ export function bindToolbarEvents(textarea) {
         class: loadBtn?.className
     });
     loadBtn?.addEventListener("click", async () => {
-        logger.debug("load", "load-btn click received, calling loadWorkspaceFromGist()");
+        logger.debug("binding.bindToolbarEvents", "load-btn click received, calling loadWorkspaceFromGist()");
 
         try {
             await loadWorkspaceFromGist();
