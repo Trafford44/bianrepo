@@ -622,6 +622,10 @@ export function loadFile(fileId) {
     updatePreview();
     updateToolbar();
     renderSidebar();
+
+    const preview = document.getElementById("preview-pane");
+    preview.focus();
+
 }
 
 export function updateToolbarVisibility() {
@@ -2219,6 +2223,9 @@ export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
     }, 0);
     
 }
+
+
+
 
 // for testing purposes
 //if (location.hostname === "localhost") {
