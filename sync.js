@@ -8,7 +8,7 @@ Timestamps are used only for idle-return and auto-save timing.
 
 import { getToken, getGistId, setGistId, requireLogin, clearGistId, clearToken } from "./auth.js";
 import { setWorkspace, saveState, getWorkspace, flattenWorkspace, migrateWorkspace, mergeWorkspace, createEmptyWorkspace, loadState, inflateWorkspace, encodeName, decodeName } from "./workspace.js";
-import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification, exportWorkspace} from "./ui.js";
+import { renderSidebar, setSyncStatus, showNotification, showCountdownNotification, exportWorkspace, activeFileId } from "./ui.js";
 import { logger, LOG_LEVELS, formatDateNZ, getCallerName } from "./logger.js";
 import { extractMetadata, applyMetadata, setMetadata, getMetadata} from "./workspace-metadata.js";   
 import { updateSyncToggleButton } from "./binding.js";
@@ -1789,4 +1789,88 @@ async function adoptOrCreateGist() {
         return null;
     }
 
+}
+
+export async function applyCloudWorkspace() {
+    logger.debug("sync.applyCloudWorkspace", 
+        "START applyCloudWorkspace(). CALLED BY: " + getCallerName("applyCloudWorkspace")
+    );
+
+    // ------------------------------------------------------------
+    // 1. Load cloud data
+    // ------------------------------------------------------------
+    const cloud = await loadWorkspaceFromGist();
+
+    if (!cloud) {
+        logger.warn("sync.applyCloudWorkspace", "Cloud returned null");
+        return false;
+    }
+
+    if (!Array.isArray(cloud.flat) || cloud.flat.length === 0) {
+        logger.warn("sync.applyCloudWorkspace", "Cloud flat list empty");
+        return false;
+    }
+
+    logger.debug("sync.applyCloudWorkspace", "Cloud data loaded", {
+        flatLength: cloud.flat.length,
+        metadataLength: cloud.metadata?.length ?? 0
+    });
+
+    // ------------------------------------------------------------
+    // 2. Inflate workspace
+    // ------------------------------------------------------------
+    logger.debug("sync.applyCloudWorkspace", "Inflating cloud workspace…");
+
+    let workspace;
+    try {
+        workspace = inflateWorkspace(cloud.flat);
+    } catch (err) {
+        logger.error("sync.applyCloudWorkspace", "inflateWorkspace() threw", {
+            message: err.message,
+            stack: err.stack
+        });
+        return false;
+    }
+
+    if (!Array.isArray(workspace)) {
+        logger.error("sync.applyCloudWorkspace", 
+            "inflateWorkspace returned invalid workspace", 
+            { type: typeof workspace }
+        );
+        return false;
+    }
+
+    logger.debug("sync.applyCloudWorkspace", "Inflation complete", {
+        workspaceLength: workspace.length
+    });
+
+    // ------------------------------------------------------------
+    // 3. Apply workspace
+    // ------------------------------------------------------------
+    logger.debug("sync.applyCloudWorkspace", "Applying workspace via setWorkspace()");
+    setWorkspace(workspace);
+
+    logger.debug("sync.applyCloudWorkspace", "Saving state");
+    saveState();
+
+    // ------------------------------------------------------------
+    // 4. Render UI
+    // ------------------------------------------------------------
+    logger.debug("sync.applyCloudWorkspace", "Rendering sidebar");
+    renderSidebar();
+
+    if (activeFileId) {
+        logger.debug("sync.applyCloudWorkspace", "Reloading active file:", activeFileId);
+        loadFile(activeFileId);
+    } else {
+        logger.debug("sync.applyCloudWorkspace", "No active file to reload");
+    }
+
+
+    // ------------------------------------------------------------
+    // 5. Final confirmation
+    // ------------------------------------------------------------
+    logger.info("sync.applyCloudWorkspace", "Cloud workspace applied successfully");
+
+    return true;
 }
