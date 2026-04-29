@@ -175,27 +175,60 @@ export function bindScrollSync(textarea) {
 // used to bind tap events that should work reliably on both desktop and mobile, especially inside scrollable containers where "click" can be delayed or missed
 // i.e. some buttons, in scrollable toolbar or containters don;t work on mobile because the "click" event is not firing reliably. This function ensures that the handler is called on both "click" and "touchend", with appropriate handling to prevent double-fires.
 export function bindTap(el, handler) {
-    // Track whether touchend already fired
+    logger.debug("binding.bindTap", "Attaching tap handlers to element", {
+        id: el.id,
+        class: el.className
+    });
+
     let touchHandled = false;
 
-    // Mobile primary path
+    el.addEventListener("touchstart", e => {
+        logger.debug("binding.bindTap", "touchstart fired", {
+            id: el.id,
+            target: e.target.id
+        });
+    });
+
     el.addEventListener("touchend", e => {
+        logger.debug("binding.bindTap", "touchend fired", {
+            id: el.id,
+            target: e.target.id
+        });
+
         touchHandled = true;
-        e.preventDefault();      // prevents ghost click
-        e.stopPropagation();     // prevents bubbling to document
+        e.preventDefault();
+        e.stopPropagation();
+
+        logger.debug("binding.bindTap", "Invoking handler via touchend", {
+            id: el.id
+        });
+
         handler(e);
     });
 
-    // Desktop + fallback path
     el.addEventListener("click", e => {
+        logger.debug("binding.bindTap", "click fired", {
+            id: el.id,
+            target: e.target.id,
+            touchHandled
+        });
+
         if (touchHandled) {
-            // Reset for next interaction
+            logger.debug("binding.bindTap", "Skipping click because touchHandled=true", {
+                id: el.id
+            });
             touchHandled = false;
-            return; // Skip the click if touch already handled it
+            return;
         }
+
+        logger.debug("binding.bindTap", "Invoking handler via click", {
+            id: el.id
+        });
+
         handler(e);
     });
 }
+
 
 export function bindToolbarEvents(textarea) {
     logger.debug("binding", "bindToolbarEvents(). CALLED BY: " + getCallerName("bindToolbarEvents"));
@@ -222,17 +255,31 @@ export function bindToolbarEvents(textarea) {
         });
     }
 
-    document.getElementById("load-btn")?.addEventListener("click", async () => {
+    // load from gist button
+    const loadBtn = document.getElementById("load-btn");
+    logger.debug("binding.bindToolbarEvents", "load-btn exists at bind time:", {
+        exists: !!loadBtn,
+        id: loadBtn?.id,
+        class: loadBtn?.className
+    });
+    loadBtn?.addEventListener("click", async () => {
+        logger.debug("load", "load-btn click received, calling loadWorkspaceFromGist()");
+
         try {
             await loadWorkspaceFromGist();
+            logger.debug("binding.bindToolbarEvents", "loadWorkspaceFromGist() completed successfully");
         } catch (err) {
+            logger.debug("binding.bindToolbarEvents", "loadWorkspaceFromGist() threw error", { message: err.message });
+
             if (err.message === "TOKEN_INVALID") {
+                logger.debug("binding.bindToolbarEvents", "TOKEN_INVALID caught, calling handleExpiredToken()");
                 handleExpiredToken();
                 return;
             }
             throw err;
         }
     });
+
 
     document.getElementById("exportAll-btn")?.addEventListener("click", () => exportAll());
     document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
