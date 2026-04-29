@@ -2154,7 +2154,7 @@ function hideEditor() {
     const btn = document.getElementById("toggle-editor");
 
     grid.classList.add("editor-hidden");
-    btn.textContent = "Show Editor";
+    btn.textContent = "Show Source";
 }
 
 export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
