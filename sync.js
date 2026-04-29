@@ -1520,6 +1520,9 @@ export async function loadWorkspaceFromGist() {
             metadata
         };
 
+        logger.debug("sync: loadWorkspaceFromGist", "loadWorkspaceFromGist() END");
+
+
     } catch (error) {
         if (error.message === "TOKEN_INVALID") {
             throw error; // <-- LET IT PROPAGATE TO THE SYNC ENGINE
