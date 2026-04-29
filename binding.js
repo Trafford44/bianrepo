@@ -175,13 +175,25 @@ export function bindScrollSync(textarea) {
 // used to bind tap events that should work reliably on both desktop and mobile, especially inside scrollable containers where "click" can be delayed or missed
 // i.e. some buttons, in scrollable toolbar or containters don;t work on mobile because the "click" event is not firing reliably. This function ensures that the handler is called on both "click" and "touchend", with appropriate handling to prevent double-fires.
 export function bindTap(el, handler) {
-    // Desktop + mobile fallback
-    el.addEventListener("click", handler);
+    // Track whether touchend already fired
+    let touchHandled = false;
 
-    // Mobile primary path (reliable even inside scrollable containers)
+    // Mobile primary path
     el.addEventListener("touchend", e => {
-        e.preventDefault();   // prevents double‑fires
-        handler(e);           // manually trigger the action
+        touchHandled = true;
+        e.preventDefault();      // prevents ghost click
+        e.stopPropagation();     // prevents bubbling to document
+        handler(e);
+    });
+
+    // Desktop + fallback path
+    el.addEventListener("click", e => {
+        if (touchHandled) {
+            // Reset for next interaction
+            touchHandled = false;
+            return; // Skip the click if touch already handled it
+        }
+        handler(e);
     });
 }
 
