@@ -1,6 +1,6 @@
 import { applyMarkdownFormat, formatTable } from "./md-editor.js";
 import { applyBgColorFormat, applyClearFormatting, applyColorFormat, toggleBgColorPopup, toggleColorPopup, toggleTablePopup, zoomEditor, zoomPreview, resetZoom, updatePreview, exportAll, deleteFile, addFolder, testFunctionality, copyRenderedPuml, importWorkspace, activeFileId, collapseAllFolders } from "./ui.js";
-import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled, handleExpiredToken, isReadOnlyDevice } from "./sync.js";
+import { markLocalEdit, saveWorkspaceToGist, loadWorkspaceFromGist, showRestoreDialog, toggleSyncLoop, syncIntervalId, setSyncEnabled, getSyncEnabled, handleExpiredToken, isReadOnlyDevice, applyCloudWorkspace } from "./sync.js";
 import { logger, getCallerName } from "./logger.js";
 import { clearToken } from "./auth.js";
 
@@ -263,13 +263,13 @@ export function bindToolbarEvents(textarea) {
         class: loadBtn?.className
     });
     loadBtn?.addEventListener("click", async () => {
-        logger.debug("binding.bindToolbarEvents", "load-btn click received, calling loadWorkspaceFromGist()");
+        logger.debug("binding.bindToolbarEvents", "load-btn click received, calling applyCloudWorkspace()");
 
         try {
-            await loadWorkspaceFromGist();
-            logger.debug("binding.bindToolbarEvents", "loadWorkspaceFromGist() completed successfully");
+            await applyCloudWorkspace();
+            logger.debug("binding.bindToolbarEvents", "applyCloudWorkspace() completed successfully");
         } catch (err) {
-            logger.debug("binding.bindToolbarEvents", "loadWorkspaceFromGist() threw error", { message: err.message });
+            logger.debug("binding.bindToolbarEvents", "applyCloudWorkspace() threw error", { message: err.message });
 
             if (err.message === "TOKEN_INVALID") {
                 logger.debug("binding.bindToolbarEvents", "TOKEN_INVALID caught, calling handleExpiredToken()");
