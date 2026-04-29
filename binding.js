@@ -10,7 +10,10 @@ export function bindSmartKeyboardEvents(textarea) {
 
     logger.debug("binding", "bindSmartKeyboardEvents(). CALLED BY: " + getCallerName("bindSmartKeyboardEvents"));
 
-    if (isReadOnlyDevice()) return;
+    if (isReadOnlyDevice()) {
+        logger.info("binding: bindSmartKeyboardEvents", "Binding smart keyboard events attempted on readonly device — ignoring");
+        return;
+    } 
 
     textarea.addEventListener("input", (e) => {
         if (e.isTrusted) {  // only true for real user input
@@ -85,7 +88,10 @@ export function bindSmartKeyboardEvents(textarea) {
 export function bindGlobalShortcuts(textarea) {
     logger.debug("binding", "bindGlobalShortcuts(). CALLED BY: " + getCallerName("bindGlobalShortcuts"));
 
-    if (isReadOnlyDevice()) return;
+    if (isReadOnlyDevice()) {
+        logger.info("binding: bindGlobalShortcuts", "Binding global shortcuts attempted on readonly device — ignoring");
+        return;
+    } 
 
     document.addEventListener("keydown", (e) => {
         const isCmd = e.metaKey || e.ctrlKey;
@@ -182,10 +188,9 @@ export function bindTap(el, handler) {
 export function bindToolbarEvents(textarea) {
     logger.debug("binding", "bindToolbarEvents(). CALLED BY: " + getCallerName("bindToolbarEvents"));
 
-    if (isReadOnlyDevice()) return;
 
     // TOOLBAR & POPUP WIRE-UPS
-    document.getElementById("add-folder-btn")?.addEventListener("click", () => addFolder());
+
 
     const collapseAllBtn = document.getElementById("collapse-all-btn");
     if (collapseAllBtn) {
@@ -205,6 +210,37 @@ export function bindToolbarEvents(textarea) {
         });
     }
 
+    document.getElementById("load-btn")?.addEventListener("click", async () => {
+        try {
+            await loadWorkspaceFromGist();
+        } catch (err) {
+            if (err.message === "TOKEN_INVALID") {
+                handleExpiredToken();
+                return;
+            }
+            throw err;
+        }
+    });
+
+    document.getElementById("exportAll-btn")?.addEventListener("click", () => exportAll());
+    document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
+    document.getElementById("copy-rendered-puml-btn")?.addEventListener("click", () => copyRenderedPuml());
+
+    // Zoom Buttons
+    document.getElementById("zoom-editor-in")?.addEventListener("click", () => {
+        if (window.activePane === "editor") zoomEditor(1); else zoomPreview(1);
+    });
+    document.getElementById("zoom-editor-out")?.addEventListener("click", () => {
+        if (window.activePane === "editor") zoomEditor(-1); else zoomPreview(-1);
+    });
+    document.getElementById("zoom-reset-btn")?.addEventListener("click", resetZoom);
+
+
+    // the remaining bindings are for a writable instance
+    if (isReadOnlyDevice()) {
+        logger.info("binding: bindToolbarEvents", "Binding writable toolbar events attempted on readonly device — existing function");
+        return;
+    } 
 
 
     document.getElementById("save-btn")?.addEventListener("click", async () => {
@@ -219,28 +255,16 @@ export function bindToolbarEvents(textarea) {
         }
     });
 
-    document.getElementById("load-btn")?.addEventListener("click", async () => {
-        try {
-            await loadWorkspaceFromGist();
-        } catch (err) {
-            if (err.message === "TOKEN_INVALID") {
-                handleExpiredToken();
-                return;
-            }
-            throw err;
-        }
-    });
 
+    document.getElementById("add-folder-btn")?.addEventListener("click", () => addFolder());
     document.getElementById("restore-btn")?.addEventListener("click", () => showRestoreDialog());
-    document.getElementById("exportAll-btn")?.addEventListener("click", () => exportAll());
+
     document.getElementById("importAll-btn")?.addEventListener("click", () => {
         const input = document.getElementById("workspace-import-file");
         input.value = "";   // ← critical fix
         input.click();
     });
     document.getElementById("delete-btn")?.addEventListener("click", () => deleteFile(activeFileId));
-    document.getElementById("logout-btn")?.addEventListener("click", () => clearToken());
-    document.getElementById("copy-rendered-puml-btn")?.addEventListener("click", () => copyRenderedPuml());
     document.getElementById("test-btn")?.addEventListener("click", () => testFunctionality());
     document.getElementById("sync-toggle-btn")?.addEventListener("click", () => {
         const turningOn = (syncIntervalId === null);
@@ -280,17 +304,6 @@ export function bindToolbarEvents(textarea) {
             showNotification("error", "Workspace import failed: " + err.message);
         }
     });
-
-
-
-    // Zoom Buttons
-    document.getElementById("zoom-editor-in")?.addEventListener("click", () => {
-        if (window.activePane === "editor") zoomEditor(1); else zoomPreview(1);
-    });
-    document.getElementById("zoom-editor-out")?.addEventListener("click", () => {
-        if (window.activePane === "editor") zoomEditor(-1); else zoomPreview(-1);
-    });
-    document.getElementById("zoom-reset-btn")?.addEventListener("click", resetZoom);
 
     // Markdown Toolbar delegation
     document.getElementById("md-toolbar").addEventListener("click", (e) => {
