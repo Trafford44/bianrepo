@@ -284,7 +284,11 @@ export async function bindVisibilityEvents() {
 
 export function bindActivityEvents() {
     logger.debug("sync", "Running bindActivityEvents(). CALLED BY: " + getCallerName("bindActivityEvents"));
-    if (isReadOnlyDevice()) return;
+    
+    if (isReadOnlyDevice()) {
+        logger.info("sync: bindActivityEvents", "Binding activity events attempted on readonly device — ignoring");
+        return;
+    } 
 
     document.addEventListener("keydown", markActivity);
     document.addEventListener("mousemove", markActivity);
