@@ -249,9 +249,9 @@ export function bindToolbarEvents(textarea) {
 
             e.stopPropagation();
 
-            logger.debug("sidebar", "Calling collapseAllFolders()");
+            logger.debug("binding.bindToolbarEvents", "Calling collapseAllFolders()");
             collapseAllFolders();
-            logger.debug("sidebar", "collapseAllFolders() completed");
+            logger.debug("binding.bindToolbarEvents", "collapseAllFolders() completed");
         });
     }
 
@@ -266,8 +266,11 @@ export function bindToolbarEvents(textarea) {
         logger.debug("binding.bindToolbarEvents", "load-btn click received, calling applyCloudWorkspace()");
 
         try {
+            logger.debug("binding.bindToolbarEvents", "Calling applyCloudWorkspace()");
             await applyCloudWorkspace();
             logger.debug("binding.bindToolbarEvents", "applyCloudWorkspace() completed successfully");
+            logger.debug("binding.bindToolbarEvents", "Calling collapseAllFolders()");
+            collapseAllFolders();            
         } catch (err) {
             logger.debug("binding.bindToolbarEvents", "applyCloudWorkspace() threw error", { message: err.message });
 
