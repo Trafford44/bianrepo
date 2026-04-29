@@ -601,7 +601,10 @@ async function handleCloudChange(latest, idleReturn) {
     logger.debugSyncing("sync: handleCloudChange", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
     logger.debugSyncing("sync: handleCloudChange", `cloudChangeHandled = ${window.__cloudChangeHandled}`);
 
-    if (isReadOnlyDevice() || !getSyncEnabled()) { return; }    
+    if (isReadOnlyDevice() || !getSyncEnabled()) { 
+        logger.debugSyncing("sync: handleCloudChange", "Skipping handleCloudChange — readonly device or sync disabled");
+        return; 
+    }    
     
     // Prevent duplicate dialogs or duplicate cloud-apply
     if (window.__cloudChangeHandled) {
