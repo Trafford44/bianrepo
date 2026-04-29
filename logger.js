@@ -280,6 +280,7 @@ export function dumpMobileLogs() {
 export function purgeMobileLogs() {
     fullLog.length = 0;
     LOG_ENTRY_COUNTER = 0;
+    fullLog.push("[LOG PURGED] --- new session starting ---");
 }
 
 if (MOBILE_LOG_DUMP_ENABLED && isMobile()) {
