@@ -8,7 +8,7 @@ const STORAGE_KEY = "kb_data";
 logger.debug("workspace","workspace.js loaded from:", import.meta.url);
 
 export function getWorkspace() {
-    logger.debug("workspace", "Running getWorkspace(). CALLED BY: " + getCallerName("getWorkspace"));
+    logger.debug("workspace", () => "Running getWorkspace(). CALLED BY: " + getCallerName("getWorkspace"));
     // ensure workspace is always sorted
     // commented out since may not be neccessary
     //sortTree(workspace); // root stays in user-defined order
@@ -16,13 +16,13 @@ export function getWorkspace() {
 }
 
 export function createEmptyWorkspace() {
-    logger.debug("workspace", "Running createEmptyWorkspace(). CALLED BY: " + getCallerName("createEmptyWorkspace"));
+    logger.debug("workspace", () => "Running createEmptyWorkspace(). CALLED BY: " + getCallerName("createEmptyWorkspace"));
     return [];
 }
 
 // Main entry point
 export function setWorkspace(tree) {
-    logger.debug("workspace", "Running setWorkspace(). CALLED BY: " + getCallerName("setWorkspace"));
+    logger.debug("workspace", () => "Running setWorkspace(). CALLED BY: " + getCallerName("setWorkspace"));
     //logger.debug("workspace", "setWorkspace()");
 
     logger.debug("workspace", "setWorkspace storing tree:", JSON.stringify(tree, null, 2));
@@ -38,7 +38,7 @@ export function setWorkspace(tree) {
 
 
 export function sortTree(nodes) {
-    logger.debug("workspace", "Running sortTree(). CALLED BY: " + getCallerName("sortTree"));
+    logger.debug("workspace", () => "Running sortTree(). CALLED BY: " + getCallerName("sortTree"));
     nodes.sort((a, b) =>
         a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
     );
@@ -52,7 +52,7 @@ export function sortTree(nodes) {
 
 
 function normalizeNode(node) {
-    logger.debug("workspace", "Running normalizeNode(). CALLED BY: " + getCallerName("normalizeNode"));
+    logger.debug("workspace", () => "Running normalizeNode(). CALLED BY: " + getCallerName("normalizeNode"));
     // Convert old "title" to new "name"
     if (!node.name && node.title) {
         node.name = node.title;
@@ -97,7 +97,7 @@ function normalizeNode(node) {
 
 
 export function saveState() {
-    logger.debug("workspace", "Running saveState(). CALLED BY: " + getCallerName("saveState"));
+    logger.debug("workspace", () => "Running saveState(). CALLED BY: " + getCallerName("saveState"));
     const tree = getWorkspace();
 
     if (!Array.isArray(tree)) {
@@ -109,7 +109,7 @@ export function saveState() {
 }
 
 export function loadState() {
-    logger.debug("workspace", "Running loadState(). CALLED BY: " + getCallerName("loadState"));
+    logger.debug("workspace", () => "Running loadState(). CALLED BY: " + getCallerName("loadState"));
     const saved = localStorage.getItem(STORAGE_KEY);
 
     if (!saved) {
@@ -138,7 +138,7 @@ export function loadState() {
 
 
 export function findNodeById(nodeList, id) {
-    logger.debug("workspace", "Running findNodeById(). CALLED BY: " + getCallerName("findNodeById"));
+    logger.debug("workspace", () => "Running findNodeById(). CALLED BY: " + getCallerName("findNodeById"));
     for (const node of nodeList) {
         if (node.id === id) return node;
 
@@ -151,7 +151,7 @@ export function findNodeById(nodeList, id) {
 }
 
 export function findNodeAndParent(nodeList, id, parent = null) {
-    logger.debug("workspace", "Running findNodeAndParent(). CALLED BY: " + getCallerName("findNodeAndParent"));
+    logger.debug("workspace", () => "Running findNodeAndParent(). CALLED BY: " + getCallerName("findNodeAndParent"));
     for (const node of nodeList) {
         if (node.id === id) {
             return { node, parent };
@@ -166,7 +166,7 @@ export function findNodeAndParent(nodeList, id, parent = null) {
 }
 
 export function createFolder(name) {
-    logger.debug("workspace", "Running createFolder(). CALLED BY: " + getCallerName("createFolder"));
+    logger.debug("workspace", () => "Running createFolder(). CALLED BY: " + getCallerName("createFolder"));
 
     if (isReadOnlyDevice()) {
         showNotification("info", "Creating folder not allowed on read-only device");
@@ -192,7 +192,7 @@ export function createFolder(name) {
 
 
 export function createFile(name, content = "") {
-    logger.debug("workspace", "Running createFile(). CALLED BY: " + getCallerName("createFile"));
+    logger.debug("workspace", () => "Running createFile(). CALLED BY: " + getCallerName("createFile"));
 
     if (isReadOnlyDevice()) {
         showNotification("info", "Creating file not allowed on read-only device");
@@ -222,7 +222,7 @@ export function createFile(name, content = "") {
 }
 
 export function sanitizeName(name) {
-    logger.debug("workspace", "Running sanitizeName(). CALLED BY: " + getCallerName("sanitizeName"));
+    logger.debug("workspace", () => "Running sanitizeName(). CALLED BY: " + getCallerName("sanitizeName"));
     // Illegal in GitHub filenames
     const illegal = /[\/\\:\?\*"<>\|]/g;
 
@@ -242,7 +242,7 @@ export function sanitizeName(name) {
 
 
 export function flattenWorkspace(tree) {
-    logger.debug("workspace", "Running flattenWorkspace(). CALLED BY: " + getCallerName("flattenWorkspace"));
+    logger.debug("workspace", () => "Running flattenWorkspace(). CALLED BY: " + getCallerName("flattenWorkspace"));
     const output = [];
 
     function walk(nodes, pathParts) {
@@ -325,7 +325,7 @@ export function flattenWorkspace(tree) {
 }
 
 export function inflateWorkspace(flatList) {
-    logger.debug("workspace", "Running inflateWorkspace().  CALLED BY: " + getCallerName("inflateWorkspace"));
+    logger.debug("workspace", () => "Running inflateWorkspace().  CALLED BY: " + getCallerName("inflateWorkspace"));
     logger.debug("workspace", "inflateWorkspace input:", flatList);
 
     // Root of the reconstructed tree
@@ -412,7 +412,7 @@ export function inflateWorkspace(flatList) {
 
 
 function buildLocalPathMap(tree, prefix = "") {
-    //logger.debug("workspace", "buildLocalPathMap(). CALLED BY: " + getCallerName("buildLocalPathMap"));
+    //logger.debug("workspace", () => "buildLocalPathMap(). CALLED BY: " + getCallerName("buildLocalPathMap"));
     const map = {};
 
     for (const node of tree) {
@@ -429,7 +429,7 @@ function buildLocalPathMap(tree, prefix = "") {
 }
 
 function buildMetadataPathMap(metadata) {
-    //logger.debug("workspace", "buildMetadataPathMap(). CALLED BY: " + getCallerName("buildMetadataPathMap"));
+    //logger.debug("workspace", () => "buildMetadataPathMap(). CALLED BY: " + getCallerName("buildMetadataPathMap"));
     const map = {};
 
     function walk(nodes, prefix = "") {
@@ -474,7 +474,7 @@ export function logIdAnomaly(context, path, cloudEntry, meta, local) {
 
 
 export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
-    logger.debug("workspace", "Running mergeWorkspace(). CALLED BY: " + getCallerName("mergeWorkspace"));
+    logger.debug("workspace", () => "Running mergeWorkspace(). CALLED BY: " + getCallerName("mergeWorkspace"));
     logger.debug("workspace", "mergeWorkspace() CALLED", {
         localCount: Array.isArray(localTree) ? localTree.length : typeof localTree,
         cloudFlatCount: Array.isArray(cloudFlat) ? cloudFlat.length : typeof cloudFlat,
@@ -679,7 +679,7 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
     // --- 4. Sort children: folders first, then files, by name ---
     function sortTree(nodes) {
-        logger.debug("workspace", "Running sortTree(). CALLED BY: " + getCallerName("sortTree"));
+        logger.debug("workspace", () => "Running sortTree(). CALLED BY: " + getCallerName("sortTree"));
         nodes.sort((a, b) => {
             if (a.type !== b.type) {
                 return a.type === "folder" ? -1 : 1;
@@ -700,7 +700,7 @@ export function mergeWorkspace(localTree, cloudFlat, cloudMetadata) {
 
 // Detect old format: array of { title, files }
 function looksLikeOldFormat(data) {
-    logger.debug("workspace", "Running looksLikeOldFormat(). CALLED BY: " + getCallerName("looksLikeOldFormat"));
+    logger.debug("workspace", () => "Running looksLikeOldFormat(). CALLED BY: " + getCallerName("looksLikeOldFormat"));
     return Array.isArray(data) &&
            data.length > 0 &&
            data[0].title &&
@@ -708,7 +708,7 @@ function looksLikeOldFormat(data) {
 }
 
 export function createNewID(context = "unspecified") {
-    logger.debug("workspace", "Running createNewID(). CALLED BY: " + getCallerName("createNewID"));
+    logger.debug("workspace", () => "Running createNewID(). CALLED BY: " + getCallerName("createNewID"));
     const id = crypto.randomUUID();
     logger.watch("createNewID", `Generated new ID: ${id} (context: ${context})`);
     return id;
@@ -738,7 +738,7 @@ path	❌	✔	Metadata	Full path used as metadata key
 */
 
 function migrateNode(node) {
-    logger.debug("workspace", "Running migrateNode(). CALLED BY: " + getCallerName("migrateNode"));
+    logger.debug("workspace", () => "Running migrateNode(). CALLED BY: " + getCallerName("migrateNode"));
     logger.debug("workspace", "migrateNode BEFORE", {
         name: node.name,
         type: node.type,
@@ -778,7 +778,7 @@ function migrateNode(node) {
 }
 
 export function migrateWorkspace(workspace) {
-    logger.debug("workspace", "migrateWorkspace(). CALLED BY: " + getCallerName("migrateWorkspace"));
+    logger.debug("workspace", () => "migrateWorkspace(). CALLED BY: " + getCallerName("migrateWorkspace"));
     logger.debug("workspace", "migrateWorkspace(). Calls migrateNode() for each workspace tree node.");
     workspace.forEach(migrateNode);
     return workspace;   // ← THIS WAS MISSING
@@ -786,17 +786,17 @@ export function migrateWorkspace(workspace) {
 
 // Helpers
 function isFolderNode(node) {
-    logger.debug("workspace", "Running isFolderNode(). CALLED BY: " + getCallerName("isFolderNode"));
+    logger.debug("workspace", () => "Running isFolderNode(). CALLED BY: " + getCallerName("isFolderNode"));
     return node && node.type === "folder" && Array.isArray(node.children);
 }
 
 function isFileNode(node) {
-    logger.debug("workspace", "Running isFileNode(). CALLED BY: " + getCallerName("isFileNode"));
+    logger.debug("workspace", () => "Running isFileNode(). CALLED BY: " + getCallerName("isFileNode"));
     return node && node.type === "file" && typeof node.content === "string";
 }
 
 export function encodeName(name) {
-    logger.debug("workspace", "Running encodeName(). CALLED BY: " + getCallerName("encodeName"));
+    logger.debug("workspace", () => "Running encodeName(). CALLED BY: " + getCallerName("encodeName"));
     logger.debug("workspace: encodeName", `IN:  ${name}`);
 
     const out = name
@@ -809,7 +809,7 @@ export function encodeName(name) {
 
 
 export function decodeName(name) {
-    logger.debug("workspace", "Running decodeName(). CALLED BY: " + getCallerName("decodeName"));
+    logger.debug("workspace", () => "Running decodeName(). CALLED BY: " + getCallerName("decodeName"));
     logger.debug("workspace: decodeName", `IN:  ${name}`);
 
     const out = name
