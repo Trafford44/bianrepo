@@ -113,7 +113,7 @@ async function renderPuml(resolvedPuml) {
 
 
 export function initResizers() {
-    logger.debug("ui", "Running initResizers(). CALLED BY: " + getCallerName("initResizers"));
+    logger.debug("ui", () => "Running initResizers(). CALLED BY: " + getCallerName("initResizers"));
     const sbResizer = document.getElementById("sidebar-resizer");
     const sidebar = document.getElementById("sidebar");
     const edResizer = document.getElementById("editor-resizer");
@@ -255,7 +255,7 @@ function logNodes(nodes, depth = 0) {
 }
 
 export function renderSidebar() {
-    logger.debug("ui", "Running renderSidebar(). CALLED BY: " + getCallerName("renderSidebar"));
+    logger.debug("ui", () => "Running renderSidebar(). CALLED BY: " + getCallerName("renderSidebar"));
     const container = document.getElementById("sidebar-list");
     if (!container) return;
 
@@ -474,7 +474,7 @@ export function copyInternalLink(fileId) {
 
 
 export function duplicateFile(fileId) {
-    logger.debug("ui", "Running duplicateFile(). CALLED BY: " + getCallerName("duplicateFile"));
+    logger.debug("ui", () => "Running duplicateFile(). CALLED BY: " + getCallerName("duplicateFile"));
 
     if (isReadOnlyDevice()) {
         showNotification("info", "Duplicate not allowed on read-only device");
@@ -582,7 +582,7 @@ export function createSubfolder(parentId) {
 
 
 export function loadFile(fileId) {
-    logger.debug("ui", "Running loadFile(). CALLED BY: " + getCallerName("loadFile"));
+    logger.debug("ui", () => "Running loadFile(). CALLED BY: " + getCallerName("loadFile"));
     const tree = getWorkspace();
 
     logger.debug("ui", "loadFile searching for id:", fileId);
@@ -629,7 +629,7 @@ export function loadFile(fileId) {
 }
 
 export function updateToolbarVisibility() {
-    logger.debug("ui", "Running updateToolbarVisibility(). CALLED BY: " + getCallerName("updateToolbarVisibility"));
+    logger.debug("ui", () => "Running updateToolbarVisibility(). CALLED BY: " + getCallerName("updateToolbarVisibility"));
 
     // this function applies to the toolbar buttons only, not the sidebar buttons.  The sidebar buttons are currently in applyReadonlyUI
     const fileLoaded = !!activeFileId;
@@ -730,13 +730,13 @@ export function applyReadonlyUI() {
 
 
 function commitWorkspace() {
-    logger.debug("ui", "Running commitWorkspace(). CALLED BY: " + getCallerName("commitWorkspace"));
+    logger.debug("ui", () => "Running commitWorkspace(). CALLED BY: " + getCallerName("commitWorkspace"));
     saveState();
     renderSidebar();
 }
 
 export function updateToolbar() {
-    logger.debug("ui", "Running updateToolbar(). CALLED BY: " + getCallerName("updateToolbar"));
+    logger.debug("ui", () => "Running updateToolbar(). CALLED BY: " + getCallerName("updateToolbar"));
     const tree = getWorkspace();
     const file = findNodeById(tree, activeFileId);
 
@@ -803,7 +803,7 @@ export function deleteFolder(folderId) {
 
 
 export async function updatePreview() {
-    logger.debug("ui", "Running updatePreview(). CALLED BY: " + getCallerName("updatePreview"));
+    logger.debug("ui", () => "Running updatePreview(). CALLED BY: " + getCallerName("updatePreview"));
 
     const tree = getWorkspace();
     const file = findNodeById(tree, activeFileId);
@@ -1111,7 +1111,7 @@ function extractInlinePumlBlocks(text) {
 
 
 function getPumlRenderUrl(puml) {
-    logger.debug("ui", "Running getPumlRenderUrl(). CALLED BY: " + getCallerName("getPumlRenderUrl"));
+    logger.debug("ui", () => "Running getPumlRenderUrl(). CALLED BY: " + getCallerName("getPumlRenderUrl"));
     try {
         const encoded = plantumlEncoder.encode(puml.trim());
         logger.debug("ui: getPumlRenderUrl. Pre send to Plant: ",puml.trim());
@@ -1127,7 +1127,7 @@ function getPumlRenderUrl(puml) {
 async function renderPumlViaKroki(puml) {
     // 'Kroki is excellent because it is extremely stable and often uses the latest official releases rather than beta snapshots.'
     // renering is slower than PlantUML rendering
-    logger.debug("ui", "Running renderPumlViaKroki(). CALLED BY: " + getCallerName("renderPumlViaKroki"));
+    logger.debug("ui", () => "Running renderPumlViaKroki(). CALLED BY: " + getCallerName("renderPumlViaKroki"));
     let res;
 
     try {
@@ -1217,7 +1217,7 @@ export function resolvePumlIncludeNames(pumlText, tree) {
 */
 
 export function resolvePumlIncludeNames(pumlText, tree) {
-    logger.debug("ui: resolvePumlIncludeNames", "Starting include by name resolution. CALLED BY: " + getCallerName("resolvePumlIncludeNames"));
+    logger.debug("ui: resolvePumlIncludeNames", () => "Starting include by name resolution. CALLED BY: " + getCallerName("resolvePumlIncludeNames"));
 
     const mapFileName = "_name_ID_Mapping.puml";
     const mapFile = findNodeByName(tree, mapFileName);
@@ -1332,7 +1332,7 @@ function parseMapping(text) {
 
 
 function resolvePumlIncludes(pumlText, workspace, seenIds = new Set()) {
-    logger.debug("ui: resolvePumlIncludes", "Starting include resolution. CALLED BY: " + getCallerName("resolvePumlIncludes"));
+    logger.debug("ui: resolvePumlIncludes", () => "Starting include resolution. CALLED BY: " + getCallerName("resolvePumlIncludes"));
 
     try {
         // Matches any fenced code block: ``` ... ```
@@ -1449,7 +1449,7 @@ export function addFolder() {
  */
 
 export function collapseAllFolders() {
-    logger.debug("ui: collapseAllFolders", "Starting collapse all folders. CALLED BY: " + getCallerName("collapseAllFolders"));
+    logger.debug("ui: collapseAllFolders", () => "Starting collapse all folders. CALLED BY: " + getCallerName("collapseAllFolders"));
 
     logger.debug("ui: collapseAllFolders: removed open chevrons", { count: document.querySelectorAll(".sidebar-folder-header .chevron.open").length   });
 
@@ -1557,7 +1557,7 @@ export function exportAll() {
 }
 
 export function buildJsonWorkspaceExport(reason = "manual-export", extra = {}) {
-    logger.debug("logger", "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));
+    logger.debug("logger", () => "Running buildJsonWorkspaceExport(). CALLED BY: " + getCallerName("buildJsonWorkspaceExport"));
 
     try {
         const tree = getWorkspace();
@@ -1683,7 +1683,7 @@ function getReadableTimestamp() {
 
 export async function importWorkspace(json) {
     try {
-        logger.debug("ui.importWorkspace", "Starting workspace import. CALLED BY: " + getCallerName("importWorkspace"));
+        logger.debug("ui.importWorkspace", () => "Starting workspace import. CALLED BY: " + getCallerName("importWorkspace"));
 
         if (!json || !Array.isArray(json.metadata)) {
             throw new Error("Invalid workspace import format: missing metadata");
@@ -1921,7 +1921,7 @@ export function showNotification(type, text) {
 
 
 export function updateLoginIndicator() {
-    logger.debug("ui", "Running updateLoginIndicator(). CALLED BY: " + getCallerName("updateLoginIndicator"));
+    logger.debug("ui", () => "Running updateLoginIndicator(). CALLED BY: " + getCallerName("updateLoginIndicator"));
 
     // Update GitHub login button
     const loginBtn = document.getElementById("github-login");
@@ -1979,7 +1979,7 @@ export function updateLoginIndicator() {
 }
 
 export function bindEditorEvents() {
-    logger.debug("ui", "Running bindEditorEvents(). CALLED BY: " + getCallerName("bindEditorEvents"));
+    logger.debug("ui", () => "Running bindEditorEvents(). CALLED BY: " + getCallerName("bindEditorEvents"));
     const textarea = document.getElementById("editor-textarea");
     if (!textarea) return;
 
@@ -2158,7 +2158,7 @@ function hideEditor() {
 }
 
 export function showCountdownNotification({ countdown, onConfirm, onCancel }) {
-    logger.debug("ui", "Running showCountdownNotification(). CALLED BY: " + getCallerName("showCountdownNotification"));
+    logger.debug("ui", () => "Running showCountdownNotification(). CALLED BY: " + getCallerName("showCountdownNotification"));
 
     if (isReadOnlyDevice()) { return; }
         
