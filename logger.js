@@ -146,8 +146,17 @@ export const logger = {
   },
 
   debug(source, message, details = null, options = {}) {
+    // If DEBUG is disabled, exit immediately — no message(), no overhead
+    if (LOG_LEVELS.DEBUG < this.currentLevel) return;
+
+    // If message is a function, call it to get the actual message. This allows for lazy evaluation of debug messages.
+    // will be passed getCallerName() to get caller name if debug is not enabled (old pattern was always calling this, regardless - big overhead)
+    if (typeof message === "function") {
+      message = message();
+    }
+
     log("DEBUG", LOG_LEVELS.DEBUG, source, message, details, options);
-  },
+  }
 
   // semantic highlight channel
   debugSyncing(source, message, details = null, options = {}) {
@@ -209,9 +218,8 @@ export function getCallerName_old(currentFunctionName) {
 To remove the call to getCallerName() always:
 
 Change all calls to this, which is passing a function to call via "() =>".  getCallerName determines if it needs to be called. 
-logger.debug("workspace.buildMetadataPathMap()", () =>
-  "CALLED BY: " + getCallerName("buildMetadataPathMap")
-);
+- (old) logger.debug("workspace", () => "Running findNodeById(). CALLED BY: " + getCallerName("findNodeById"));
+- (new) logger.debug("workspace", () => "Running  findNodeById(). CALLED BY: " + getCallerName("findNodeById"));
 
 Change debug (above) to this:
 
