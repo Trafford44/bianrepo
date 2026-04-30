@@ -17,7 +17,7 @@ const LOG_LEVELS = {
 let LOG_ENTRY_COUNTER = 0;
 
 // Change this per module if you want different log levels for different parts of the app
-let CURRENT_LEVEL = LOG_LEVELS.DEBUG;
+let CURRENT_LEVEL = LOG_LEVELS.INFO;
 
 // needs to be a function, rathat than be stored in a const - somethign to do with how the module is imported and used in app.js.  If we try to determine "isMobile" at the top level, it doesn't work because of the way the module is loaded.  By making it a function, we can check at runtime when it's actually called.
 function isMobile() {
@@ -245,32 +245,27 @@ export function getCallerName(currentFunctionName = null) {
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
 
-  const skipExact = new Set([
-    "getCallerName",
-    "debug",
-    "info",
-    "warn",
-    "error",
-    "watch",
-    "log"
-  ]);
-
-  const skipContains = [
-    "<anonymous>",   // the lambda wrapper
-    "logger."        // logger methods
-  ];
+  let skippedFirstNamedFrame = false;
 
   for (const line of lines) {
+    // Skip lambda frames
+    if (line.includes("<anonymous>")) continue;
+
+    // Skip logger internals
+    if (line.includes("logger.js")) continue;
+
+    // Extract function name
     const match = line.match(/at (\S+)/);
     const fn = match ? match[1] : null;
     if (!fn) continue;
 
-    // Skip exact matches (logger internals)
-    if (skipExact.has(fn)) continue;
+    // Skip the function containing the debug call
+    if (!skippedFirstNamedFrame) {
+      skippedFirstNamedFrame = true;
+      continue;
+    }
 
-    // Skip frames containing known unwanted patterns
-    if (skipContains.some(s => line.includes(s))) continue;
-
+    // This is the real caller
     return fn;
   }
 
