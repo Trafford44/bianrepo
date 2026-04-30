@@ -245,11 +245,11 @@ export function getCallerName(currentFunctionName = null) {
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
 
-  let skippedFirstNamedFrame = false;
+  let skippedFunctionContainingDebug = false;
 
   for (const line of lines) {
-    // Skip lambda frames
-    if (line.includes("<anonymous>")) continue;
+    // Skip the lambda frame (your real stack)
+    if (line.includes("binding.js:411")) continue;
 
     // Skip logger internals
     if (line.includes("logger.js")) continue;
@@ -260,18 +260,17 @@ export function getCallerName(currentFunctionName = null) {
     if (!fn) continue;
 
     // Skip the function containing the debug call
-    if (!skippedFirstNamedFrame) {
-      skippedFirstNamedFrame = true;
+    if (!skippedFunctionContainingDebug) {
+      skippedFunctionContainingDebug = true;
       continue;
     }
 
-    // This is the real caller
+    // This is the actual caller
     return fn;
   }
 
   return "unknown";
 }
-
 
 export function dumpMobileLogs() {
     const blob = new Blob([fullLog.join("\n")], { type: "text/plain" });
