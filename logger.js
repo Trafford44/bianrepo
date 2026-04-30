@@ -241,7 +241,7 @@ This is a 'lazy' approch where the caller name is only computed if the log level
 export function getCallerName(currentFunctionName = null) {
   const stack = new Error().stack;
   if (!stack || !currentFunctionName) return "unknown";
-    console.log("=== STACK DUMP ===\n" + new Error().stack);
+const stack = new Error().stack;
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
 
@@ -262,10 +262,10 @@ export function getCallerName(currentFunctionName = null) {
     const fn = match ? match[1] : null;
     if (!fn) continue;
 
-    // Skip internal/logger frames
+    // Skip logger/internal frames
     if (skip.some(s => fn.includes(s))) continue;
 
-    // First, walk until we hit the current function
+    // Step 1: find the current function
     if (!foundCurrent) {
       if (fn.includes(currentFunctionName)) {
         foundCurrent = true;
@@ -273,12 +273,16 @@ export function getCallerName(currentFunctionName = null) {
       continue;
     }
 
-    // The very next non-skipped frame is the caller
+    // Step 2: skip recursive calls
+    if (fn.includes(currentFunctionName)) continue;
+
+    // Step 3: return the first non-recursive caller
     return fn;
   }
 
   return "unknown";
 }
+
 
 
 export function dumpMobileLogs() {
