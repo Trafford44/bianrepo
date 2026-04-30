@@ -406,6 +406,12 @@ export function updateSyncToggleButton() {
 
 export function bindPopupEvents(textarea) {
     logger.debug("binding", () => "Running bindPopupEvents(). CALLED BY: " + getCallerName("bindPopupEvents"));
+
+    logger.debug("ui", () => {
+    console.log("=== STACK DUMP ===\n" + new Error().stack);
+    return "Running bindEditorEvents(). CALLED BY: " + getCallerName();
+    });
+
     const colorPopup = document.getElementById("md-color-popup");
     if (colorPopup) {
         colorPopup.addEventListener("click", (e) => {
