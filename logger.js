@@ -252,7 +252,8 @@ export function getCallerName(currentFunctionName = null) {
     "info",
     "warn",
     "error",
-    "watch"
+    "watch",
+    "<anonymous>" // skip the lambda wrapper
   ];
 
   for (const line of lines) {
@@ -260,11 +261,7 @@ export function getCallerName(currentFunctionName = null) {
     const fn = match ? match[1] : null;
     if (!fn) continue;
 
-    // Skip logger frames
     if (skip.some(s => fn.includes(s))) continue;
-
-    // Skip the current function
-    if (currentFunctionName && fn.includes(currentFunctionName)) continue;
 
     return fn;
   }
