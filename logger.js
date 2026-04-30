@@ -195,12 +195,9 @@ export function formatDateNZ() {
 export function getCallerName(currentFunctionName = null) {
   const stack = new Error().stack;
   if (!stack || !currentFunctionName) return "unknown";
-
+console.log("=== STACK DUMP ===\n" + new Error().stack);
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
-
-  // testing - show teh stack
-  console.log("=== STACK DUMP ===\n" + new Error().stack);
 
   const skip = [
     "getCallerName",
@@ -214,8 +211,8 @@ export function getCallerName(currentFunctionName = null) {
 
   let foundCurrent = false;
   let recursionDetected = false;
-  let immediateCaller = null;
-  let rootCaller = null;
+  let immediateSite = null;
+  let rootNamed = null;
 
   for (const line of lines) {
     const match = line.match(/at (\S+)/);
@@ -224,6 +221,13 @@ export function getCallerName(currentFunctionName = null) {
 
     // Skip logger/internal frames
     if (skip.some(s => fn.includes(s))) continue;
+
+    // Skip call sites inside the same file as the current function
+    // e.g. workspace.js:48:13 when currentFunctionName is sortTree
+    if (fn.includes(".js:") && fn.includes(currentFunctionName) === false) {
+      const file = fn.split(":")[0];
+      if (file.includes("workspace.js")) continue;
+    }
 
     // Step 1: find the current function
     if (!foundCurrent) {
@@ -240,27 +244,29 @@ export function getCallerName(currentFunctionName = null) {
     }
 
     // Step 3: first non-recursive frame = immediate caller
-    if (!immediateCaller) {
-      immediateCaller = fn;
+    if (!immediateSite) {
+      immediateSite = fn;
       continue;
     }
 
     // Step 4: first named function = root caller
-    if (!rootCaller && !fn.includes(".js:") && !fn.includes("<anonymous>")) {
-      rootCaller = fn;
+    if (!rootNamed && !fn.includes(".js:") && !fn.includes("<anonymous>")) {
+      rootNamed = fn;
       break;
     }
   }
 
-  // Step 5: build output
-  if (!immediateCaller) return "unknown";
-
-  if (recursionDetected) {
-    return `${immediateCaller} (recursive call, root caller: ${rootCaller ?? "unknown"})`;
+  // Build output
+  if (rootNamed) {
+    if (recursionDetected) {
+      return `${rootNamed} (recursive, via ${immediateSite ?? "unknown"})`;
+    }
+    return rootNamed;
   }
 
-  return immediateCaller;
+  return immediateSite ?? "unknown";
 }
+
 
 
 
