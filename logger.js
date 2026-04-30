@@ -188,62 +188,19 @@ export function formatDateNZ() {
        + `${get("hour")}:${get("minute")}:${get("second")} NZ`;
 }
 
-
-export function getCallerName_old(currentFunctionName) {
-  const stack = new Error().stack;
-  if (!stack) return "unknown";
-
-  const lines = stack.split("\n").map(l => l.trim());
-
-  // Remove the first line ("Error")
-  lines.shift();
-
-  for (const line of lines) {
-    const match = line.match(/at (\S+)/);
-    const fn = match ? match[1] : null;
-
-    if (!fn) continue;
-
-    // Skip internal / current function
-    if (fn.includes("getCallerName")) continue;
-    if (fn.includes(currentFunctionName)) continue;
-
-    return fn;
-  }
-
-  return "unknown";
-}
-
-/*
-To remove the call to getCallerName() always:
-
-Change all calls to this, which is passing a function to call via "() =>".  getCallerName determines if it needs to be called. 
-- (old) logger.debug("workspace", () => "Running findNodeById(). CALLED BY: " + getCallerName("findNodeById"));
-- (new) logger.debug("workspace", () => "Running  findNodeById(). CALLED BY: " + getCallerName("findNodeById"));
-
-Change debug (above) to this:
-
-debug(channel, message) {
-    if (!this.debugEnabled) return;
-
-    if (typeof message === "function") {
-        message = message();   // <-- NOW getCallerName() runs
-    }
-
-    console.log(message);
-}
-
-This is a 'lazy' approch where the caller name is only computed if the log level is enabled, and the message is a function. This way we avoid the overhead of computing the caller name when it's not needed.
-
-*/
+ // testing - show teh stack
+  //console.log("=== STACK DUMP ===\n" + new Error().stack);
 
 
 export function getCallerName(currentFunctionName = null) {
   const stack = new Error().stack;
   if (!stack || !currentFunctionName) return "unknown";
-console.log("=== STACK DUMP ===\n" + new Error().stack);
+
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
+
+  // testing - show teh stack
+  console.log("=== STACK DUMP ===\n" + new Error().stack);
 
   const skip = [
     "getCallerName",
@@ -256,6 +213,9 @@ console.log("=== STACK DUMP ===\n" + new Error().stack);
   ];
 
   let foundCurrent = false;
+  let recursionDetected = false;
+  let immediateCaller = null;
+  let rootCaller = null;
 
   for (const line of lines) {
     const match = line.match(/at (\S+)/);
@@ -273,15 +233,35 @@ console.log("=== STACK DUMP ===\n" + new Error().stack);
       continue;
     }
 
-    // Step 2: skip recursive calls
-    if (fn.includes(currentFunctionName)) continue;
+    // Step 2: detect recursion
+    if (fn.includes(currentFunctionName)) {
+      recursionDetected = true;
+      continue;
+    }
 
-    // Step 3: return the first non-recursive caller
-    return fn;
+    // Step 3: first non-recursive frame = immediate caller
+    if (!immediateCaller) {
+      immediateCaller = fn;
+      continue;
+    }
+
+    // Step 4: first named function = root caller
+    if (!rootCaller && !fn.includes(".js:") && !fn.includes("<anonymous>")) {
+      rootCaller = fn;
+      break;
+    }
   }
 
-  return "unknown";
+  // Step 5: build output
+  if (!immediateCaller) return "unknown";
+
+  if (recursionDetected) {
+    return `${immediateCaller} (recursive call, root caller: ${rootCaller ?? "unknown"})`;
+  }
+
+  return immediateCaller;
 }
+
 
 
 
