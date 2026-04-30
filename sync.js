@@ -58,7 +58,7 @@ export function isReadOnlyDevice() {
 
 
 async function getCurrentWorkspaceGist() {
-    logger.debug("sync", "Running getCurrentWorkspaceGist(). CALLED BY: " + getCallerName("getCurrentWorkspaceGist"));
+    logger.debug("sync", () => "Running getCurrentWorkspaceGist(). CALLED BY: " + getCallerName("getCurrentWorkspaceGist"));
 
     if (!requireLogin()) {
         logger.info("sync: getCurrentWorkspaceGist", "Not logged in.");
@@ -113,7 +113,7 @@ async function getCurrentWorkspaceGist() {
 }
 
 export function handleExpiredToken() {
-    logger.debug("sync", "Running handleExpiredToken(). CALLED BY: " + getCallerName("handleExpiredToken"));
+    logger.debug("sync", () => "Running handleExpiredToken(). CALLED BY: " + getCallerName("handleExpiredToken"));
     logger.error("sync.token", "GitHub token expired — entering recovery mode");
 
     // 1. Emergency dump local workspace
@@ -139,7 +139,7 @@ export function handleExpiredToken() {
 }
 
 async function githubFetch(url, options = {}) {
-    logger.debug("sync", "Running githubFetch(). CALLED BY: " + getCallerName("githubFetch"));
+    logger.debug("sync", () => "Running githubFetch(). CALLED BY: " + getCallerName("githubFetch"));
     const token = getToken(); // your existing getter
 
     const headers = {
@@ -162,7 +162,7 @@ async function githubFetch(url, options = {}) {
 }
 
 export async function startSyncLoop() {
-    logger.debugSyncing("sync", "Running startSyncLoop(). CALLED BY: " + getCallerName("startSyncLoop"));
+    logger.debugSyncing("sync", () => "Running startSyncLoop(). CALLED BY: " + getCallerName("startSyncLoop"));
 
     if (isReadOnlyDevice()) {
         logger.info("sync: startSyncLoop", "Start sync loop attempted on readonly device — ignoring");
@@ -200,7 +200,7 @@ export async function startSyncLoop() {
 }
 
 export function setSyncEnabled(value) {
-    logger.debug("sync", "Running setSyncEnabled(). CALLED BY: " + getCallerName("setSyncEnabled") + "  value: ", value);
+    logger.debug("sync", () => "Running setSyncEnabled(). CALLED BY: " + getCallerName("setSyncEnabled") + "  value: ", value);
 
     if (isReadOnlyDevice()) {
         logger.info("sync: setSyncEnabled", "Set sync enabled attempted on readonly device — ignoring");
@@ -227,7 +227,7 @@ export function getSyncEnabled() {
 }
 
 export function stopSyncLoop() {
-    logger.debugSyncing("sync", "Running stopSyncLoop(). CALLED BY: " + getCallerName("stopSyncLoop"));
+    logger.debugSyncing("sync", () => "Running stopSyncLoop(). CALLED BY: " + getCallerName("stopSyncLoop"));
 
     if (isReadOnlyDevice()) {
         logger.info("sync: stopSyncLoop", "Stop sync toggle attempted on readonly device — ignoring");
@@ -248,7 +248,7 @@ export function stopSyncLoop() {
 }
 
 export function toggleSyncLoop() {
-    logger.debug("sync", "Running toggleSyncLoop(). CALLED BY: " + getCallerName("toggleSyncLoop")); 
+    logger.debug("sync", () => "Running toggleSyncLoop(). CALLED BY: " + getCallerName("toggleSyncLoop")); 
 
     if (isReadOnlyDevice()) {
         logger.info("sync: toggleSyncLoop", "Sync toggle attempted on readonly device — ignoring");
@@ -273,7 +273,7 @@ export function toggleSyncLoop() {
 
 // re-check the token immediately after wake to handle cases where GitHub token becomes invalid after laptop suspend
 export async function bindVisibilityEvents() {
-    logger.debug("sync", "Running bindVisibilityEvents(). CALLED BY: " + getCallerName("bindVisibilityEvents"));
+    logger.debug("sync", () => "Running bindVisibilityEvents(). CALLED BY: " + getCallerName("bindVisibilityEvents"));
 
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
@@ -283,7 +283,7 @@ export async function bindVisibilityEvents() {
 }
 
 export function bindActivityEvents() {
-    logger.debug("sync", "Running bindActivityEvents(). CALLED BY: " + getCallerName("bindActivityEvents"));
+    logger.debug("sync", () => "Running bindActivityEvents(). CALLED BY: " + getCallerName("bindActivityEvents"));
     
     if (isReadOnlyDevice()) {
         logger.info("sync: bindActivityEvents", "Binding activity events attempted on readonly device — ignoring");
@@ -310,7 +310,7 @@ function markActivity() {
 }
 
 function setConnectionButtonState(connected) {
-    logger.debug("sync", "Running setConnectionButtonState(). CALLED BY: " + getCallerName("setConnectionButtonState"));
+    logger.debug("sync", () => "Running setConnectionButtonState(). CALLED BY: " + getCallerName("setConnectionButtonState"));
     const loginBtn = document.getElementById("github-login");
     if (!loginBtn) {
         logger.info("sync: setConnectionButtonState", "Button 'github-login' not found");
@@ -330,7 +330,7 @@ function setConnectionButtonState(connected) {
 
 function bindReconnectLink() {
     // Delay ensures the notification HTML is in the DOM
-    logger.debug("sync", "Running bindReconnectLink(). CALLED BY: " + getCallerName("bindReconnectLink"));
+    logger.debug("sync", () => "Running bindReconnectLink(). CALLED BY: " + getCallerName("bindReconnectLink"));
     setTimeout(() => {
         const link = document.getElementById("reconnect-link");
         if (!link) {
@@ -347,7 +347,7 @@ function bindReconnectLink() {
 }
 
 export function disconnectFromGitHub(message) {
-    logger.debug("sync", "Running disconnectFromGitHub(). CALLED BY: " + getCallerName("disconnectFromGitHub"));
+    logger.debug("sync", () => "Running disconnectFromGitHub(). CALLED BY: " + getCallerName("disconnectFromGitHub"));
     setSyncStatus("error", "Disconnected");
     setConnectionButtonState(false);
     showNotification("error",`${message} <a href="#" id="reconnect-link">Reconnect</a>.`);
@@ -356,7 +356,7 @@ export function disconnectFromGitHub(message) {
 }
 
 function connectToGitHub() {
-    logger.debug("sync", "Running connectToGitHub(). CALLED BY: " + getCallerName("connectToGitHub"));
+    logger.debug("sync", () => "Running connectToGitHub(). CALLED BY: " + getCallerName("connectToGitHub"));
     setSyncStatus("error", "Disconnected");
     setSyncStatus("synced", "Connected");
     setConnectionButtonState(true);
@@ -364,7 +364,7 @@ function connectToGitHub() {
 }
 
 export async function runSyncCheck(reason) {
-    logger.debugSyncing("sync: runSyncCheck", "Running runSyncCheck (start). CALLED BY: " + getCallerName("runSyncCheck")," (reason: " + reason + ")");
+    logger.debugSyncing("sync: runSyncCheck", () => "Running runSyncCheck (start). CALLED BY: " + getCallerName("runSyncCheck")," (reason: " + reason + ")");
 
     if (!syncEnabled) {
         logger.debugSyncing("sync.runSyncCheck", `Skipped — sync disabled`);
@@ -592,13 +592,13 @@ function workspaceIsEmpty() {
 }
 
 function updateSyncState() {
-    logger.debug("sync", "Running updateSyncState(). CALLED BY: " + getCallerName("updateSyncState"));
+    logger.debug("sync", () => "Running updateSyncState(). CALLED BY: " + getCallerName("updateSyncState"));
     // Only updates timing — never the hash.
     lastSuccessfulSyncTime = Date.now();
 }
 
 async function handleCloudChange(latest, idleReturn) {
-    logger.debugSyncing("sync: handleCloudChange", "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
+    logger.debugSyncing("sync: handleCloudChange", () => "Running handleCloudChange(). CALLED BY: " + getCallerName("handleCloudChange"));
     logger.debugSyncing("sync: handleCloudChange", `cloudChangeHandled = ${window.__cloudChangeHandled}`);
 
     if (isReadOnlyDevice() || !getSyncEnabled()) { 
@@ -687,7 +687,7 @@ async function handleCloudChange(latest, idleReturn) {
 
 
 export function buildCanonicalSnapshot(flat) {
-    logger.debug("sync", "Running buildCanonicalSnapshot(). CALLED BY: " + getCallerName("buildCanonicalSnapshot"));
+    logger.debug("sync", () => "Running buildCanonicalSnapshot(). CALLED BY: " + getCallerName("buildCanonicalSnapshot"));
 
     // Defensive: ensure flat is an object
     if (!Array.isArray(flat)) {
@@ -714,7 +714,7 @@ export function buildCanonicalSnapshot(flat) {
 
 
 async function sha256(str) {
-    logger.debug("sync", "Running sha256(). CALLED BY: " + getCallerName("sha256"));
+    logger.debug("sync", () => "Running sha256(). CALLED BY: " + getCallerName("sha256"));
     // Encode string as UTF-8
     const encoder = new TextEncoder();
     const data = encoder.encode(str);
@@ -732,7 +732,7 @@ async function sha256(str) {
 }
 
 export async function computeWorkspaceHash(flat) {
-    logger.debug("sync", "Running computeWorkspaceHash(). CALLED BY: " + getCallerName("computeWorkspaceHash"));
+    logger.debug("sync", () => "Running computeWorkspaceHash(). CALLED BY: " + getCallerName("computeWorkspaceHash"));
 
     // Must be a flat ARRAY of { path, content }
     if (!Array.isArray(flat)) {
@@ -760,7 +760,7 @@ export async function computeWorkspaceHash(flat) {
 
 
 export async function reconcileLocalAndCloud(localTree) {
-    logger.debugSyncing("sync: reconcileLocalAndCloud", "Running reconcileLocalAndCloud(). CALLED BY: " + getCallerName("reconcileLocalAndCloud"));
+    logger.debugSyncing("sync: reconcileLocalAndCloud", () => "Running reconcileLocalAndCloud(). CALLED BY: " + getCallerName("reconcileLocalAndCloud"));
 
     if (!syncEnabled) {
         logger.debugSyncing("sync: reconcileLocalAndCloud", "reconcileLocalAndCloud() skipped — sync disabled");
@@ -922,7 +922,7 @@ export async function reconcileLocalAndCloud(localTree) {
 }
 
 async function getLatestWorkspaceGistMeta() {
-    logger.debug("sync", "Running getLatestWorkspaceGistMeta(). CALLED BY: " + getCallerName("getLatestWorkspaceGistMeta"));
+    logger.debug("sync", () => "Running getLatestWorkspaceGistMeta(). CALLED BY: " + getCallerName("getLatestWorkspaceGistMeta"));
     const gistId = getGistId();
     const token = getToken();
 
@@ -980,7 +980,7 @@ async function getLatestWorkspaceGistMeta() {
 
 
 async function maybeAutoSave() {
-    logger.debug("sync", "Running maybeAutoSave(). CALLED BY: " + getCallerName("maybeAutoSave"));
+    logger.debug("sync", () => "Running maybeAutoSave(). CALLED BY: " + getCallerName("maybeAutoSave"));
 
     // --- Compute local hash using the flat model ---
     const localTree = loadState();
@@ -1016,7 +1016,7 @@ async function maybeAutoSave() {
 
 
 async function cloudHashChanged() {
-    logger.debug("sync", "Running cloudHashChanged(). CALLED BY: " + getCallerName("cloudHashChanged"));
+    logger.debug("sync", () => "Running cloudHashChanged(). CALLED BY: " + getCallerName("cloudHashChanged"));
 
     const latest = await getCurrentWorkspaceGist();
     if (!latest) {
@@ -1056,7 +1056,7 @@ async function cloudHashChanged() {
 
 
 window.debugCloud = async () => {
-    logger.debug("sync", "Assigning window.debugCloud. CALLED BY: " + getCallerName("debugCloud"));
+    logger.debug("sync", () => "Assigning window.debugCloud. CALLED BY: " + getCallerName("debugCloud"));
 
     const latest = await getNewestGistAcrossAccount();
     if (!latest) {
@@ -1092,7 +1092,7 @@ window.debugCloud = async () => {
 
 
 export async function saveWorkspaceToGist() {
-    logger.debug("sync", "Running saveWorkspaceToGist(). CALLED BY: " + getCallerName("saveWorkspaceToGist"));
+    logger.debug("sync", () => "Running saveWorkspaceToGist(). CALLED BY: " + getCallerName("saveWorkspaceToGist"));
     if (!requireLogin()) {
         logger.info("sync: saveWorkspaceToGist", "Save skipped — need to login.");
         return;
@@ -1260,12 +1260,12 @@ export async function saveWorkspaceToGist() {
 }
 
 export function saveEmergencySnapshot(reason, extra = {}) {
-    logger.debug("sync", "Running saveEmergencySnapshot(). CALLED BY: " + getCallerName("saveEmergencySnapshot"));
+    logger.debug("sync", () => "Running saveEmergencySnapshot(). CALLED BY: " + getCallerName("saveEmergencySnapshot"));
     exportWorkspace(reason, extra);
 }
 
 export function buildReadableWorkspaceExport(reason = "manual-export", extra = {}) {
-    logger.debug("sync", "Running buildReadableWorkspaceExport(). CALLED BY: " + getCallerName("buildReadableWorkspaceExport"));
+    logger.debug("sync", () => "Running buildReadableWorkspaceExport(). CALLED BY: " + getCallerName("buildReadableWorkspaceExport"));
     const tree = getWorkspace();
     const flat = flattenWorkspace(tree);
 
@@ -1354,7 +1354,7 @@ export function markLocalEdit() {
 }
 
 export function showSyncState(state) {
-    logger.debug("sync", "Running showSyncState(). CALLED BY: " + getCallerName("showSyncState"));
+    logger.debug("sync", () => "Running showSyncState(). CALLED BY: " + getCallerName("showSyncState"));
 
     const map = {
         saving:   ["saving",   "Saving…"],
@@ -1370,7 +1370,7 @@ export function showSyncState(state) {
 
 
 export async function loadWorkspaceFromGist() {
-    logger.debug("sync", "Running loadWorkspaceFromGist. CALLED BY: " + getCallerName("loadWorkspaceFromGist"));
+    logger.debug("sync", () => "Running loadWorkspaceFromGist. CALLED BY: " + getCallerName("loadWorkspaceFromGist"));
     logger.debug("sync", "loadWorkspaceFromGist gistId:", getGistId());
 
     if (!requireLogin()) {
@@ -1541,7 +1541,7 @@ export async function loadWorkspaceFromGist() {
 
 
 async function getNewestGistAcrossAccount() {
-    logger.debug("sync", "Running getNewestGistAcrossAccount(). CALLED BY: " + getCallerName("getNewestGistAcrossAccount"));
+    logger.debug("sync", () => "Running getNewestGistAcrossAccount(). CALLED BY: " + getCallerName("getNewestGistAcrossAccount"));
     if (!requireLogin()) {
         logger.info("sync: getNewestGistAcrossAccount", "Login not required")
         return null;
@@ -1576,7 +1576,7 @@ async function getNewestGistAcrossAccount() {
 }
 
 export async function listGistRevisions() {
-    logger.debug("sync", "Running listGistRevisions(). CALLED BY: " + getCallerName("listGistRevisions"));
+    logger.debug("sync", () => "Running listGistRevisions(). CALLED BY: " + getCallerName("listGistRevisions"));
     if (!requireLogin()) {
         logger.info("sync: listGistRevisions", "Login not required")
         return [];
@@ -1609,7 +1609,7 @@ export async function listGistRevisions() {
 }
 
 export async function restoreFromGistVersion(versionId) {
-    logger.debug("sync", "Running restoreFromGistVersion(). CALLED BY: " + getCallerName("restoreFromGistVersion"));
+    logger.debug("sync", () => "Running restoreFromGistVersion(). CALLED BY: " + getCallerName("restoreFromGistVersion"));
     if (!requireLogin()) {
         logger.info("sync: restoreFromGistVersion", "Login not required")
         return;
@@ -1689,7 +1689,7 @@ export async function restoreFromGistVersion(versionId) {
 }
 
 export async function showRestoreDialog() {
-    logger.debug("sync", "Running showRestoreDialog(). CALLED BY: " + getCallerName("showRestoreDialog"));
+    logger.debug("sync", () => "Running showRestoreDialog(). CALLED BY: " + getCallerName("showRestoreDialog"));
     const revisions = await listGistRevisions();
     if (!revisions || revisions.length === 0) {
         logger.info("sync: showRestoreDialog", "No Gist revisions found")
@@ -1726,7 +1726,7 @@ export async function showRestoreDialog() {
 }
 
 async function adoptOrCreateGist() {
-    logger.debug("sync", "Running adoptOrCreateGist(). CALLED BY: " + getCallerName("adoptOrCreateGist"));
+    logger.debug("sync", () => "Running adoptOrCreateGist(). CALLED BY: " + getCallerName("adoptOrCreateGist"));
     const token = getToken();
     if (!token) {
         logger.info("sync: adoptOrCreateGist", `Token was null - exiting`);
@@ -1793,9 +1793,7 @@ async function adoptOrCreateGist() {
 }
 
 export async function applyCloudWorkspace() {
-    logger.debug("sync.applyCloudWorkspace", 
-        "START applyCloudWorkspace(). CALLED BY: " + getCallerName("applyCloudWorkspace")
-    );
+    logger.debug("sync.applyCloudWorkspace", () => "START applyCloudWorkspace(). CALLED BY: " + getCallerName("applyCloudWorkspace"));
 
     // ------------------------------------------------------------
     // 1. Load cloud data
