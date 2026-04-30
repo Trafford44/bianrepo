@@ -241,7 +241,7 @@ This is a 'lazy' approch where the caller name is only computed if the log level
 export function getCallerName(currentFunctionName = null) {
   const stack = new Error().stack;
   if (!stack || !currentFunctionName) return "unknown";
-const stack = new Error().stack;
+
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
 
