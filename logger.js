@@ -240,7 +240,7 @@ This is a 'lazy' approch where the caller name is only computed if the log level
 
 export function getCallerName(currentFunctionName = null) {
   const stack = new Error().stack;
-  if (!stack) return "unknown";
+  if (!stack || !currentFunctionName) return "unknown";
 
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
@@ -255,22 +255,31 @@ export function getCallerName(currentFunctionName = null) {
     "watch"
   ];
 
+  let foundCurrent = false;
+
   for (const line of lines) {
     const match = line.match(/at (\S+)/);
     const fn = match ? match[1] : null;
     if (!fn) continue;
 
-    // Skip logger frames
+    // Skip internal/logger frames
     if (skip.some(s => fn.includes(s))) continue;
 
-    // Skip the current function
-    if (currentFunctionName && fn.includes(currentFunctionName)) continue;
+    // First, walk until we hit the current function
+    if (!foundCurrent) {
+      if (fn.includes(currentFunctionName)) {
+        foundCurrent = true;
+      }
+      continue;
+    }
 
+    // The very next non-skipped frame is the caller
     return fn;
   }
 
   return "unknown";
 }
+
 
 export function dumpMobileLogs() {
     const blob = new Blob([fullLog.join("\n")], { type: "text/plain" });
