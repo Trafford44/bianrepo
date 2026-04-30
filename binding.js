@@ -8,7 +8,7 @@ logger.debug("binding","binding.js loaded from:", import.meta.url);
 
 export function bindSmartKeyboardEvents(textarea) {
 
-    logger.debug("binding", "bindSmartKeyboardEvents(). CALLED BY: " + getCallerName("bindSmartKeyboardEvents"));
+    logger.debug("binding", () => "bindSmartKeyboardEvents(). CALLED BY: " + getCallerName("bindSmartKeyboardEvents"));
 
     if (isReadOnlyDevice()) {
         logger.info("binding: bindSmartKeyboardEvents", "Binding smart keyboard events attempted on readonly device — ignoring");
@@ -86,7 +86,7 @@ export function bindSmartKeyboardEvents(textarea) {
 }
 
 export function bindGlobalShortcuts(textarea) {
-    logger.debug("binding", "bindGlobalShortcuts(). CALLED BY: " + getCallerName("bindGlobalShortcuts"));
+    logger.debug("binding", () => "Running bindGlobalShortcuts(). CALLED BY: " + getCallerName("bindGlobalShortcuts"));
 
     if (isReadOnlyDevice()) {
         logger.info("binding: bindGlobalShortcuts", "Binding global shortcuts attempted on readonly device — ignoring");
@@ -159,7 +159,7 @@ export function getCurrentLine(textarea) {
 
 
 export function bindScrollSync(textarea) {
-    logger.debug("binding", "bindScrollSync(). CALLED BY: " + getCallerName("bindScrollSync"));
+    logger.debug("binding", () => "Running bindScrollSync(). CALLED BY: " + getCallerName("bindScrollSync"));
     textarea.addEventListener("scroll", () => {
         const preview = document.getElementById("preview-pane");
         const maxEditor = textarea.scrollHeight - textarea.clientHeight;
@@ -231,7 +231,7 @@ export function bindTap(el, handler) {
 
 
 export function bindToolbarEvents(textarea) {
-    logger.debug("binding", "bindToolbarEvents(). CALLED BY: " + getCallerName("bindToolbarEvents"));
+    logger.debug("binding", () => "Running bindToolbarEvents(). CALLED BY: " + getCallerName("bindToolbarEvents"));
 
 
     // TOOLBAR & POPUP WIRE-UPS
@@ -405,7 +405,7 @@ export function updateSyncToggleButton() {
 }
 
 export function bindPopupEvents(textarea) {
-    logger.debug("binding", "bindPopupEvents(). CALLED BY: " + getCallerName("bindPopupEvents"));
+    logger.debug("binding", () => "Running bindPopupEvents(). CALLED BY: " + getCallerName("bindPopupEvents"));
     const colorPopup = document.getElementById("md-color-popup");
     if (colorPopup) {
         colorPopup.addEventListener("click", (e) => {
@@ -442,7 +442,7 @@ export function bindPopupEvents(textarea) {
 }
 
 export function hidePopupsIfClickedOutside(e) {
-    logger.debug("binding", "hidePopupsIfClickedOutside(). CALLED BY: " + getCallerName("hidePopupsIfClickedOutside"));
+    logger.debug("binding", () => "Running hidePopupsIfClickedOutside(). CALLED BY: " + getCallerName("hidePopupsIfClickedOutside"));
     const popups = [
         document.getElementById("md-color-popup"),
         document.getElementById("md-bgcolor-popup"),
@@ -458,7 +458,7 @@ export function hidePopupsIfClickedOutside(e) {
 }
 
 export function bindSidebarEvents() {
-    logger.debug("binding", "bindSidebarEvents(). CALLED BY: " + getCallerName("bindSSidebarEvents"));
+    logger.debug("binding", () => "Running bindSidebarEvents(). CALLED BY: " + getCallerName("bindSidebarEvents"));
     const closeBtn = document.getElementById("close-sidebar-btn");
     if (!closeBtn) return;
 
