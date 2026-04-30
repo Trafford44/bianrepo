@@ -192,7 +192,7 @@ export function formatDateNZ() {
 export function getCallerName_old(currentFunctionName) {
   const stack = new Error().stack;
   if (!stack) return "unknown";
-
+console.log("=== STACK DUMP ===\n" + new Error().stack);
   const lines = stack.split("\n").map(l => l.trim());
 
   // Remove the first line ("Error")
