@@ -15,7 +15,7 @@ export function setMetadata(meta) {
 
 
 export function extractMetadata(nodes) {
-    logger.debug("workspace-metadata", "Running extractMetadata. CALLED BY: " + getCallerName("extractMetadata"));
+    logger.debug("workspace-metadata", () => "Running extractMetadata. CALLED BY: " + getCallerName("extractMetadata"));
     const meta = [];
 
     function walk(list, parentPath = "") {
@@ -116,7 +116,7 @@ export function extractMetadata(nodes) {
 // workspace-metadata.js
 
 export function applyMetadata(tree, metadata) {
-    logger.debug("workspace-metadata", "Running applyMetadata. CALLED BY: " + getCallerName("applyMetadata"));
+    logger.debug("workspace-metadata", () => "Running applyMetadata. CALLED BY: " + getCallerName("applyMetadata"));
     const map = new Map();
     metadata.nodes.forEach(n => map.set(n.path, n));
 
