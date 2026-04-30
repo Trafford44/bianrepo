@@ -1116,7 +1116,7 @@ export async function saveWorkspaceToGist() {
 
         showSyncState("saving");
 
-        logger.info("sync: saveWorkspaceToGist",
+        logger.debug("sync: saveWorkspaceToGist",
             `Starting save process. Current gistId: ${gistId || "(none)"}`
         );
 
@@ -1147,7 +1147,7 @@ export async function saveWorkspaceToGist() {
             content: JSON.stringify(metadata, null, 2)
         };
 
-        logger.info("sync: saveWorkspaceToGist",
+        logger.debug("sync: saveWorkspaceToGist",
             `Prepared ${Object.keys(gistFiles).length} files for saving: ${Object.keys(gistFiles).join(", ")}`
         );
 
@@ -1165,7 +1165,7 @@ export async function saveWorkspaceToGist() {
         if (gistId) {
             method = "PATCH";
             url = `${GIST_API}/${gistId}`;
-            logger.info("sync: saveWorkspaceToGist",
+            logger.debug("sync: saveWorkspaceToGist",
                 `Updating existing gist with ID: ${gistId} using PATCH method.`
             );
 
@@ -1173,7 +1173,7 @@ export async function saveWorkspaceToGist() {
 
             if (existing && existing.files) {
                 const existingNames = Object.keys(existing.files);
-                logger.info("sync: saveWorkspaceToGist",
+                logger.debug("sync: saveWorkspaceToGist",
                     `Existing cloud files before update: ${existingNames.join(", ")}`
                 );
 
@@ -1182,7 +1182,7 @@ export async function saveWorkspaceToGist() {
 
                     const stillExistsLocally = files.some(f => f.path === existingName);
                     if (!stillExistsLocally) {
-                        logger.info("sync: saveWorkspaceToGist",
+                        logger.debug("sync: saveWorkspaceToGist",
                             `Marking file for deletion: ${existingName}`
                         );
                         body.files[existingName] = null;
@@ -1190,16 +1190,14 @@ export async function saveWorkspaceToGist() {
                 }
             }
         } else {
-            logger.info("sync: saveWorkspaceToGist",
+            logger.debug("sync: saveWorkspaceToGist",
                 "No gistId found — creating new gist via POST"
             );
         }
 
-        logger.info("sync: saveWorkspaceToGist", `Final request method: ${method}`);
-        logger.info("sync: saveWorkspaceToGist", `Final request URL: ${url}`);
-        logger.info("sync: saveWorkspaceToGist",
-            `Final file list being sent: ${Object.keys(body.files).join(", ")}`
-        );
+        logger.debug("sync: saveWorkspaceToGist", `Final request method: ${method}`);
+        logger.debug("sync: saveWorkspaceToGist", `Final request URL: ${url}`);
+        logger.debug("sync: saveWorkspaceToGist", `Final file list being sent: ${Object.keys(body.files).join(", ")}`);
 
         // --- 5. Send request ---
         const res = await githubFetch(url, {
@@ -1223,7 +1221,7 @@ export async function saveWorkspaceToGist() {
 
         // --- 6. Store gistId if new ---
         if (!gistId && data.id) {
-            logger.info("sync: saveWorkspaceToGist",
+            logger.debug("sync: saveWorkspaceToGist",
                 `New gist created with ID: ${data.id}`
             );
             setGistId(data.id);
@@ -1239,11 +1237,11 @@ export async function saveWorkspaceToGist() {
         localStorage.setItem("lastSyncedHash", lastSyncedHash);
         lastSuccessfulSyncTime = Date.now();
 
-        logger.info("sync: saveWorkspaceToGist", "Save successful.");
-        logger.info("sync: saveWorkspaceToGist",
+        logger.debug("sync: saveWorkspaceToGist", "Save successful.");
+        logger.debug("sync: saveWorkspaceToGist",
             `Updated lastSyncedHash: ${lastSyncedHash}`
         );
-        logger.info("sync: saveWorkspaceToGist", "--- SAVE END ---");
+        logger.debug("sync: saveWorkspaceToGist", "--- SAVE END ---");
 
         showSyncState("synced");
         showNotification("success", "Saved to cloud");
