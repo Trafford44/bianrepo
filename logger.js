@@ -245,15 +245,19 @@ export function getCallerName(currentFunctionName = null) {
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
 
-  const skip = [
+  const skipExact = new Set([
     "getCallerName",
-    "logger",
     "debug",
     "info",
     "warn",
     "error",
     "watch",
-    "<anonymous>" // skip the lambda wrapper
+    "log"
+  ]);
+
+  const skipContains = [
+    "<anonymous>",   // the lambda wrapper
+    "logger."        // logger methods
   ];
 
   for (const line of lines) {
@@ -261,7 +265,11 @@ export function getCallerName(currentFunctionName = null) {
     const fn = match ? match[1] : null;
     if (!fn) continue;
 
-    if (skip.some(s => fn.includes(s))) continue;
+    // Skip exact matches (logger internals)
+    if (skipExact.has(fn)) continue;
+
+    // Skip frames containing known unwanted patterns
+    if (skipContains.some(s => line.includes(s))) continue;
 
     return fn;
   }
