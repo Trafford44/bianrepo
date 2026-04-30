@@ -245,27 +245,27 @@ export function getCallerName(currentFunctionName = null) {
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
 
-  let skippedFunctionContainingDebug = false;
+  const skip = [
+    "getCallerName",
+    "logger",
+    "debug",
+    "info",
+    "warn",
+    "error",
+    "watch"
+  ];
 
   for (const line of lines) {
-    // Skip the lambda frame (your real stack)
-    if (line.includes("binding.js:411")) continue;
-
-    // Skip logger internals
-    if (line.includes("logger.js")) continue;
-
-    // Extract function name
     const match = line.match(/at (\S+)/);
     const fn = match ? match[1] : null;
     if (!fn) continue;
 
-    // Skip the function containing the debug call
-    if (!skippedFunctionContainingDebug) {
-      skippedFunctionContainingDebug = true;
-      continue;
-    }
+    // Skip logger frames
+    if (skip.some(s => fn.includes(s))) continue;
 
-    // This is the actual caller
+    // Skip the current function
+    if (currentFunctionName && fn.includes(currentFunctionName)) continue;
+
     return fn;
   }
 
