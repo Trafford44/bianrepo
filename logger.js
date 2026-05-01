@@ -161,6 +161,14 @@ export const logger = {
   // semantic highlight channel
   debugSyncing(source, message, details = null, options = {}) {
     // use to enable filtering of specific "Syncing" debug messages in the console. These are still logged at DEBUG level but have a special source tag.
+
+    // If DEBUG is disabled, exit immediately — no message(), no overhead
+    if (LOG_LEVELS.DEBUG < this.currentLevel) return;
+
+    if (typeof message === "function") {
+      message = message();
+    }
+        
     log("DEBUG", LOG_LEVELS.DEBUG, `${source}-SYNCING`, message, details, options);
   }  
 
@@ -195,7 +203,10 @@ export function formatDateNZ() {
 export function getCallerName(currentFunctionName = null) {
   const stack = new Error().stack;
   if (!stack || !currentFunctionName) return "unknown";
-//console.log("=== STACK DUMP ===\n" + new Error().stack);
+
+  // testing - show the stack
+  //console.log("=== STACK DUMP ===\n" + new Error().stack);  
+
   const lines = stack.split("\n").map(l => l.trim());
   lines.shift(); // remove "Error"
 
@@ -266,10 +277,6 @@ export function getCallerName(currentFunctionName = null) {
 
   return immediateSite ?? "unknown";
 }
-
-
-
-
 
 export function dumpMobileLogs() {
     const blob = new Blob([fullLog.join("\n")], { type: "text/plain" });
