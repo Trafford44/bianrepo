@@ -42,7 +42,8 @@ function log(levelName, levelValue, source, message, details, options = {}) {
     DEBUG: "color: #337e36",
     WARN:  "color: #e6a700",
     ERROR: "color: #ff4d4d",
-    WATCH: "color: #ce13e7"
+    WATCH: "color: #ce13e7",
+    DEBUGSYNCING: "color: #64e713" 
   };
 
   const style = colours[levelName] || "color: inherit";
@@ -168,8 +169,8 @@ export const logger = {
     if (typeof message === "function") {
       message = message();
     }
-        
-    log("DEBUG", LOG_LEVELS.DEBUG, `${source}-SYNCING`, message, details, options);
+
+    log("DEBUGSYNCING", LOG_LEVELS.DEBUG, `${source}-SYNCING`, message, details, options);
   }  
 
 };
